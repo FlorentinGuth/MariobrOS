@@ -22,6 +22,7 @@ loader:                         ; The loader label (defined as entry point in th
   mov eax, 0xDEADBEEF           ; Place whatever we want in the register eax
   mov esp, kernel_stack + KERNEL_STACK_SIZE ; Points esp to the start of the stack (end of memory area)
 
+  ; Push arguments to the stack, from last to first
   call kmain                    ; Call the kmain function from kmain.c (return in eax)
 
 .loop:

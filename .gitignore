@@ -1,2 +1,5 @@
 build/**
 iso/boot/kernel.elf
+bochs/config.txt
+bochs/log.txt
+iso/boot/grub/menu.lst
