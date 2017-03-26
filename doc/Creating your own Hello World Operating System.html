@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<!-- saved from url=(0038)https://cs.au.dk/~sortie/dopsys/osdev/ -->
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Creating your own Hello World Operating System</title>
+  
+</head>
+<body>
+
+<h1>Creating your own Hello World Operating System</h1>
+
+<p>This document will guide you through creating your own operating system
+capable of writing "Hello, World!" to the screen, including the details of how
+to set up a proper cross compilation environment and a basic build system. The
+final result is designed to be minimal and as easy to understand as possible:
+My reference implementation is just 251 lines of source code.</p>
+
+<p>Please note that this tutorial is <b>not</b> for the faint of heart since it
+addresses a very difficult subject: operating systems development, which is one
+of the hardest disciplines in programming because your are on your own and bugs
+can be very difficult to find. Creating an operating system able to print
+"Hello, World!" to the screen is easy enough, but it gets very much more
+difficult after that. The purpose of this document is to show a minimal
+operating system, to give the readers a basic idea of how kernel development
+is possible.</p>
+
+<p>A strong understanding of the C programming language and assembly programming
+is <em>required</em> to fully understand the tutorial, but is not needed to
+complete it. It is, however, very essential if you wish to go further from here.
+</p>
+
+<p>Creating your own operating system is possible to do from any operating
+system, but it is much easier on GNU/Linux systems compared to other non-free
+operating systems. In this tutorial, I will assume you are using a GNU/Linux
+system with the GRUB 2 bootloader installed: this is true of modern Debian-based
+distributions, such as Ubuntu and Mint.</p>
+
+<p>To create a kernel, we'll need a compiler that translates C to assembly as
+well as a toolchain for assembly, linking, and other useful functions. Your
+system already ships such tools (gcc, as, ld, ...), however these programs
+produce programs for your local GNU/Linux system, <em>not</em> the target system
+we will be creating in this tutorial. We'll therefore need to set up a cross
+compiler that produces binaries for another operating system, which will be the
+first task.</p>
+
+
+<h2>Creating a Cross-Compiler Toolchain</h2>
+
+<p>We'll use GNU's Compiler Collection (gcc) version 4.7.2 and GNU Binutils
+version 2.23.1 for this purpose. GCC provides the compiler infrastructure and
+binutils provides the infrastructure for assembly, linking, disassembly, and
+other useful programs. Note that newer versions of these programs can be used,
+but this tutorial will assume these versions, since they are the most recent as
+of this writing.</p>
+
+<h3>Retrieving the Source Code</h3>
+
+<p>We'll create a new directory and download the needed source code archives and
+then unpack them.</p>
+
+<pre># Create a directory from which we will build the toolchain.
+mkdir -p $HOME/src
+cd $HOME/src
+
+# Download the needed packages we will need, as well as their dependencies.
+wget ftp://ftp.gnu.org/gnu/binutils/binutils-2.23.1.tar.bz2
+wget http://ftp.gnu.org/gnu/gcc/gcc-4.7.2/gcc-4.7.2.tar.bz2
+wget ftp://ftp.gnu.org/gnu/gmp/gmp-5.0.5.tar.xz
+wget http://mpfr.loria.fr/mpfr-3.0.1/mpfr-3.0.1.tar.xz
+wget http://www.multiprecision.org/mpc/download/mpc-1.0.1.tar.gz
+
+# Extract the archives in the current directory.
+tar xvf binutils-2.23.1.tar.bz2
+tar xvf gcc-4.7.2.tar.bz2 
+tar xvf gmp-5.0.5.tar.xz
+tar xvf mpfr-3.0.1.tar.xz
+tar xvf mpc-1.0.1.tar.gz
+</pre>
+
+<p>Your system may already have the required packages installed for gmp, mpfr,
+and mpc, but we'll build our own version here to be safe. GCC already contains
+the build scripts to do this, so we simply need to tell GCC to use our versions,
+which is done by setting up symbolic links in the GCC directory.</p>
+
+<pre>cd gcc-4.6.2
+ln -s ../gmp-5.0.5 gmp
+ln -s ../mpc-1.0 mpc
+ln -s ../mpfr-3.0.1 mpfr
+cd ..
+</pre>
+
+<h3>Building the Cross Binutils</h3>
+
+<p>In this section we build a binutils for the x86 CPU (version i586 or newer)
+and install it in $HOME/opt/cross. Feel free to install the cross compiler
+anywhere else. Please note that you should <em>not</em> build a binutils that
+targets x86_64, because creating a 64-bit kernel is a more advanced subject.</p>
+
+<p>We'll need to add the destination directory to our PATH environmental
+variable, as it allows the later steps to automatically find our cross
+toolchain. To do so:</p>
+
+<pre>export PATH="$HOME/opt/cross/bin:$PATH"</pre>
+
+<p><b>Note:</b> This only modifies the current shell session and you'll need to
+retype it when you start a new shell and want to continue this tutorial. If you
+want it set permanently, add it to your $HOME/.profile file or somewhere
+appropriate (and log out and in again for it to take effect). Consult the
+documentation for your shell for more information.</p>
+
+<p><b>Note:</b> It's okay if the target directory doesn't exist yet, as the later
+stages will automatically create it if needed</p>
+
+<p>Next, we'll configure binutils such that it produces binaries for the target
+i585-elf, which is a generic target suitable for a very new operating system.
+Remember that binutils and gcc doesn't know what your operating system is
+because it doesn't exist yet! Please note that we build binutils in another
+directory than its source directory, as the documentation recommends this.</p>
+
+<pre># Delete the build directory if it already exists.
+rm -rfv binutils-build
+mkdir binutils-build
+cd binutils-build
+
+../binutils-2.23.1/configure --prefix=$HOME/opt/cross --target=i586-elf \
+                             --disable-nls
+</pre>
+
+<p>The option --prefix tells the configure script where we want our toolchain to
+be installed. The --target option tells the configure script which platform
+that our toolchain should target, that is, produce binaries for. Note that the
+resulting toolchain runs on your local system and is 32-bit if you have 32-bit,
+and 64-bit if you have 64-bit. However, it <em>produces</em> 32-bit binaries in
+any case. That is the point of cross-compilation: the system on which the
+compiler is run is different from the platform it produces binaries for. The
+--disable-nls option simply tells that we don't want native language support,
+which makes a smaller toolchain and all the error messages are in english.</p>
+
+<p>Now that the package is configured, we will start the build process, which
+will take a while, as binutils is a big piece of software. You can speed up the
+process if you have multiple CPUs by using the -jN option, where you replace N
+with how concurrent you want the compilation process. If you have 8 CPUs, you
+may wish to use -j8. You can also use the program nice to start the compilation
+with low priority, such that the desktop environment remains usable in case of
+CPU starvation.</p>
+
+<pre>make</pre>
+
+<p>or</p>
+
+<pre>nice make -j8</pre>
+
+<p>Simply let the build process run. When it is done, you can install the
+cross binutils by invoking:</p>
+
+<pre>make install</pre>
+
+<p>Your cross binutils is now installed. You can return to the $HOME/src
+directory. If everything went well, you can now start the programs i586-elf-ld,
+i586-elf-as, and others from your command like.</p>
+
+<pre>cd ..</pre>
+
+<h3>Building the Cross Compiler</h3>
+
+<p>In this section, we will build the cross compiler that will translate your
+operating system to machine code. Remember to have PATH set up properly as
+detailed in the last step, or the cross compiler will be unable to find the
+cross binutils, and may use your local binutils causing massive mayhem. This
+section progresses much like the previous.</p>
+
+<p><b>Note:</b> Remember to have the symbolic links set up as previously
+discussed, or GCC may complain mysteriously about mpc, mpfr or gmp.</p>
+
+<pre>rm -rfv gcc-build
+mkdir gcc-build
+cd gcc-build
+</pre>
+
+<pre>../gcc-4.7.2/configure --prefix=$HOME/opt/cross --target=i586-elf \
+                       --enable-languages=c,c++ --disable-nls --without-headers
+</pre>
+
+<p>The --prefix option tells the configure script where to install the cross
+compiler, the --target option tells it what platform it should produce binaries
+for, the --disable-nls option disables native language support.</p>
+
+<p>The --enable-languages tells what languages that the compiler will support.
+If you omit this, you will build all the support languages in GCC which will
+take quite a while and you don't need them. You can remove the c++ from the
+command line if you wish, but C++ is a language suitable for operating systems
+development. The --without-headers option tells the compiler that there is no
+C standard library for the target system. After all, we haven't made one yet!
+</p>
+
+<p>Let's now build the cross compiler. Use -j and nice as discussed in the
+previous section, if appropriate.</p>
+
+<pre>make all-gcc # build gcc
+make install-gcc # install gcc
+make all-libgcc # install gcc support library
+make install-libgcc # install gcc support library
+</pre>
+
+<p>If everything went well, you just build and installed the cross compiler. You
+can now invoke i586-elf-gcc if PATH is set up correctly. Please note that this
+compiler is <em>unable</em> to compile a basic "Hello, World!" C program because
+there is no C standard library. Indeed, this is the most important point of the
+cross compiler: It removes all dependencies on the host system and can only
+produces programs that runs without any runtime support, e.g. operating system
+kernels!</p>
+
+<pre>cd ..</pre>
+
+
+<h2>Making your own Operating System</h2>
+
+<p>In this part we'll create a simple operating system kernel cleverly called
+myos (your may call it something else). The operating system is very limited
+as its only capability is to print "Hello, World" to the VGA text mode buffer
+and go into an infinite loop. Nonetheless, it is very satisfying when you
+finally get it working.</p>
+
+<p>For this purpose, you may download and use the reference implementation of
+myos, as found at <a href="https://cs.au.dk/~sortie/dopsys/myos/">
+https://cs.au.dk/~sortie/dopsys/myos/</a>.</p>
+
+<p>This part will attempt to explain how the reference implementation works,
+which will give you the basic understanding needed to extend the basic project.
+Please note the solution is very minimal and is not really suitable as a
+skeleton for a real project just yet. Later parts of this tutorial will aid in
+constructing a more suitable and generic skeleton.</p>
+
+<h3>Booting the Operating System</h3>
+
+<p>To start your operating system, an existing piece of software will needed to
+load it. This is the purpose of the bootloader, and in this document I will
+assume you are using GNU GRUB 2. Writing your own bootloader is also a very
+advanced subject, so we will use an existing one.</p>
+
+<p>We'll later configure the bootloader, but the operating system needs to
+handle when the bootloader passes control to it. Remember that the kernel is
+passed a very minimal environment, in which the stack is not set up yet, virtual
+memory is not yet enabled, hardware is not initialized, and so on.</p>
+
+<p>The first task we will deal with is how the bootloader starts the kernel. We
+are lucky because there exists a Multiboot Standard, which describes an easy
+interface between the bootloader and the operating system kernel. It works by
+putting a few magic values in some global variables (known as a multiboot
+header), which is searched for by the bootloader. When it sees these values, it
+recognizes the kernel as multiboot compatible and it knows how to load us, and
+it can even forward us important information such as memory maps, but we won't
+need that yet.</p>
+
+<p>Since there is no stack yet and we need to make sure the global variables are
+set correctly, we will do this in assembly. We will now create a file called
+boot.s (see the reference implementation) and discuss its contents.</p>
+
+<p>The very most important piece to create is the multiboot header, as it must
+be very early in the kernel binary, or the bootloader will fail to recognize us.
+</p>
+
+<pre># Declare constants used for creating a multiboot header.
+.set ALIGN,    1&lt;&lt;0             # align loaded modules on page boundaries
+.set MEMINFO,  1&lt;&lt;1             # provide memory map
+.set FLAGS,    ALIGN | MEMINFO  # this is the Multiboot 'flag' field
+.set MAGIC,    0x1BADB002       # 'magic number' lets bootloader find the header
+.set CHECKSUM, -(MAGIC + FLAGS) # checksum of above, to prove we are multiboot
+
+# Declare a header as in the Multiboot Standard.
+.section .multiboot
+.align 4
+.long MAGIC
+.long FLAGS
+.long CHECKSUM
+</pre>
+
+<p>The first lines declare constants as recognized by a multiboot compatible
+bootloader. The second part creates three longs (32-bit values, note that long
+in assembly is different from the C data type) in the special section called
+.multiboot, each containing the proper values that tells that we understand
+multiboot. Since we put these values on consecutive memory addresses here, we
+can be sure they are consecutive in the final program file as well. We create
+the values in the special section called .multiboot, because that will later
+allow us to tell the linker to put .multiboot very near the start of the kernel,
+so the bootloader have an easier time recognizing us.</p>
+
+<p>All this are necessary evils that tells the bootloader that we are a
+multiboot compatible kernel and you don't need to understand all the magic,
+because it is just magic values, as documented in the multiboot standard.</p>
+
+<p>Next up, we'll allocate a stack as a 16 KiB global array. Currently the stack
+pointer register (esp) points at anything and using it may cause massive harm.
+Instead, we'll set it to point at the end of our stack (remember, the stack
+grows downwards, at least on x86). We'll create this array in the section
+.bootstrap_stack for no particular reason.</p>
+
+<pre># Allocate room for a small temporary stack as a global variable called stack.
+.section .bootstrap_stack
+stack_bottom:
+.skip 16384 # 16 KiB
+stack_top:
+</pre>
+
+<p>This will create a symbol stack_bottom and 16384 bytes later create another
+symbol called stack_top. Since the skipped memory will not be used by other
+code, we have effectively allocated 16384 bytes of memory in the final kernel.
+</p>
+
+<p>Now that we have the basics set up, we can declare the function _start in the
+.text section (conventionally where code is put) which contains the very first
+instruction executed in our kernel. The bootloader searches our kernel for the
+entry point called _start and jumps to it. That is, we cannot return from the
+_start function, as there is nowhere to return.</p>
+
+<pre># The linker script specifies _start as the entry point to the kernel and the
+# bootloader will jump to this position once the kernel has been loaded.
+.section .text
+.global _start
+_start:
+</pre>
+
+<p>Welcome to kernel mode! We now have sufficient code for the bootloader to
+load and run our operating system. It doesn't do anything interesting yet, so
+we would like to call printf("Hello, World\n");. You should now realize one of
+the profound truths about kernel mode: In kernel mode nobody can hear you
+scream, you are very much alone. There is no printf function. There is no
+&lt;stdio.h&gt; header. If you want a function, you will have to code it
+yourself. And that is one of the best things about kernel development: you get
+to make the entire system yourself. You have absolute and complete power over
+the machine, there are no security restrictions, no safe guards, no debugging
+mechanisms, there is nothing but what you build.</p>
+
+<p>By now, you are perhaps tired of assembly language. You realize some things
+simply cannot be done in C, such as making the multiboot header in the right
+section and setting up the stack. However, you want to use C as a high-level
+language in which you'll write most of the operating system, or at least the
+parts that doesn't need to directly deal with hardware. To do so, we'll have to
+set up the runtime environment that C expects. Luckily, C doesn't expect at lot
+at this point, simply that there is a stack. Note however, that the CPU is not
+fully enabled at this point. Floating point instructions were added to the x86
+architecture later on and you will need to enable them using assembly, if you
+want to use them. It turns out that floating point instructions are not very
+useful in a kernel, so we'll skip initializing these. Then, all we need to run C
+code is a stack.</p>
+
+<p>To set up a stack, we simply set the esp register to point to the top of our
+stack (as it grows downwards).</p>
+
+<pre>movl $stack_top, %esp</pre>
+
+<p>We are now ready to actually execute C code. We cannot embed that in an
+assembly file, so we'll create a kernel.c file in a moment. In that file,
+we'll create a C entry point called kmain and we'll call it from here.</p>
+
+<pre>call kmain</pre>
+
+<p>In case the kmain function returns, we'll want to put the computer into an
+infinite loop. To do that, we use the clear interrupt ('cli') instruction to
+disable interrupts, the halt instruction ('hlt') to stop the CPU until the next
+interrupt arrives, and jumping to the halt instruction if it ever continues
+execution, just to be safe.</p>
+
+<pre>	cli
+hang:
+	hlt
+	jmp hang
+</pre>
+
+<p>And that concludes the boot.s assembly file that deals with transferring
+control from the bootloader to the high-level C code in kernel.c.</p>
+
+<h3>Implementing the Kernel</h3>
+
+<p>Now that we have the bootstrap assembly out of the way, we can start
+implementing kernel.c, which contains the real kernel. As previously mentioned
+we decided to start execution at the kmain function.</p>
+
+<pre>void kmain()
+{
+	// TODO: Kernel here.
+}
+</pre>
+
+<p>If we run the kernel code, it will start executing kmain, return, and then go
+into an infinite loop as implemented in boot.s. We'll want to add some more
+interesting code to make this an exciting experience. For instance, we'll want
+to draw something on the screen or perhaps show some text. Unfortunately, this
+is another hard truth of operating systems development: you need drivers to do
+anything, and creating those can be very very hard. For instance, changing the
+screen resolution and accessing pixels on the screen is very bothersome due to
+poor design of x86 and graphics cards.</p>
+
+<p>We are in luck, however! Because computer systems tend to stay backwards
+compatible, VGA-compatible graphics cards (most graphics cards) are put into the
+so-called VGA Text Mode upon boot (by the BIOS, and later restored by the boot
+loader). If you ever used an ancient system such as MS-DOS, you will recognize
+having only a 80x24 terminal that can only show text. It turns out that modern
+computer systems still have video memory for this on-screen memory put at
+physical memory address 0xB8000. Since GRUB has put us in text mode, we can
+actually access this ancient 80x24 text mode buffer and directly change the
+characters shown on the screen.</p>
+
+<p>It gets even better. The VGA Text Mode offers up to 16 different colors! And
+16 different background colors, too! That is 256 different colors. It is then
+required to understand the layout of the video memory buffer at 0xB8000. Each
+element on the screen is stored sequentially starting from the first row, first
+column, and each following element on that row. Then the next row and so on.
+Each element is an 16-bit entity consisting of an 8-bit char (ASCII) and a 8-bit
+color value (4-bit text color, 4-bit background color). The first byte is the
+character and the next byte is the color information.</p>
+
+<p>It then follows that 0xB8000 is the top-most left-most character on the
+screen, and 0xB8001 contains its color. 0xB8002 is the character to the left of
+the previous one, and 0xB8003 is its color. And so on.</p>
+
+<p>Using this information, it is possible to write to the screen.</p>
+
+<pre>#include &lt;stdbool.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdint.h&gt;
+
+static const uint8_t COLOR_BLACK = 0;
+static const uint8_t COLOR_BLUE = 1;
+static const uint8_t COLOR_GREEN = 2;
+static const uint8_t COLOR_CYAN = 3;
+static const uint8_t COLOR_RED = 4;
+static const uint8_t COLOR_MAGENTA = 5;
+static const uint8_t COLOR_BROWN = 6;
+static const uint8_t COLOR_LIGHT_GREY = 7;
+static const uint8_t COLOR_DARK_GREY = 8;
+static const uint8_t COLOR_LIGHT_BLUE = 9;
+static const uint8_t COLOR_LIGHT_GREEN = 10;
+static const uint8_t COLOR_LIGHT_CYAN = 11;
+static const uint8_t COLOR_LIGHT_RED = 12;
+static const uint8_t COLOR_LIGHT_MAGENTA = 13;
+static const uint8_t COLOR_LIGHT_BROWN = 14;
+static const uint8_t COLOR_WHITE = 15;
+
+uint8_t make_color(uint8_t fg, uint8_t bg)
+{
+	return fg | bg &lt;&lt; 4;
+}
+
+uint16_t make_vgaentry(char c, uint8_t color)
+{
+	uint16_t c16 = c;
+	uint16_t color16 = color;
+	return c16 | color16 &lt;&lt; 8;
+}
+
+void kmain()
+{
+	uint16_t* terminal_buffer = (uint16_t*) 0xB8000;
+	uint8_t color = make_color(COLOR_LIGHT_GREY, COLOR_BLACK);
+	terminal_buffer[0] = make_vgaentry('H', color);
+}
+</pre>
+
+<p><b>Note:</b> There are actually two standards of the C programming language.
+There is the Hosted version, which you are used to. Hosted means that there is a
+C standard library and other useful runtime features. Alternatively, there is
+the Freestanding version, which is what we are using here. Freestanding means
+that there is no C standard library, only what we provide ourselves. However,
+some header files are actually not part of the C standard library, but rather
+the compiler. These remain available even in freestanding C source code. In this
+case we use &lt;stdbool.h&gt; to get the bool datatype, &lt;stddef.h&gt; to
+get size_t and NULL, and &lt;stdint.h&gt; to get the intx_t and uintx_t
+datatypes which are invaluable for operating systems development, where you need
+to make sure that the variable is of an exact size (if we used a short instead
+of uint16_t and the size of short changed, our VGA driver here would break!).
+Additionally you can access the &lt;float.h&gt;, &lt;iso646.h&gt;,
+&lt;limits.h&gt;, and &lt;stdarg.h&gt; headers, as they are also freestanding.
+GCC actually ships a few more headers, but these are special purpose.</p>
+
+<p>Of course, printing an H to the screen is not very interesting unless it
+greets the local world. If you understand the above, you are ready to see the
+full kernel.c as in my reference implementation.</p>
+
+<pre>#include &lt;stdbool.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdint.h&gt;
+
+static const uint8_t COLOR_BLACK = 0;
+static const uint8_t COLOR_BLUE = 1;
+static const uint8_t COLOR_GREEN = 2;
+static const uint8_t COLOR_CYAN = 3;
+static const uint8_t COLOR_RED = 4;
+static const uint8_t COLOR_MAGENTA = 5;
+static const uint8_t COLOR_BROWN = 6;
+static const uint8_t COLOR_LIGHT_GREY = 7;
+static const uint8_t COLOR_DARK_GREY = 8;
+static const uint8_t COLOR_LIGHT_BLUE = 9;
+static const uint8_t COLOR_LIGHT_GREEN = 10;
+static const uint8_t COLOR_LIGHT_CYAN = 11;
+static const uint8_t COLOR_LIGHT_RED = 12;
+static const uint8_t COLOR_LIGHT_MAGENTA = 13;
+static const uint8_t COLOR_LIGHT_BROWN = 14;
+static const uint8_t COLOR_WHITE = 15;
+
+uint8_t make_color(uint8_t fg, uint8_t bg)
+{
+	return fg | bg &lt;&lt; 4;
+}
+
+uint16_t make_vgaentry(char c, uint8_t color)
+{
+	uint16_t c16 = c;
+	uint16_t color16 = color;
+	return c16 | color16 &lt;&lt; 8;
+}
+
+size_t strlen(const char* str)
+{
+	size_t ret = 0;
+	while ( str[ret] != 0 )
+		ret++;
+	return ret;
+}
+
+static const size_t VGA_WIDTH = 80;
+static const size_t VGA_HEIGHT = 24;
+
+size_t terminal_row;
+size_t terminal_column;
+uint8_t terminal_color;
+uint16_t* terminal_buffer;
+
+void terminal_initialize()
+{
+	terminal_row = 0;
+	terminal_column = 0;
+	terminal_color = make_color(COLOR_LIGHT_GREY, COLOR_BLACK);
+	terminal_buffer = (uint16_t*) 0xB8000;
+	for ( size_t y = 0; y &lt; VGA_HEIGHT; y++ )
+		for ( size_t x = 0; x &lt; VGA_WIDTH; x++ )
+		{
+			const size_t index = y * VGA_WIDTH + x;
+			terminal_buffer[index] = make_vgaentry(' ', terminal_color);
+		}
+}
+
+void terminal_setcolor(uint8_t color)
+{
+	terminal_color = color;
+}
+
+void terminal_putentryat(char c, uint8_t color, size_t x, size_t y)
+{
+	const size_t index = y * VGA_WIDTH + x;
+	terminal_buffer[index] = make_vgaentry(c, color);
+}
+
+void terminal_putchar(char c)
+{
+	terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
+	if ( ++terminal_column == VGA_WIDTH )
+	{
+		terminal_column = 0;
+		if ( ++terminal_row == VGA_HEIGHT )
+		{
+			terminal_row = 0;
+		}
+	}
+}
+
+void terminal_writestring(const char* data)
+{
+	size_t datalen = strlen(data);
+	for ( size_t i = 0; i &lt; datalen; i++ )
+		terminal_putchar(data[i]);
+}
+
+void kmain()
+{
+	terminal_initialize();
+	terminal_writestring("Hello, kernel World!\n");
+}
+</pre>
+
+<p>Take a few moments to realize what is going on. Indeed, this is your very
+first driver: a simple terminal output driver. Also note that we are using the
+strlen function, as known from &lt;string.h&gt;. Since we don't have a C
+standard library here, we had to declare strlen ourselves. You will likely need
+to declare your own basic functions, if you extend this code. It is often a good
+idea to do the same as the C standard library, as it makes your code more
+readable to people familiar with C programming.</p>
+
+<p>That concludes our kernel.c function. Now that we have boot.s and kernel.c
+done we have all the needed runtime support to run the kernel. However, we still
+don't have all the pieces to build the kernel so we can run it.</p>
+
+<h3>Setting up the Linker Script</h3>
+
+<p>The linker script tells linker how to construct the final kernel image. The
+executable kernel consists of a number of segments telling where to load code
+from the file and where. Currently we only have sections and we'll have to tell
+the linker what sections to put in which segments. This script can seem like
+black magic due to its new syntax, but it isn't that bad. You can have a quick
+look and consider it black magic for now. The main interesting points it that it
+sets the entry point to the _start function previously declared and that it puts
+the .multiboot section in the start of the very first segment, because this
+header must be in the early part of the kernel or the bootloader won't load the
+kernel because it doesn't recognize it. Another interesting piece of information
+is that we load the kernel at 0x100000 (1 MiB) which commonly is available for
+this purpose on modern computers. Since we are writing a 32-bit operating system
+we need not concern ourselves whether there is this much memory, because there
+is. Although, a good operating system would only use very little memory down
+there and process a memory map, so it knows what physical memory addresses are
+available for use. Using this hard-coded memory is merely for bootstrap
+purposes.</p>
+
+<p>Create a linker.ld file containing the following.</p>
+
+<pre>/* The bootloader will look at this image and start execution at the symbol
+   designated at the entry point. */
+ENTRY(_start)
+
+/* Tell where the various sections of the object files will be put in the final
+   kernel image. */
+SECTIONS
+{
+	/* Begin putting sections at 1 MiB, a conventional place for kernels to be
+	   loaded at by the bootloader. */
+	. = 1M;
+
+	/* First put the multiboot header, as it is required to be put very early
+	   early in the image or the bootloader won't recognize the file format.
+	   Next we'll put the .text section. */
+	.text BLOCK(4K) : ALIGN(4K)
+	{
+		*(.multiboot)
+		*(.text)
+	}
+
+	/* Read-only data. */
+	.rodata BLOCK(4K) : ALIGN(4K)
+	{
+		*(.rodata)
+	}
+
+	/* Read-write data (initialized) */
+	.data BLOCK(4K) : ALIGN(4K)
+	{
+		*(.data)
+	}
+
+	/* Read-write data (uninitialized) and stack */
+	.bss BLOCK(4K) : ALIGN(4K)
+	{
+		*(COMMON)
+		*(.bss)
+		*(.stack)
+	}
+
+	/* The compiler may produce other sections, put them in the proper place in
+	   in this file, if you'd like to include them in the final kernel. */
+}
+</pre>
+
+<h3>Building the operating system</h3>
+
+<p>By now, if you have set the PATH variable up correctly, you can compile your
+kernel by invoking:</p>
+
+<pre>i586-elf-as boot.s -o boot.o
+i586-elf-gcc -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall \
+             -Wextra -nostdlib -nostartfiles -nodefaultlibs 
+i586-elf-gcc -T linker.ld -o myos.bin -ffreestanding -O2 -Wall -Wextra \
+             -nostdlib -nostartfiles -nodefaultlibs boot.o kernel.o  -lgcc
+</pre>
+
+<p>We are using a few new options here. -std=gnu99 uses the C99 standard plus
+the various GNU extensions supported by GCC. -ffreestanding tells the compiler
+that we are using the Freestanding version of C and that it should not assume
+that a standard library is available. -nostdlib removes the dependency on the
+C standard library (which isn't even available) that is automatically added to
+the command line. -nostartfiles tells the compiler not to embed a tiny file
+containing the _start function, as the normal _start function is not usable for
+booting an operating system. -nodefaultlibs disables various libraries that are
+included by default. -lgcc links against the libgcc that we built above. GCC
+will emit calls to this library if it needs reusable code, for instance to do
+division of 64-bit integers on 32-bit platforms. The -T option tells the
+compiler to use the linker script linker.ld.</p>
+
+<p>Finally, we get a myos.bin file. This file can be booted by a multiboot
+compatible bootloader. However, for ease, we'll configure such a bootloader in
+a minute. However, for now, typing these above commands all the file is
+bothersome and we'll like to automate them.</p>
+
+<h3>Writing a Makefile</h3>
+
+<p>Writing a Makefile simplifies the building of the operating system as well
+as documenting how it is done. Here is my reference Makefile:</p>
+
+<pre>AS:=i586-elf-as
+CC:=i586-elf-gcc
+
+CFLAGS:=-ffreestanding -O2 -Wall -Wextra -nostdlib -nostartfiles -nodefaultlibs
+CPPFLAGS:=
+LIBS:=-lgcc
+
+OBJS:=\
+boot.o \
+kernel.o \
+
+all: myos.bin
+
+.PHONEY: all clean iso run-qemu
+
+myos.bin: $(OBJS) linker.ld
+	$(CC) -T linker.ld -o $@ $(CFLAGS) $(OBJS) $(LIBS)
+
+%.o: %.c
+	$(CC) -c $&lt; -o $@ -std=gnu99 $(CFLAGS) $(CPPFLAGS)
+
+%.o: %.s
+	$(AS) $&lt; -o $@
+
+clean:
+	rm -rf isodir
+	rm -f myos.bin myos.iso $(OBJS)
+
+iso: myos.iso
+
+isodir isodir/boot isodir/boot/grub:
+	mkdir -p $@
+
+isodir/boot/myos.bin: myos.bin isodir/boot
+	cp $&lt; $@
+
+isodir/boot/grub/grub.cfg: grub.cfg isodir/boot/grub
+	cp $&lt; $@
+
+myos.iso: isodir/boot/myos.bin isodir/boot/grub/grub.cfg
+	grub-mkrescue -o $@ isodir
+
+run-qemu: myos.iso
+	qemu-system-i386 -cdrom myos.iso
+</pre>
+
+<p>This makefile contains a few useful, generic rules. Look up the documentation
+for GNU Make or online resources to understand the details. Also note the
+Makefile refers to files we are yet to set up. The Makefile also produces a
+bootable ISO image by invoking grub-mkresque.</p>
+
+<h3>Configuring the Bootloader.</h3>
+
+<p>This is an easy step. We simply tell the bootloader to boot the file myos.bin
+that was put in the isodir by the Makefile. Create a file called grub.cfg that
+contains the following:</p>
+
+<pre>menuentry "myos" {
+	multiboot /boot/myos.bin
+}
+</pre>
+
+<h3>Finishing up</h3>
+
+<p>To test your kernel, you will need grub-mkrescue installed so you can build a
+bootable GRUB image. If you already have that program (likely), then you are
+good. This program, in turn, depends on the program xorriso. You'll need to
+install that from your repositories if you don't have it yet. Once that is done,
+you will be able to run make iso in your myos directory and end up with a
+bootable operating system. Congratulations!</p>
+
+<h2>Reference Source Code</h2>
+
+<p>You can download my reference implementation of this from
+<a href="https://cs.au.dk/~sortie/dopsys/myos/">here</a><a>.</a></p><a>
+
+<h2>Testing your Operating System (QEMU)</h2>
+
+<p>Virtual Machines are very useful for development operating systems, as they
+allow you to quickly test your code and have access to the source code during
+the execution. Otherwise, you would be in for an endless cycle of reboots that
+would only annoy you. They start very quickly, especially combined with small
+operating systems such as ours.</p>
+
+<p>In this tutorial, we will be using QEMU. You can also use other virtual
+machines if you please. Simply adding the ISO to the CD drive of an empty
+virtual machine will do the trick.</p>
+
+<p>Install qemu from your repositories, and then use the following command to
+start your new operating system.</p>
+
+<pre>qemu-system-i386 -cdrom myos.iso</pre>
+
+<p>This should start a new virtual machine containing only your ISO as a cdrom.
+If all goes well, you will be met with a menu provided by the bootloader. Simply
+select myos and if all goes well, you should see the happy words "Hello, Kernel
+World!" followed by some mysterious character.</p>
+
+<h2>Testing your Operating System (Real Machine)</h2>
+
+<p>The program grub-mkrescue is nice because it makes a bootable ISO that works
+on both real computers and virtual machines. You can then build an ISO and use
+it everywhere. To boot your kernel on your local computer you can install
+myos.bin to your /boot directory and configure your bootloader appropriately.
+</p>
+
+<p>Or alternatively, you can burn it to an USB stick (erasing all data on it!).
+To do so, simply find out the name of the USB block device, in my case /dev/sdb
+but this may vary, and using the wrong block device (your harddisk, gasp!) may
+be disastrous. If /dev/sdx is your block name, simply:</p>
+
+<pre>sudo dd if=myos.bin of=/dev/sdx &amp;&amp; sync</pre>
+
+<p>And your operating system will have been installed on your USB stick. Then
+simply configure your BIOS to boot from USB first and then insert it and watch
+it run on your computer system.</p>
+
+<p>Alternatively, the .iso is a normal disk image. Simply burn it to a CD or DVD
+if you feel like wasting one of those on a few kilobytes large kernel.</p>
+
+<h2>Moving Forward</h2>
+
+<p>Now that you can run your new shiny operating system, congratulations! Of
+course, depending on how much this interests you, it may just be the beginning.
+Here's a few things to get going.</p>
+
+<h3>Adding Support for Newlines to Terminal Driver</h3>
+
+<p>The current terminal driver does not handle newlines. The VGA text mode font
+stores another character at the location, since newlines are never meant to be
+actually rendered: they are logical entities. Rather, in terminal_putchar
+check if c == '\n' and increment terminal_row and reset terminal_column.</p>
+
+<h3>Implementing Terminal Scrolling</h3>
+
+<p>In case the terminal is filled up, it will just go back to the top of the
+screen. This is unacceptable for normal use. Instead, it should move all rows
+up one row and discard the upper most, and leave a blank row at the bottom ready
+to be filled up with characters. Implement this.</p>
+
+<h3>Rendering Colorful ASCII Art</h3>
+
+<p>Use the existing terminal driver to render some pretty stuff in all the
+glorious 16 colors you have available. Note that only 8 colors may be available
+for the background color, as the uppermost bit in the entries by default means
+something other than background color. You'll need a real VGA driver to fix
+this.</p>
+
+<h2>Going Beyond</h2>
+
+</a><p><a>Now that you can print characters to the screen you have a minimal operating
+system, but it isn't very interesting. Perhaps you'd like to add support for
+dealing with keyboard input and loading custom programs. Unfortunately, this is
+much harder and involves dealing with interrupt handlers, paging, and much more.
+More on this another time. In the mean time, you may find what you are looking
+for at </a><a href="http://wiki.osdev.org/">osdev.org</a>.</p>
+
+
+
+</body></html>
