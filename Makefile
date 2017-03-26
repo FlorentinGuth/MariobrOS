@@ -1,28 +1,66 @@
-all:	iso
-  # Let's run it!
-	bochs -f bochs/config.txt
+SRC_FOLDER = src
+BUILD_FOLDER = build
+ISO_FOLDER = iso
+BOCHS_FOLDER = bochs
 
-iso:	kernel.elf
+VPATH = $(SRC_FOLDER) $(BUILD_FOLDER)	# Helps make find our files
+
+LINKER = link.ld
+OBJECTS = loader.o kmain.o
+ISO = os.iso
+BOCHS_CONFIG = config.txt		# WARNING: modify if some paths change!
+BOCHS_LOg = log.txt
+ELTORITO = boot/grub/stage2_eltorito
+
+CC = 			gcc
+CFLAGS = 	-m32 \
+					-nostdlib \
+					-nostdinc \
+					-fno-builtin \
+					-fno-stack-protector \
+					-nostartfiles \
+					-nodefaultlibs \
+					-Wall -Wextra -Werror \
+					-c
+# Compiles in 32 bits mode, without any std, with all warnings (and treating warning as errors) \
+	and with no linking
+
+LD =			ld
+LDFLAGS = -T $(SRC_FOLDER)/$(LINKER) \
+					-melf_i386
+
+AS = 			nasm
+ASFLAGS =	-f elf32
+
+all:	run
+
+run:	$(ISO)
+  # Let's run it!
+	bochs -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG)
+
+$(ISO):	kernel.elf
   # Builds the iso image from the iso folder
 	genisoimage -R \
-							-b boot/grub/stage2_eltorito \
+							-b $(ELTORITO) \
 							-no-emul-boot \
 							-boot-load-size 4 \
 							-A MariobrOS \
 							-input-charset utf8 \
 							-quiet \
 							-boot-info-table \
-							-o build/os.iso \
+							-o $(BUILD_FOLDER)/$(ISO) \
 							iso
 
-kernel.elf: 	loader.o
+kernel.elf: 	$(OBJECTS)
   # Links the file and produces the .elf in iso folder
-	ld -T src/link.ld -melf_i386 build/loader.o -o iso/boot/kernel.elf
+	$(LD) $(LDFLAGS) $(addprefix $(BUILD_FOLDER)/,$(OBJECTS)) -o $(ISO_FOLDER)/boot/kernel.elf
 
-loader.o:
-  # Compiles the loader into ELF 32 bits object file loader.o
-	nasm -f elf32 src/loader.s -o build/loader.o
+%.o:	%.c
+	$(CC) $(CFLAGS) $< -o $(BUILD_FOLDER)/$@
 
+%.o:	%.s
+	$(AS) $(ASFLAGS) $< -o $(BUILD_FOLDER)/$@
+ 
 clean:
-	rm -rf build/**
-	rm -f isoboot/kernel.elf
+	rm -rf $(BUILD_FOLDER)/**
+	rm -f $(ISO_FOLDER)/boot/kernel.elf
