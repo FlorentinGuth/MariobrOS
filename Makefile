@@ -7,10 +7,12 @@ BUILD_FOLDER = build
 ISO_FOLDER = iso
 BOCHS_FOLDER = bochs
 VPATH = $(SRC_FOLDER) $(BUILD_FOLDER)	$(BOCH_FOLDER) # Helps make find our files
+$(shell mkdir -p $(BUILD_FOLDER))                    # Ensures build folder exists
 
 # File names
 LINKER = link.ld
-OBJECTS = loader.o kmain.o
+OBJECTS = $(patsubst $(SRC_FOLDER)/%.c,%.o,$(wildcard $(SRC_FOLDER)/*.c)) \
+          $(patsubst $(SRC_FOLDER)/%.s,%.o,$(wildcard $(SRC_FOLDER)/*.s))
 ISO = os.iso
 BOCHS_CONFIG = config.txt
 BOCHS_LOG = log.txt
@@ -74,6 +76,7 @@ run:	$(ISO) $(BOCHS_CONFIG)
   # Let's run it!
 	bochs -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG)
 
+
 $(ISO):	kernel.elf $(GRUB_CONFIG)
   # Builds the iso image from the iso folder
 	genisoimage -R \
@@ -88,14 +91,9 @@ $(ISO):	kernel.elf $(GRUB_CONFIG)
 							iso
 
 kernel.elf: 	$(OBJECTS)
-  # Links the file and produces the .elf in iso folder
+  # Links the file and produces the .elf in the iso folder
 	$(LD) $(LDFLAGS) $(addprefix $(BUILD_FOLDER)/,$(OBJECTS)) -o $(ISO_FOLDER)/boot/kernel.elf
 
-%.o:	%.c
-	$(CC) $(CFLAGS) $< -o $(BUILD_FOLDER)/$@
-
-%.o:	%.s
-	$(AS) $(ASFLAGS) $< -o $(BUILD_FOLDER)/$@
 
 $(BOCHS_CONFIG):
 	echo '$(subst $(NEWLINE),\n,${BOCHS_CONFIG_CONTENT})' > $(BOCHS_FOLDER)/$(BOCHS_CONFIG)
@@ -103,7 +101,35 @@ $(BOCHS_CONFIG):
 $(GRUB_CONFIG):
 	echo '$(subst $(NEWLINE),\n,${GRUB_CONFIG_CONTENT})' > $(GRUB_CONFIG)
 
+
 clean:
-	rm -rf $(BUILD_FOLDER)/**
+	rm -rf $(BUILD_FOLDER)
 	rm -f $(ISO_FOLDER)/boot/kernel.elf
 	rm -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG) $(BOCHS_FOLDER)/$(BOCHS_LOG) $(GRUB_CONFIG)
+
+
+# Brace yourselves, here comes the C compilation with automatic depency generation
+# For explanations (you probably don't want any, let me tell you), see:
+# http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
+
+SRCS = (wildcard $(SRC_FOLDER)/*.c)
+DEPDIR = $(BUILD_FOLDER)
+$(shell mkdir -p $(DEPDIR) >/dev/null)
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
+
+COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS)
+POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
+
+%.o:	%.c
+%.o:	%.c $(DEPDIR)/%.d
+	$(COMPILE.c) -o $(BUILD_FOLDER)/$@ $<
+	$(POSTCOMPILE)
+
+%.o:	%.s
+%.o:	%.s
+	$(AS) $(ASFLAGS) -o $(BUILD_FOLDER)/$@ $<
+
+$(DEPDIR)/%.d: ;
+.PRECIOUS: $(DEPDIR)/%.d
+
+include $(wildcard $(patsubst %,$(DEPDIR)/%.d,$(basename $(SRCS))))
