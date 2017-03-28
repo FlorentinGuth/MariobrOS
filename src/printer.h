@@ -17,6 +17,8 @@
 #define LOW_BYTE_COMMAND  15
 
 
+typedef unsigned short pos_t;
+
 enum Color {
   Black        =  0,
   Blue         =  1,
@@ -46,14 +48,23 @@ typedef enum Color color_t;
  *  @param fg The foreground color
  *  @param bg The background color
  */
-void put_char(unsigned int i, char c, color_t fg, color_t bg);
+void put_char(pos_t i, char c, color_t fg, color_t bg);
+
+
+/** get_cursor:
+ *  Communicate with the framebuffer to get the cursor position.
+ *
+ *  @return The position of the cursor
+ */
+pos_t get_cursor();
 
 /** move_cursor:
  *  Moves the cursor of the framebuffer.
  *
  *  @param pos The new position of the cursor
  */
-void move_cursor(unsigned short pos);
+void move_cursor(pos_t pos);
+
 
 /** write:
  *  Write a string at the end of the framebuffer.

@@ -4,14 +4,20 @@
 
 char * const framebuffer = (char *)FRAMEBUFFER_LOCATION;
 
-void put_char(unsigned int i, char c, color_t fg, color_t bg)
+void put_char(pos_t i, char c, color_t fg, color_t bg)
 {
   // Little endian!
   framebuffer[i] = c;
   framebuffer[i+1] = ((bg & 0x0F) << 4) | (fg & 0x0F);
 }
 
-void move_cursor(unsigned short pos)
+
+pos_t get_cursor()
+{
+  
+}
+
+void move_cursor(pos_t pos)
 {
   // Sends upper byte of position
   outb(COMMAND_PORT, HIGH_BYTE_COMMAND);
@@ -21,6 +27,7 @@ void move_cursor(unsigned short pos)
   outb(COMMAND_PORT, LOW_BYTE_COMMAND);
   outb(DATA_PORT,    pos & 0x00FF);
 }
+
 
 unsigned int current_pos = 0;
 void write(char *buf, unsigned int len)
