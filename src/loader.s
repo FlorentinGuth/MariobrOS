@@ -7,7 +7,7 @@ CHECKSUM     equ -MAGIC_NUMBER  ; Magic number + checksum + flags = 0
 
 KERNEL_STACK_SIZE equ 4096      ; Define a stack of 4 KB
 
-section .bss
+section .bss                    ; Uninitialized data section
 align 4                         ; Align at 4 bytes
 kernel_stack:                   ; Label points to beginning of memory
   resb KERNEL_STACK_SIZE        ; Reserve stack for the kernel

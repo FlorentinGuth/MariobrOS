@@ -14,7 +14,7 @@ void put_char(pos_t i, char c, color_t fg, color_t bg)
 
 pos_t get_cursor()
 {
-  
+  return 0; // Not implemented yet!
 }
 
 void move_cursor(pos_t pos)
