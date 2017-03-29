@@ -57,6 +57,7 @@ boot:             cdrom
 log:              $(BOCHS_FOLDER)/$(BOCHS_LOG)
 clock:            sync=realtime, time0=local
 cpu:              count=1, ips=1000000
+com1:             enabled=1, mode=file, dev=$(BOCHS_FOLDER)/com1.out
 endef
 
 define GRUB_CONFIG_CONTENT

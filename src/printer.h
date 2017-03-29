@@ -8,26 +8,30 @@
 #ifndef PRINTER_H
 #define PRINTER_H
 
+#include "types.h"
 
-// The framebuffer location in memory
+
+/* The framebuffer location in memory */
 #define FRAMEBUFFER_LOCATION 0x000B8000
 
-// Some characteristic
+/* Some characteristic */
 #define SCREEN_WIDTH  80
 #define SCREEN_HEIGHT 25
 #define TAB_WIDTH      4
 
-// The I/O ports
-#define ADDRESS_REG 0x3D4
-#define DATA_REG    0x3D5
+/* The I/O ports */
+#define ADDRESS_REG (port_t)0x3D4
+#define DATA_REG    (port_t)0x3D5
 
-// The address of the registers
+/* The address of the registers */
 #define CURSOR_HIGH_BYTE  0x0E
 #define CURSOR_LOW_BYTE   0x0F
 
 
-// The type of a position on the screen (whose size is 80*25)
-// Note that a pos_t never accounts for the fact that each location takes up two bytes.
+/** pos_t:
+ *  The type of a position on the screen (whose size is 80*25)
+ *  Note that a pos_t never accounts for the fact that each location takes up two bytes.
+ */
 typedef unsigned short pos_t;
 
 enum Color {

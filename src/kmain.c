@@ -1,4 +1,5 @@
 #include "printer.h"
+#include "logging.h"
 
 /** kmain.c
  *  Contains the kernel main function.
@@ -19,6 +20,10 @@ int kmain()
   }
 
   write("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+
+  log("That's awesome", Info);
+  log("Just kidding",   Error);
+  log("0xDEADBEEF",     Debug);
 
   return 0xCAFEBABE;
 }

@@ -8,7 +8,7 @@ char * const framebuffer = (char *)FRAMEBUFFER_LOCATION;
 
 void put_char(pos_t i, char c, color_t fg, color_t bg)
 {
-  // Each character actually takes up two bytes
+  /* Each character actually takes up two bytes */
   framebuffer[2*i] = c;
   framebuffer[2*i + 1] = ((bg & 0x0F) << 4) | (fg & 0x0F);
 }
@@ -16,20 +16,20 @@ void put_char(pos_t i, char c, color_t fg, color_t bg)
 
 pos_t get_cursor_pos()
 {
-  // See http://www.osdever.net/FreeVGA/vga/vgareg.htm#indexed for reference
+  /* See http://www.osdever.net/FreeVGA/vga/vgareg.htm#indexed for reference */
 
-  // Saves the content of the address register (may be useless...)
+  /* Saves the content of the address register (may be useless...) */
   unsigned char temp = inb(ADDRESS_REG);
 
-  // Requests the higher byte of position
+  /* Requests the higher byte of position */
   outb(ADDRESS_REG, CURSOR_HIGH_BYTE);
   unsigned char higher_byte = inb(DATA_REG);
 
-  // Requests the lower byte of position
+  /* Requests the lower byte of position */
   outb(ADDRESS_REG, CURSOR_LOW_BYTE);
   unsigned char lower_byte = inb(DATA_REG);
 
-  // Restores the address register
+  /* Restores the address register */
   outb(ADDRESS_REG, temp);
 
   return (higher_byte << 8) | lower_byte;
@@ -37,17 +37,17 @@ pos_t get_cursor_pos()
 
 void set_cursor_pos(pos_t pos)
 {
-  // Sends higher byte of position
+  /* Sends higher byte of position */
   outb(ADDRESS_REG, CURSOR_HIGH_BYTE);
   outb(DATA_REG,    (pos >> 8) & 0x00FF);
 
-  // Sends lower byte of position
+  /* Sends lower byte of position */
   outb(ADDRESS_REG, CURSOR_LOW_BYTE);
   outb(DATA_REG,    pos & 0x00FF);
 }
 
 
-// Will be replaced by string.h::int_to_string eventually
+/* Will be replaced by string.h::int_to_string eventually */
 void to_string(char str[], int num)
 {
   int i, rem, len = 0, n;
@@ -72,7 +72,7 @@ void scroll()
     framebuffer[i] = framebuffer[i + 2*SCREEN_WIDTH];
   }
 
-  // Pad the new line
+  /* Pad the new line */
   pad(last_line, last_line + SCREEN_WIDTH);
 }
 
@@ -101,8 +101,8 @@ void write(char *string)
     }
 
     case '\n': {
-      // It should be useless to pad the spaces, but we keep it in case the user
-      // messes with the framebuffer by writing everywhere
+      /* It should be useless to pad the spaces, but we keep it in case the user
+         messes with the framebuffer by writing everywhere */
       pos_t to_pad = SCREEN_WIDTH * ((cursor_pos / SCREEN_WIDTH) + 1);
       pad(cursor_pos, to_pad);
       cursor_pos = to_pad;
@@ -110,7 +110,7 @@ void write(char *string)
     }
 
     case '\t': {
-      // Same as '\n'
+      /* Same as '\n' */
       pos_t to_pad = TAB_WIDTH * ((cursor_pos / TAB_WIDTH) + 1);
       pad(cursor_pos, to_pad);
       cursor_pos = to_pad;
@@ -123,8 +123,8 @@ void write(char *string)
     }
     }
 
-    // Check if scrolling would be necessary
-    // TODO: maybe pre-compute the number of lines to scroll to do it only once
+    /* Check if scrolling would be necessary
+       TODO: maybe pre-compute the number of lines to scroll to do it only once */
     if (cursor_pos == SCREEN_WIDTH * SCREEN_HEIGHT) {
       scroll();
       cursor_pos -= SCREEN_WIDTH;

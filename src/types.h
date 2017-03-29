@@ -9,7 +9,14 @@
 typedef unsigned char byte;
 
 typedef unsigned char bool;
-bool const FALSE = 0;
-bool const TRUE  = 1;
+#define FALSE (bool)0;
+#define TRUE  (bool)1;
+
+
+/** port_t:
+ *  The type of an I/O port.
+ */
+typedef unsigned short port_t;
+
 
 #endif

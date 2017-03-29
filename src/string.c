@@ -1,6 +1,15 @@
 #include "string.h"
 
 
+void str_copy(string source, string dest)
+{
+  int pos;
+  for (pos = 0; source[pos] != '\0'; pos++) {
+    dest[pos] = source[pos];
+  }
+  dest[pos] = '\0';
+}
+
 /* inline string int_to_string(int n) */
 /* { */
 /*   // Computes the length to allocate the string */
