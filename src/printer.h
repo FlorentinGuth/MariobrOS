@@ -27,6 +27,7 @@
 
 
 // The type of a position on the screen (whose size is 80*25)
+// Note that a pos_t never accounts for the fact that each location takes up two bytes.
 typedef unsigned short pos_t;
 
 enum Color {
@@ -48,6 +49,7 @@ enum Color {
   White        = 15,
 };
 typedef enum Color color_t;
+
 
 /** put_char:
  *  Writes a character in the framebuffer.
@@ -73,8 +75,20 @@ pos_t get_cursor_pos();
  */
 void set_cursor_pos(pos_t pos);
 
+
+/** scroll:
+ *  Move all the text one line up, and erases the last line.
+ */
 void scroll();
+
+/** pad:
+ *  Replace the text with spaces (black background).
+ *
+ *  @param cursor_pos the start of the space to pad (included)
+ *  @param to_pad     the end of the space to pad (excluded)
+ */
 void pad(pos_t cursor_pos, pos_t to_pad);
+
 
 /** write:
  *  Write a string at the end of the framebuffer.

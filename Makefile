@@ -1,7 +1,7 @@
 OS_NAME = MariobrOS
 
 # Options
-GUI_LIBRARY = sdl2
+GUI_LIBRARY = sdl
 
 # Folders and paths
 SRC_FOLDER = src
@@ -31,10 +31,10 @@ CFLAGS =  -m32 \
           -nostartfiles \
           -nodefaultlibs \
           -Wall -Wextra -Werror \
-          -c \
-	  -O0
+          -O0 \
+          -c
 # Compiles in 32 bits mode, without any std, with all warnings (and treating warning as errors) \
-  and with no linking
+  and with no linking (and disable optimizations)
 
 # Linker and flags
 LD =      ld

@@ -5,10 +5,12 @@
 
 char * const framebuffer = (char *)FRAMEBUFFER_LOCATION;
 
+
 void put_char(pos_t i, char c, color_t fg, color_t bg)
 {
-  framebuffer[i] = c;
-  framebuffer[i+1] = ((bg & 0x0F) << 4) | (fg & 0x0F);
+  // Each character actually takes up two bytes
+  framebuffer[2*i] = c;
+  framebuffer[2*i + 1] = ((bg & 0x0F) << 4) | (fg & 0x0F);
 }
 
 
@@ -16,7 +18,7 @@ pos_t get_cursor_pos()
 {
   // See http://www.osdever.net/FreeVGA/vga/vgareg.htm#indexed for reference
 
-  // Saves the content of the address register
+  // Saves the content of the address register (may be useless...)
   unsigned char temp = inb(ADDRESS_REG);
 
   // Requests the higher byte of position
@@ -44,9 +46,11 @@ void set_cursor_pos(pos_t pos)
   outb(DATA_REG,    pos & 0x00FF);
 }
 
-void tostring(char str[], int num)
+
+// Will be replaced by string.h::int_to_string eventually
+void to_string(char str[], int num)
 {
-    int i, rem, len = 0, n;
+  int i, rem, len = 0, n;
     n = num;
     while (n != 0) {
         len++;
@@ -60,19 +64,25 @@ void tostring(char str[], int num)
     str[len] = '\0';
 }
 
+
 void scroll()
 {
-  for(int i=0; i < 2*SCREEN_WIDTH*(SCREEN_HEIGHT-1); i=i+2) {
-    framebuffer[i] = framebuffer[i+2*SCREEN_WIDTH];
+  pos_t last_line = SCREEN_WIDTH * (SCREEN_HEIGHT - 1);
+  for(int i=0; i < 2*last_line; i++) {
+    framebuffer[i] = framebuffer[i + 2*SCREEN_WIDTH];
   }
+
+  // Pad the new line
+  pad(last_line, last_line + SCREEN_WIDTH);
 }
 
 void pad(pos_t cursor_pos, pos_t to_pad)
 {
   for(int i=cursor_pos; i<to_pad; i++) {
-    put_char(2*i, ' ',15,0);
+    put_char(i, ' ', White, Black);
   }
 }
+
 
 void write(char *string)
 {
@@ -107,9 +117,9 @@ void write(char *string)
     default: {
       if(cursor_pos == SCREEN_WIDTH * SCREEN_HEIGHT) {
 	scroll();
-	cursor_pos = cursor_pos - SCREEN_WIDTH;
+	cursor_pos -= SCREEN_WIDTH;
       }
-      put_char(2*cursor_pos, c, White, Black); // Each character actually takes up 2 chars
+      put_char(cursor_pos, c, White, Black);
       cursor_pos++;
     }
     }
