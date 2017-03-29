@@ -1,5 +1,8 @@
 OS_NAME = MariobrOS
 
+# Options
+GUI_LIBRARY = sdl
+
 # Folders and paths
 SRC_FOLDER = src
 BUILD_FOLDER = build
@@ -45,7 +48,7 @@ ASFLAGS =   -f elf32
 # Configuration files
 define BOCHS_CONFIG_CONTENT
 megs:             32
-display_library:  sdl
+display_library:  $(GUI_LIBRARY)
 romimage:         file=/usr/share/bochs/BIOS-bochs-latest
 vgaromimage:      file=/usr/share/bochs/VGABIOS-lgpl-latest
 ata0-master:      type=cdrom, path=$(BUILD_FOLDER)/$(ISO), status=inserted
@@ -94,11 +97,13 @@ kernel.elf:	$(OBJECTS)
 	$(LD) $(LDFLAGS) $(addprefix $(BUILD_FOLDER)/,$(OBJECTS)) -o $(ISO_FOLDER)/boot/kernel.elf
 
 
+ECHO_CONFIG = @echo '$(subst $(NEWLINE),\n,$(1))' > $(2)
+
 $(BOCHS_CONFIG):
-	echo '$(subst $(NEWLINE),\n,${BOCHS_CONFIG_CONTENT})' > $(BOCHS_FOLDER)/$(BOCHS_CONFIG)
+	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT),$(BOCHS_FOLDER)/$(BOCHS_CONFIG))
 
 $(GRUB_CONFIG):
-	echo '$(subst $(NEWLINE),\n,${GRUB_CONFIG_CONTENT})' > $(GRUB_CONFIG)
+	$(call ECHO_CONFIG,$(GRUB_CONFIG_CONTENT),$(GRUB_CONFIG))
 
 
 clean:

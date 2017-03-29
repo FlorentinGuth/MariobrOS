@@ -1,22 +1,32 @@
+/** printer.h:
+ *  Provides function to interact with the VGA framebuffer.
+ *  See http://wiki.osdev.org/VGA_Hardware and http://www.osdever.net/FreeVGA/home.htm for doc.
+ *  TODO: Maybe move put_char and move_cursor somewhere else, should not be manipulated outside of write.
+ *  TODO: Rename to something framebuffer-explicitly-related?
+ */
+
 #ifndef PRINTER_H
 #define PRINTER_H
 
 
-// TODO: maybe move put_char and move_cursor somewhere else, should not be manipulated outside of write
-// TODO: rename to something framebuffer-explicitly-related?
-
 // The framebuffer location in memory
 #define FRAMEBUFFER_LOCATION 0x000B8000
 
+// Some characteristic
+#define SCREEN_WIDTH  80
+#define SCREEN_HEIGHT 25
+#define TAB_WIDTH      4
+
 // The I/O ports
-#define COMMAND_PORT 0x3D4
-#define DATA_PORT    0x3D5
+#define ADDRESS_REG 0x3D4
+#define DATA_REG    0x3D5
 
-// The I/O ports commands
-#define HIGH_BYTE_COMMAND 14
-#define LOW_BYTE_COMMAND  15
+// The address of the registers
+#define CURSOR_HIGH_BYTE  0x0E
+#define CURSOR_LOW_BYTE   0x0F
 
 
+// The type of a position on the screen (whose size is 80*25)
 typedef unsigned short pos_t;
 
 enum Color {
@@ -51,28 +61,26 @@ typedef enum Color color_t;
 void put_char(pos_t i, char c, color_t fg, color_t bg);
 
 
-/** get_cursor:
+/** get_cursor_pos:
  *  Communicate with the framebuffer to get the cursor position.
  *
  *  @return The position of the cursor
  */
-pos_t get_cursor();
+pos_t get_cursor_pos();
 
-/** move_cursor:
+/** set_cursor_pos:
  *  Moves the cursor of the framebuffer.
  *
  *  @param pos The new position of the cursor
  */
-void move_cursor(pos_t pos);
+void set_cursor_pos(pos_t pos);
 
 
 /** write:
  *  Write a string at the end of the framebuffer.
- *  TODO: deal with cursor and scrolling.
  *
- *  @param buf The string to write
- *  @param len The number of bytes to write
+ *  @param string The null-terminated string to write.
  */
-void write(char *buf, unsigned int len);
+void write(char *string);
 
 #endif
