@@ -49,7 +49,6 @@ enum Color {
 };
 typedef enum Color color_t;
 
-
 /** put_char:
  *  Writes a character in the framebuffer.
  *
@@ -59,7 +58,6 @@ typedef enum Color color_t;
  *  @param bg The background color
  */
 void put_char(pos_t i, char c, color_t fg, color_t bg);
-
 
 /** get_cursor_pos:
  *  Communicate with the framebuffer to get the cursor position.
@@ -75,6 +73,8 @@ pos_t get_cursor_pos();
  */
 void set_cursor_pos(pos_t pos);
 
+void scroll();
+void pad(pos_t cursor_pos, pos_t to_pad);
 
 /** write:
  *  Write a string at the end of the framebuffer.

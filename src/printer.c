@@ -44,6 +44,35 @@ void set_cursor_pos(pos_t pos)
   outb(DATA_REG,    pos & 0x00FF);
 }
 
+void tostring(char str[], int num)
+{
+    int i, rem, len = 0, n;
+    n = num;
+    while (n != 0) {
+        len++;
+        n /= 10;
+    }
+    for (i = 0; i < len; i++) {
+        rem = num % 10;
+        num = num / 10;
+        str[len - (i + 1)] = rem + '0';
+    }
+    str[len] = '\0';
+}
+
+void scroll()
+{
+  for(int i=0; i < 2*SCREEN_WIDTH*(SCREEN_HEIGHT-1); i=i+2) {
+    framebuffer[i] = framebuffer[i+2*SCREEN_WIDTH];
+  }
+}
+
+void pad(pos_t cursor_pos, pos_t to_pad)
+{
+  for(int i=cursor_pos; i<to_pad; i++) {
+    put_char(2*i, ' ',15,0);
+  }
+}
 
 void write(char *string)
 {
@@ -62,16 +91,24 @@ void write(char *string)
     }
 
     case '\n': {
-      cursor_pos = SCREEN_WIDTH * ((cursor_pos / SCREEN_WIDTH) + 1);
+      pos_t to_pad = SCREEN_WIDTH * ((cursor_pos / SCREEN_WIDTH) + 1);
+      pad(cursor_pos, to_pad);
+      cursor_pos = to_pad;
       break;
     }
 
     case '\t': {
-      cursor_pos = TAB_WIDTH * ((cursor_pos / TAB_WIDTH) + 1);
+      pos_t to_pad = TAB_WIDTH * ((cursor_pos / TAB_WIDTH) + 1);
+      pad(cursor_pos, to_pad);
+      cursor_pos = to_pad;
       break;
     }
 
     default: {
+      if(cursor_pos == SCREEN_WIDTH * SCREEN_HEIGHT) {
+	scroll();
+	cursor_pos = cursor_pos - SCREEN_WIDTH;
+      }
       put_char(2*cursor_pos, c, White, Black); // Each character actually takes up 2 chars
       cursor_pos++;
     }

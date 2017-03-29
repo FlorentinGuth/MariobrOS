@@ -1,7 +1,7 @@
 OS_NAME = MariobrOS
 
 # Options
-GUI_LIBRARY = sdl
+GUI_LIBRARY = sdl2
 
 # Folders and paths
 SRC_FOLDER = src
@@ -31,7 +31,8 @@ CFLAGS =  -m32 \
           -nostartfiles \
           -nodefaultlibs \
           -Wall -Wextra -Werror \
-          -c
+          -c \
+	  -O0
 # Compiles in 32 bits mode, without any std, with all warnings (and treating warning as errors) \
   and with no linking
 
@@ -76,7 +77,7 @@ all:	run
 
 run:	$(ISO) $(BOCHS_CONFIG)
   # Let's run it!
-	bochs -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG)
+	bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG)
 
 
 $(ISO):	kernel.elf $(GRUB_CONFIG)
