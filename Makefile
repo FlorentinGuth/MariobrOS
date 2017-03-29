@@ -78,7 +78,8 @@ all:	run
 
 run:	$(ISO) $(BOCHS_CONFIG)
   # Let's run it!
-	bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG)
+	$(shell bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG) | exit 0)
+  # So that compilation doesn't crash because it just stopped
 
 
 $(ISO):	kernel.elf $(GRUB_CONFIG)

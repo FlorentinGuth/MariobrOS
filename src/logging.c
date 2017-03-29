@@ -2,7 +2,7 @@
 #include "logging.h"
 #include "io.h"
 #include "string.h"
-
+#include "printer.h"
 
 void serial_configure_baud_rate(port_t com, port_t divisor)
 {
@@ -78,5 +78,6 @@ void log(char *string, log_level_t lvl)
   }
   for (int i = 0; string[i] != '\0'; i++) {
     outb(SERIAL_COM1_BASE, string[i]);
+    write(""); // Truly terrible hack used to slow down the output pace
   }
 }
