@@ -101,6 +101,8 @@ void write(char *string)
     }
 
     case '\n': {
+      // It should be useless to pad the spaces, but we keep it in case the user
+      // messes with the framebuffer by writing everywhere
       pos_t to_pad = SCREEN_WIDTH * ((cursor_pos / SCREEN_WIDTH) + 1);
       pad(cursor_pos, to_pad);
       cursor_pos = to_pad;
@@ -108,6 +110,7 @@ void write(char *string)
     }
 
     case '\t': {
+      // Same as '\n'
       pos_t to_pad = TAB_WIDTH * ((cursor_pos / TAB_WIDTH) + 1);
       pad(cursor_pos, to_pad);
       cursor_pos = to_pad;
@@ -115,16 +118,18 @@ void write(char *string)
     }
 
     default: {
-      if(cursor_pos == SCREEN_WIDTH * SCREEN_HEIGHT) {
-	scroll();
-	cursor_pos -= SCREEN_WIDTH;
-      }
       put_char(cursor_pos, c, White, Black);
       cursor_pos++;
     }
     }
 
-    // TODO: deal with scrolling
+    // Check if scrolling would be necessary
+    // TODO: maybe pre-compute the number of lines to scroll to do it only once
+    if (cursor_pos == SCREEN_WIDTH * SCREEN_HEIGHT) {
+      scroll();
+      cursor_pos -= SCREEN_WIDTH;
+    }
+
   }
 
   set_cursor_pos(cursor_pos);

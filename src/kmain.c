@@ -18,5 +18,7 @@ int kmain()
     write(currI);
   }
 
+  write("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+
   return 0xCAFEBABE;
 }
