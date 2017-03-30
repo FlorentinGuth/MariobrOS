@@ -1,10 +1,13 @@
 #include "segmentation.h"
 #include "lgdt.h"
 
+/* Source : http://wiki.osdev.org/GDT_Tutorial */
+
 /* Segment selectors : */
 /* Bit:     | 15          3 | 2 | 1 0 |
  * Content: | offset (index)| ti| rpl |  
  * Value:   | 0000000000001 | 0 | 0 0 | = 0x08
+ * Value:   | 0000000000010 | 0 | 0 0 | = 0x10
  */
 
 void set_null(gdt_e *e)
@@ -42,10 +45,17 @@ void set_full(gdt_e *e)
   e->flags_limits_16_19 = 0xcf;
 }
 
-void segmentize(gdt_e GDT[3])
+void segmentize(gdtr* gdtr)
 {
-  set_null(GDT);
-  set_full(&GDT[1]); set_full(&GDT[2]);
-  set_exe(&GDT[1]);
-  set_data(&GDT[2]);
+  set_null(&gdtr->null);
+  set_full(&gdtr->code); set_full(&gdtr->data);
+  set_exe(&gdtr->code);
+  set_data(&gdtr->data);
+}
+
+void set_gdt(gdt_l *gdt)
+{
+  load_gdt(gdt);
+  set_segments();
+  __asm__ __volatile__("flush_cs:");
 }

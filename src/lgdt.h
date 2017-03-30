@@ -5,14 +5,12 @@
 #ifndef LGDT_H
 #define LGDT_H
 
-#include "loader.h"
-
 /** load_gdt:
  *  Wrapper for ASM instruction 'lgdt'
  *
  * @param gdt The GDT to load
  */
-void load_gdt(gdt_t gdt);
+void load_gdt(gdt_l *gdt);
 
 
 /** set_segments:

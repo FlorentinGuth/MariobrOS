@@ -7,11 +7,6 @@
 
 #include <stdint.h>
 
-struct gdt_t {
-  unsigned int address;
-  unsigned short size;
-}__attribute__((packed));
-
 typedef struct gdt_entry gdt_e;
 struct gdt_entry{
   uint16_t base_0_15;
@@ -22,7 +17,22 @@ struct gdt_entry{
   uint8_t base_16_23;
 }__attribute__((packed));
 
+typedef struct gdtr gdtr;
+struct gdtr{
+  gdt_e null;
+  gdt_e code;
+  gdt_e data;
+}__attribute__((packed));
 
-void segmentize(gdt_e GDT[3]);
+typedef struct gdt_to_load gdt_l;
+struct gdt_to_load{
+  gdtr *gdtr;
+  unsigned short size;
+}__attribute__((packed));
+
+
+void segmentize(gdtr *gdtr);
+
+void set_gdt(gdt_l *gdt);
 
 #endif
