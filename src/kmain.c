@@ -1,6 +1,7 @@
 #include "printer.h"
 #include "logging.h"
 #include "gdt.h"
+#include "idt.h"
 
 /** kmain.c
  *  Contains the kernel main function.
