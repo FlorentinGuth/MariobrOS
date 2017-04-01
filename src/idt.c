@@ -1,5 +1,8 @@
 #include "idt.h"
 
+/* Source : http://www.osdever.net/bkerndev/Docs/idt.htm */
+
+
 /* Declare an IDT of 256 entries. 
  * If any undefined IDT entry is hit, it normally will cause an "Unhandled  
  * Interrupt" exception. Any descriptor for which the 'presence' bit is cleared
@@ -7,24 +10,20 @@
 idt_e idt[256];
 idt_ptr idtp;
 
-/* This exists in 'start.asm', and is used to load our IDT */
+/* This exists in 'idt_asm.s', and is used to load our IDT */
 extern void idt_load();
 
-/* Use this function to set an entry in the IDT. Alot simpler
-*  than twiddling with the GDT ;) */
-
-#pragma GCC diagnostic ignored "-Wunused-parameter"
+/* Use this function to set an entry in the IDT. */
 void idt_set_gate(unsigned char num, unsigned long base, unsigned short sel, unsigned char flags)
 {
-    /* We'll leave you to try and code this function: take the
-    *  argument 'base' and split it up into a high and low 16-bits,
-    *  storing them in idt[num].base_hi and base_lo. The rest of the
-    *  fields that you must set in idt[num] are fairly self-
-    *  explanatory when it comes to setup */
+  idt[num].base_lo = base & 0xFFFF;
+  idt[num].base_hi = (base >> 16) & 0xFFFF;
+  idt[num].always0 = 0;
+  idt[num].sel = sel;
+  idt[num].flags = flags;
 }
-#pragma GCC diagnostic pop
 
-/* Installs the IDT */
+/* Installs and loads the IDT */
 void idt_install()
 {
     /* Sets the special IDT pointer up, just like in 'gdt.c' */

@@ -46,7 +46,7 @@ bool serial_is_transmit_fifo_empty(port_t com)
 }
 
 bool configured = FALSE;
-void log(char *string, log_level_t lvl)
+void log(const char *string, log_level_t lvl)
 {
   if (!configured) {
     serial_configure_baud_rate(SERIAL_COM1_BASE, 1);
@@ -80,4 +80,5 @@ void log(char *string, log_level_t lvl)
     outb(SERIAL_COM1_BASE, string[i]);
     write(""); // Truly terrible hack used to slow down the output pace
   }
+  outb(SERIAL_COM1_BASE, '\n');
 }
