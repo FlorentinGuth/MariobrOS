@@ -1,6 +1,8 @@
 #ifndef IRQ_H
 #define IRQ_H
 
+#include "isr.h"
+
 /* irq_install_handler 
  * @param irq      The number of the irq for which to install the handler
  * @param handler  The handler to install

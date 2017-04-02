@@ -15,8 +15,7 @@ void serial_configure_line(port_t com)
 {
   /* Bit:     | 7 | 6 | 5 4 3 | 2 | 1 0 |
    * Content: | d | b | prty  | s | dl  |
-   * Value:   | 0 | 0 | 0 0 0 | 0 | 1 1 | = 0x03
-   */
+   * Value:   | 0 | 0 | 0 0 0 | 0 | 1 1 | = 0x03 */
   outb(SERIAL_LINE_COMMAND_PORT(com), 0x03);
 }
 
