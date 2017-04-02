@@ -1,4 +1,6 @@
-#include "gdt_asm.h"
+
+
+/* Source : http://www.osdever.net/bkerndev/Docs/gdt.htm */
 
 /* Defines a GDT entry. We say packed, because it prevents the
 *  compiler from doing things that it thinks is best: Prevent
@@ -42,6 +44,9 @@ void gdt_set_gate(int num, unsigned long base, unsigned long limit, unsigned cha
     gdt[num].granularity |= (gran & 0xF0);
     gdt[num].access = access;
 }
+
+/* The next function is defined in gdt_asm.s */
+extern void gdt_flush();
 
 /* Should be called by main. This will setup the special GDT
 *  pointer, set up the first 3 entries in our GDT, and then

@@ -139,7 +139,8 @@ void fault_handler(struct regs *r)
         *  In this tutorial, we will simply halt the system using an
         *  infinite loop */
       log(exception_messages[r->int_no], Error);
-      write("Exception. System Halted!\n");
+      write(exception_messages[r->int_no]);
+      write("\nException. System Halted!\n");
       for (;;);
     }
 }

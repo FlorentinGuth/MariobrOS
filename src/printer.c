@@ -64,6 +64,12 @@ void to_string(char str[], int num)
     str[len] = '\0';
 }
 
+void pad(pos_t cursor_pos, pos_t to_pad)
+{
+  for(int i=cursor_pos; i<to_pad; i++) {
+    put_char(i, ' ', White, Black);
+  }
+}
 
 void scroll()
 {
@@ -76,15 +82,8 @@ void scroll()
   pad(last_line, last_line + SCREEN_WIDTH);
 }
 
-void pad(pos_t cursor_pos, pos_t to_pad)
-{
-  for(int i=cursor_pos; i<to_pad; i++) {
-    put_char(i, ' ', White, Black);
-  }
-}
 
-
-void write(char *string)
+void write(const char *string)
 {
   pos_t cursor_pos = get_cursor_pos();
 

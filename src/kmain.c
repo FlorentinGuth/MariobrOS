@@ -3,6 +3,7 @@
 #include "gdt.h"
 #include "idt.h"
 #include "isr.h"
+#include "irq.h"
 
 /** kmain.c
  *  Contains the kernel main function.
@@ -10,22 +11,16 @@
 
 
 int kmain()
-{
+{ 
   gdt_install();
   idt_install();
   isrs_install();
-
-  write("Dans quelques instants, je vais diviser par 0...\n");
+  irq_install();
+  __asm__ __volatile__ ("sti");
   
-  log("L'erreur sera-t-elle rattrapee ? (le suspense est a son comble)", Info);
-  #pragma GCC diagnostic ignored "-Wunused-variable"
-  #pragma GCC diagnostic ignored "-Wdiv-by-zero"
-  int x = 3/0;
+  write("On teste l'erreur 0x10.\n");
   
-  // Est-ce que j'écris l'erreur dans le log ou à l'écran ?
-  // Pour l'instant j'ai coupé la poire en deux...
-  
-  log("Apres", Info);
+  __asm__("int $0x10");
   
   write("Froude !");
   
