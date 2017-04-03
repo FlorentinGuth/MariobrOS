@@ -1,8 +1,8 @@
 # MariobrOS
 
-Currently following "The little book about OS development"
+Currently following "The little book about OS development" and http://www.osdever.net/bkerndev/Docs/irqs.htm
 
-Packages used: bochs bochs-sdl genisoimage nasm build-essentials
+Packages used: bochs bochs-sdl genisoimage nasm build-essential
 
 How to run: make will run bochs, you have to type c in the console to tell it to continue
 

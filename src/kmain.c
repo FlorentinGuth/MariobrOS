@@ -1,5 +1,10 @@
 #include "printer.h"
 #include "logging.h"
+#include "gdt.h"
+#include "idt.h"
+#include "isr.h"
+#include "irq.h"
+#include "timer.h"
 
 /** kmain.c
  *  Contains the kernel main function.
@@ -8,22 +13,28 @@
 
 int kmain()
 {
-  char string[] = "Hello World!";
-  char currI[] = "\tnumber   \n";
-  int units; int tens;
-  for(int i=0; i < 32; i++) {
-    write(string);
-    units = i%10; tens = ((i%100)-units)/10;
-    currI[8] = tens + '0';
-    currI[9] = units + '0';
-    write(currI);
+  gdt_install();
+  idt_install();
+  isrs_install();
+  irq_install();
+  __asm__ __volatile__ ("sti");
+
+  timer_install();
+
+  // Essaie d'ajouter les minutes et les heures... BOCHS refuse chez moi.
+  
+  char seconds;
+  unsigned int time = 0;
+  char buf[3];
+  buf[2] = '\0';
+  while(1) {
+    seconds = time%60;
+    write("Time is now: ");
+    buf[0] = seconds/10 + '0'; buf[1] = seconds%10 + '0';
+    write(buf); write("\n");
+    timer_wait(1000);
+    time++;
   }
-
-
-
-  log("Grâce à ce vieux hack immonde, j'ai réussi à écrire autant de texte que je voulais dans le buffer ; l'astuce va vous surprendre !\n\n",   Info);
-  log("Je ne suis pas sûr que ce soit une très bonne solutions...\n", Debug);
-  log("Mais elle marche, ou au moins sur un texte qui est raisonnablement long pour une erreur, mais pas non plus terriblement excessif.\nSi on s'amuse à écrire des romans dans les messages d'erreur, ça pourrait effectivement finir par ne plus marcher, mais de toute façon ce hack ne me semble pas être une solution très viable.", Error);
-
+  
   return 0xCAFEBABE;
 }

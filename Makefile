@@ -25,11 +25,13 @@ ELTORITO = boot/grub/stage2_eltorito
 CC =      gcc
 CFLAGS =  -m32 \
           -nostdlib \
-          -nostdinc \
+          -ffreestanding \
           -fno-builtin \
           -fno-stack-protector \
           -nostartfiles \
           -nodefaultlibs \
+	  -funsigned-char \
+	  -funsigned-bitfields \
           -Wall -Wextra -Werror \
           -O0 \
           -c
@@ -78,8 +80,7 @@ all:	run
 
 run:	$(ISO) $(BOCHS_CONFIG)
   # Let's run it!
-	$(shell bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG) | exit 0)
-  # So that compilation doesn't crash because it just stopped
+	bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG)
 
 
 $(ISO):	kernel.elf $(GRUB_CONFIG)

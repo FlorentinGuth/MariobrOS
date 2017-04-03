@@ -99,6 +99,6 @@ void pad(pos_t cursor_pos, pos_t to_pad);
  *
  *  @param string The null-terminated string to write.
  */
-void write(char *string);
+void write(const char *string);
 
 #endif
