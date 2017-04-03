@@ -4,12 +4,12 @@ OS_NAME = MariobrOS
 GUI_LIBRARY = sdl
 
 # Folders and paths
-SRC_FOLDER = src
+SRC_FOLDER   = src
 BUILD_FOLDER = build
-ISO_FOLDER = iso
+ISO_FOLDER   = iso
 BOCHS_FOLDER = bochs
-VPATH = $(SRC_FOLDER) $(BUILD_FOLDER) $(BOCH_FOLDER) # Helps make find our files
-$(shell mkdir -p $(BUILD_FOLDER) $(BOCHS_FOLDER))    # Ensures folder exists
+VPATH        = $(SRC_FOLDER) $(BUILD_FOLDER) $(BOCH_FOLDER) # Helps make find our files
+$(shell mkdir -p $(BUILD_FOLDER) $(BOCHS_FOLDER))    # Ensures folders exist
 
 # File names
 LINKER = link.ld
@@ -30,8 +30,8 @@ CFLAGS =  -m32 \
           -fno-stack-protector \
           -nostartfiles \
           -nodefaultlibs \
-	  -funsigned-char \
-	  -funsigned-bitfields \
+	      -funsigned-char \
+	      -funsigned-bitfields \
           -Wall -Wextra -Werror \
           -O0 \
           -c
@@ -44,8 +44,8 @@ LDFLAGS = -T $(SRC_FOLDER)/$(LINKER) \
           -melf_i386
 
 # ASM compiler and flags
-AS =        nasm
-ASFLAGS =   -f elf32
+AS =      nasm
+ASFLAGS = -f elf32
 
 
 # Configuration files
@@ -79,25 +79,25 @@ endef
 all:	run
 
 run:	$(ISO) $(BOCHS_CONFIG)
-  # Let's run it!
+    # Let's run it!
 	bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG)
 
 
 $(ISO):	kernel.elf $(GRUB_CONFIG)
-  # Builds the ISO image from the ISO folder
+    # Builds the ISO image from the ISO folder
 	genisoimage -R \
-              -b $(ELTORITO) \
-              -no-emul-boot \
-              -boot-load-size 4 \
-              -A $(OS_NAME) \
-              -input-charset utf8 \
-              -quiet \
-              -boot-info-table \
-              -o $(BUILD_FOLDER)/$(ISO) \
-              iso
+                -b $(ELTORITO) \
+                -no-emul-boot \
+                -boot-load-size 4 \
+                -A $(OS_NAME) \
+                -input-charset utf8 \
+                -quiet \
+                -boot-info-table \
+                -o $(BUILD_FOLDER)/$(ISO) \
+                iso
 
 kernel.elf:	$(OBJECTS)
-  # Links the file and produces the .elf in the ISO folder
+    # Links the file and produces the .elf in the ISO folder
 	$(LD) $(LDFLAGS) $(addprefix $(BUILD_FOLDER)/,$(OBJECTS)) -o $(ISO_FOLDER)/boot/kernel.elf
 
 

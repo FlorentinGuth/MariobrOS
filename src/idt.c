@@ -3,8 +3,8 @@
 /* Source : http://www.osdever.net/bkerndev/Docs/idt.htm */
 
 
-/* Declare an IDT of 256 entries. 
- * If any undefined IDT entry is hit, it normally will cause an "Unhandled  
+/* Declare an IDT of 256 entries.
+ * If any undefined IDT entry is hit, it normally will cause an "Unhandled
  * Interrupt" exception. Any descriptor for which the 'presence' bit is cleared
  * (0) will generate an "Unhandled Interrupt" exception */
 idt_e idt[256];
@@ -26,17 +26,17 @@ void idt_set_gate(unsigned char num, unsigned long base, unsigned short sel, uns
 /* Installs and loads the IDT */
 void idt_install()
 {
-    /* Sets the special IDT pointer up, just like in 'gdt.c' */
-    idtp.limit = (sizeof (struct idt_entry) * 256) - 1;
-    idtp.base = (unsigned int) &idt;
+  /* Sets the special IDT pointer up, just like in 'gdt.c' */
+  idtp.limit = (sizeof (struct idt_entry) * 256) - 1;
+  idtp.base = (unsigned int) &idt;
 
-    /* Clear out the entire IDT, initializing it to zeros */
-    for (int i=0; i<256; i++) {
-      idt_set_gate(i,0,0,0);
-    }
+  /* Clear out the entire IDT, initializing it to zeros */
+  for (int i=0; i<256; i++) {
+    idt_set_gate(i,0,0,0);
+  }
 
-    /* Add any new ISRs to the IDT here using idt_set_gate */
+  /* Add any new ISRs to the IDT here using idt_set_gate */
 
-    /* Points the processor's internal register to the new IDT */
-    idt_load();
+  /* Points the processor's internal register to the new IDT */
+  idt_load();
 }

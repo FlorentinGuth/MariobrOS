@@ -9,8 +9,8 @@
 typedef unsigned char byte;
 
 typedef unsigned char bool;
-#define FALSE (bool)0;
-#define TRUE  (bool)1;
+#define FALSE (bool)0
+#define TRUE  (bool)1
 
 
 /** port_t:

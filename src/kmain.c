@@ -21,13 +21,14 @@ int kmain()
 
   timer_install();
 
-  // Essaie d'ajouter les minutes et les heures... BOCHS refuse chez moi.
-  
+  /* Essaie d'ajouter les minutes et les heures... BOCHS refuse chez moi. */
+
   char seconds;
   unsigned int time = 0;
   char buf[3];
   buf[2] = '\0';
-  while(1) {
+
+  while(TRUE) {
     seconds = time%60;
     write("Time is now: ");
     buf[0] = seconds/10 + '0'; buf[1] = seconds%10 + '0';
@@ -35,6 +36,6 @@ int kmain()
     timer_wait(1000);
     time++;
   }
-  
+
   return 0xCAFEBABE;
 }
