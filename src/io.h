@@ -9,7 +9,6 @@
 #include "types.h"
 
 
-typedef unsigned short port_t;
 
 /** outb:
  *  Sends data (a byte) to an I/O port.
@@ -17,7 +16,7 @@ typedef unsigned short port_t;
  *  @param port The I/O port to send the data to
  *  @param data The data to send to the I/O port
  */
-void outb(port_t port, byte data);
+void outb (unsigned short port, unsigned char data);
 
 /** inb:
  *  Receives data (a byte) from an I/O port.
@@ -25,6 +24,6 @@ void outb(port_t port, byte data);
  *  @param port The port to listen to
  *  @return The data
  */
-byte inb(port_t port);
+unsigned char inb (unsigned short port);
 
 #endif
