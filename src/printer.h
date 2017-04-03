@@ -93,6 +93,12 @@ void scroll();
  */
 void pad(pos_t cursor_pos, pos_t to_pad);
 
+/** write_char:
+ *  Write a single character at the end of the framebuffer.
+ *
+ *  @param c The character to write.
+ */
+void write_char(const char c);
 
 /** write:
  *  Write a string at the end of the framebuffer.

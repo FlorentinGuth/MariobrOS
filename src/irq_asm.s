@@ -3,7 +3,6 @@ global irq%1
         
 irq%1:
         push dword 0            ; push 0 as error code
-        cli                     ; disable interrupts
         push dword (32+%1)      ; push the interrupt number
         jmp common_irq_handler
 %endmacro

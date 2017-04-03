@@ -5,6 +5,7 @@
 #include "isr.h"
 #include "irq.h"
 #include "timer.h"
+#include "keyboard.h"
 
 /** kmain.c
  *  Contains the kernel main function.
@@ -20,21 +21,13 @@ int kmain()
   __asm__ __volatile__ ("sti");
 
   timer_install();
+  keyboard_install();
 
-  // Essaie d'ajouter les minutes et les heures... BOCHS refuse chez moi.
-  
-  char seconds;
-  unsigned int time = 0;
-  char buf[3];
-  buf[2] = '\0';
-  while(1) {
-    seconds = time%60;
-    write("Time is now: ");
-    buf[0] = seconds/10 + '0'; buf[1] = seconds%10 + '0';
-    write(buf); write("\n");
-    timer_wait(1000);
-    time++;
-  }
-  
+  log("Test", Debug);
+  log("TEST", Error);
+  log("Blàbléblù", Info);
+
+
+  for(;;);
   return 0xCAFEBABE;
 }

@@ -2,6 +2,7 @@
 #include "isr.h"
 #include "io.h"
 #include "idt.h"
+#include "logging.h"
 
 /* These are own our ISRs that point to our special IRQ handler
 *  instead of the regular 'fault_handler' function */
@@ -112,9 +113,9 @@ void irq_handler(struct regs *r)
     handler = irq_routines[r->int_no - 32];
     if (handler)
     {
-        handler(r);
+      handler(r);
     }
-
+    
     /* If the IDT entry that was invoked was greater than 40
     *  (meaning IRQ8 - 15), then we need to send an EOI to
     *  the slave controller */
