@@ -33,4 +33,6 @@ void str_copy(string source, string dest);
  */
 /* inline string int_to_string(int n); */
 
+void to_string(char str[], int num);
+
 #endif

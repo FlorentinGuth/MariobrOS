@@ -5,6 +5,7 @@
 #include "isr.h"
 #include "irq.h"
 #include "timer.h"
+#include "keyboard.h"
 
 /** kmain.c
  *  Contains the kernel main function.
@@ -20,6 +21,7 @@ int kmain()
   __asm__ __volatile__ ("sti");
 
   timer_install();
+  keyboard_install();
 
   /* Essaie d'ajouter les minutes et les heures... BOCHS refuse chez moi. */
 
@@ -36,6 +38,5 @@ int kmain()
     timer_wait(1000);
     time++;
   }
-
   return 0xCAFEBABE;
 }

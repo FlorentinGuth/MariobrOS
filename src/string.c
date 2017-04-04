@@ -28,3 +28,20 @@ void str_copy(string source, string dest)
 
 /*   return str; */
 /* } */
+
+/* Will be replaced by string.h::int_to_string eventually */
+void to_string(char str[], int num)
+{
+  int i, rem, len = 0, n;
+    n = num;
+    do {
+        len++;
+        n /= 10;
+    } while (n != 0);
+    for (i = 0; i < len; i++) {
+        rem = num % 10;
+        num = num / 10;
+        str[len - (i + 1)] = rem + '0';
+    }
+    str[len] = '\0';
+}

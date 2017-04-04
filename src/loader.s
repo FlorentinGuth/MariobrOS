@@ -24,6 +24,7 @@ loader:                         ; The loader label (defined as entry point in th
 
   ; Push arguments to the stack, from last to first
   call kmain                    ; Call the kmain function from kmain.c (return in eax)
+  cli                           ; Prevents further interruptions
 
 .loop:
-  jmp .loop                     ; Loop forever
+  hlt                     ; Loop forever

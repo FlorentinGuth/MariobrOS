@@ -1,7 +1,7 @@
 #include "types.h"
 #include "printer.h"
 #include "io.h"
-
+#include "string.h"
 
 char * const framebuffer = (char *)FRAMEBUFFER_LOCATION;
 
@@ -47,23 +47,6 @@ void set_cursor_pos(pos_t pos)
 }
 
 
-/* Will be replaced by string.h::int_to_string eventually */
-void to_string(char str[], int num)
-{
-  int i, rem, len = 0, n;
-    n = num;
-    while (n != 0) {
-        len++;
-        n /= 10;
-    }
-    for (i = 0; i < len; i++) {
-        rem = num % 10;
-        num = num / 10;
-        str[len - (i + 1)] = rem + '0';
-    }
-    str[len] = '\0';
-}
-
 void pad(pos_t cursor_pos, pos_t to_pad)
 {
   for(int i=cursor_pos; i<to_pad; i++) {
@@ -83,53 +66,76 @@ void scroll()
 }
 
 
-void write(const char *string)
+void write_char(const char c)
 {
   pos_t cursor_pos = get_cursor_pos();
+  switch (c) {
+    
+  case '\0': {
+    return;
+    break;
+  }
+    
+  case '\n': {
+    /* It should be useless to pad the spaces, but we keep it in case the user
+       messes with the framebuffer by writing everywhere */
+    pos_t to_pad = SCREEN_WIDTH * ((cursor_pos / SCREEN_WIDTH) + 1);
+    pad(cursor_pos, to_pad);
+    cursor_pos = to_pad;
+    break;
+  }
+    
+  case '\t': {
+    /* Same as '\n' */
+    pos_t to_pad = TAB_WIDTH * ((cursor_pos / TAB_WIDTH) + 1);
+    pad(cursor_pos, to_pad);
+    cursor_pos = to_pad;
+    break;
+  }
 
-  bool done = FALSE;
-  for (unsigned int i = 0; !done; i++) {
+  case '\b' : { /* backspace */
+    cursor_pos--;
+    put_char(cursor_pos, ' ', White, Black);
+    break;
+  }
 
-    char c = string[i];
-
-    switch (c) {
-
-    case '\0': {
-      done = TRUE;
-      break;
-    }
-
-    case '\n': {
-      /* It should be useless to pad the spaces, but we keep it in case the user
-         messes with the framebuffer by writing everywhere */
-      pos_t to_pad = SCREEN_WIDTH * ((cursor_pos / SCREEN_WIDTH) + 1);
-      pad(cursor_pos, to_pad);
-      cursor_pos = to_pad;
-      break;
-    }
-
-    case '\t': {
-      /* Same as '\n' */
-      pos_t to_pad = TAB_WIDTH * ((cursor_pos / TAB_WIDTH) + 1);
-      pad(cursor_pos, to_pad);
-      cursor_pos = to_pad;
-      break;
-    }
-
-    default: {
-      put_char(cursor_pos, c, White, Black);
-      cursor_pos++;
-    }
-    }
-
-    /* Check if scrolling would be necessary
-       TODO: maybe pre-compute the number of lines to scroll to do it only once */
-    if (cursor_pos == SCREEN_WIDTH * SCREEN_HEIGHT) {
-      scroll();
-      cursor_pos -= SCREEN_WIDTH;
-    }
-
+  /* case '\177' : { /\* delete*\/ */
+  /*   for (int i = cursor_pos+1; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) { */
+  /*     framebuffer[2*i] = framebuffer[2*i-2]; */
+  /*     framebuffer[2*i+1] = framebuffer[2*i-1]; */
+  /*   } */
+  /* } */
+    
+  default: {
+    put_char(cursor_pos, c, White, Black);
+    cursor_pos++;
+  }
+  }
+  
+  /* Check if scrolling would be necessary
+     TODO: maybe pre-compute the number of lines to scroll to do it only once */
+  if (cursor_pos == SCREEN_WIDTH * SCREEN_HEIGHT) {
+    scroll();
+    cursor_pos -= SCREEN_WIDTH;
   }
 
   set_cursor_pos(cursor_pos);
 }
+
+void write(const char *string)
+{
+  for (unsigned int i = 0;; i++) {
+    char c = string[i];
+    if(c=='\0')
+      return;
+    else
+      write_char(c);
+  }
+}
+
+/* void write_int(const int n) */
+/* { */
+/*   char buf[32]; */
+/*   to_string(buf,n); */
+/*   write(buf); */
+/* } */

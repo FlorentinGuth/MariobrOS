@@ -1,6 +1,7 @@
 #include "isr.h"
 #include "io.h"
 #include "idt.h"
+#include "logging.h"
 
 
 /* These are own our ISRs that point to our special IRQ handler

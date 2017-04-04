@@ -77,7 +77,7 @@ void log(const char *string, log_level_t lvl)
   }
   for (int i = 0; string[i] != '\0'; i++) {
     outb(SERIAL_COM1_BASE, string[i]);
-    write(""); // Truly terrible hack used to slow down the output pace
+    write_char('\0'); // Truly terrible hack used to slow down the output pace
   }
   outb(SERIAL_COM1_BASE, '\n');
 }
