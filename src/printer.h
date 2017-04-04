@@ -112,6 +112,6 @@ void write(const char *string);
  *
  *  @param n The integer to write.
  */
-//void write_int(const int n);
+void write_int(const int n);
 
 #endif

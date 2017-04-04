@@ -60,7 +60,7 @@ log:              $(BOCHS_FOLDER)/$(BOCHS_LOG)
 clock:            sync=realtime, time0=local
 cpu:              count=1, ips=1000000
 com1:             enabled=1, mode=file, dev=$(BOCHS_FOLDER)/com1.out
-keyboard:         type=mf, serial_delay=200, paste_delay=100000
+keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=bochs/custom.map
 endef
 
 define GRUB_CONFIG_CONTENT
@@ -112,7 +112,8 @@ $(GRUB_CONFIG):
 
 
 clean:
-	rm -rf $(BUILD_FOLDER) $(BOCHS_FOLDER)
+	rm -rf $(BUILD_FOLDER)
+	rm -f $(BOCHS_FOLDER)/com1.out $(BOCHS_FOLDER)/config.txt $(BOCHS_FOLDER)/log.txt
 	rm -f $(ISO_FOLDER)/boot/kernel.elf
 	rm -f $(GRUB_CONFIG)
 
