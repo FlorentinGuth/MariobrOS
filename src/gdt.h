@@ -2,8 +2,8 @@
 #define GDT_H
 
 
-/** gdt_install
- *  Sets up the GDT
+/** gdt_install:
+ *  Sets up the GDT.
  */
 void gdt_install();
 
