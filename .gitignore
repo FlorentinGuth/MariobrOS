@@ -1,4 +1,3 @@
 build/**
 iso/boot/kernel.elf
-bochs/**
 iso/boot/grub/menu.lst
