@@ -2,6 +2,7 @@
 #define IRQ_H
 
 #include "isr.h"
+#include "irq_asm.h"
 
 /** irq_install_handler:
  *

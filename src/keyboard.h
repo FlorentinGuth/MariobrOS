@@ -1,7 +1,7 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
-char listen();
+#include "irq.h"
 
 void keyboard_install();
 

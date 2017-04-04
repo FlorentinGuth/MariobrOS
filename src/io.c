@@ -1,4 +1,4 @@
-
+#include "io.h"
 
 /* Modified versions of in and out.
  * I don't know why those work better, but, alas, they do! */

@@ -1,8 +1,5 @@
-#include "types.h"
 #include "logging.h"
-#include "io.h"
-#include "string.h"
-#include "printer.h"
+
 
 void serial_configure_baud_rate(port_t com, port_t divisor)
 {

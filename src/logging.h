@@ -1,11 +1,11 @@
+#ifndef LOGGING_H
+#define LOGGING_H
+
 /** logging.h:
  *  Provides utilities for logging with Bochs, through a serial port.
  */
 
-#ifndef LOGGING_H
-#define LOGGING_H
-
-#include "types.h"
+#include "printer.h"
 
 /** The I/O ports:
  *  All the I/O ports are calculated relative to the data port. This is because

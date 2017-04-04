@@ -1,6 +1,7 @@
 #ifndef IDT_H
 #define IDT_H
 
+#include "idt_asm.h"
 
 /*
  * Bit:     | 7 | 6 5 | 4 | 3       0 |

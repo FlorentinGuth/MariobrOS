@@ -1,6 +1,4 @@
-#include "io.h"
-#include "irq.h"
-
+#include "timer.h"
 
 /* Source : http://www.osdever.net/bkerndev/Docs/pit.htm */
 

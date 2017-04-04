@@ -1,3 +1,6 @@
+#ifndef PRINTER_H
+#define PRINTER_H
+
 /** printer.h:
  *  Provides function to interact with the VGA framebuffer.
  *  See http://wiki.osdev.org/VGA_Hardware and http://www.osdever.net/FreeVGA/home.htm for doc.
@@ -5,11 +8,9 @@
  *  TODO: Rename to something framebuffer-explicitly-related?
  */
 
-#ifndef PRINTER_H
-#define PRINTER_H
-
 #include "types.h"
-
+#include "io.h"
+#include "string.h"
 
 /* The framebuffer location in memory */
 #define FRAMEBUFFER_LOCATION 0x000B8000

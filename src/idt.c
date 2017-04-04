@@ -10,9 +10,6 @@
 idt_e idt[256];
 idt_ptr idtp;
 
-/* This exists in 'idt_asm.s', and is used to load our IDT */
-extern void idt_load();
-
 /* Use this function to set an entry in the IDT. */
 void idt_set_gate(unsigned char num, unsigned long base, unsigned short sel, unsigned char flags)
 {

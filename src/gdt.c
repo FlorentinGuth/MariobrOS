@@ -1,28 +1,6 @@
 #include "gdt.h"
 
-
 /* Source : http://www.osdever.net/bkerndev/Docs/gdt.htm */
-
-/* Defines a GDT entry. We say packed, because it prevents the
- * compiler from doing things that it thinks is best: Prevent
- * compiler "optimization" by packing */
-struct gdt_entry
-{
-  unsigned short limit_low;
-  unsigned short base_low;
-  unsigned char  base_middle;
-  unsigned char  access;
-  unsigned char  granularity;
-  unsigned char  base_high;
-} __attribute__((packed));
-
-/* Special pointer which includes the limit: The max bytes
- * taken up by the GDT, minus 1. Again, this NEEDS to be packed */
-struct gdt_ptr
-{
-  unsigned short limit;
-  unsigned int base;
-} __attribute__((packed));
 
 
 /* Our GDT, with 3 entries, and finally our special GDT pointer */
@@ -46,8 +24,6 @@ void gdt_set_gate(int num, unsigned long base, unsigned long limit, unsigned cha
   gdt[num].access = access;
 }
 
-/* The next function is defined in gdt_asm.s */
-extern void gdt_flush();
 
 /* Should be called by main. This will setup the special GDT
  * pointer, set up the first 3 entries in our GDT, and then

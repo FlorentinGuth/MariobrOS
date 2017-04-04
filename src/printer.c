@@ -1,7 +1,5 @@
-#include "types.h"
 #include "printer.h"
-#include "io.h"
-#include "string.h"
+
 
 char * const framebuffer = (char *)FRAMEBUFFER_LOCATION;
 
@@ -76,35 +74,35 @@ void write_char(const char c)
     break;
   }
     
-  /* case '\n': { */
-  /*   /\* It should be useless to pad the spaces, but we keep it in case the user */
-  /*      messes with the framebuffer by writing everywhere *\/ */
-  /*   pos_t to_pad = SCREEN_WIDTH * ((cursor_pos / SCREEN_WIDTH) + 1); */
-  /*   pad(cursor_pos, to_pad); */
-  /*   cursor_pos = to_pad; */
-  /*   break; */
-  /* } */
+  case '\n': {
+    /* It should be useless to pad the spaces, but we keep it in case the user
+       messes with the framebuffer by writing everywhere */
+    pos_t to_pad = SCREEN_WIDTH * ((cursor_pos / SCREEN_WIDTH) + 1);
+    pad(cursor_pos, to_pad);
+    cursor_pos = to_pad;
+    break;
+  }
     
-  /* case '\t': { */
-  /*   /\* Same as '\n' *\/ */
-  /*   pos_t to_pad = TAB_WIDTH * ((cursor_pos / TAB_WIDTH) + 1); */
-  /*   pad(cursor_pos, to_pad); */
-  /*   cursor_pos = to_pad; */
-  /*   break; */
-  /* } */
+  case '\t': {
+    /* Same as '\n' */
+    pos_t to_pad = TAB_WIDTH * ((cursor_pos / TAB_WIDTH) + 1);
+    pad(cursor_pos, to_pad);
+    cursor_pos = to_pad;
+    break;
+  }
 
-  /* case '\b' : { /\* backspace *\/ */
-  /*   cursor_pos--; */
-  /*   put_char(cursor_pos, ' ', White, Black); */
-  /*   break; */
-  /* } */
+  case '\b' : { /* backspace */
+    cursor_pos--;
+    put_char(cursor_pos, ' ', White, Black);
+    break;
+  }
 
-  /* case '\177' : { /\* delete*\/ */
-  /*   for (int i = cursor_pos+1; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) { */
-  /*     framebuffer[2*i] = framebuffer[2*i-2]; */
-  /*     framebuffer[2*i+1] = framebuffer[2*i-1]; */
-  /*   } */
-  /* } */
+  case '\177' : { /* delete*/
+    for (int i = cursor_pos+1; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
+      framebuffer[2*i] = framebuffer[2*i-2];
+      framebuffer[2*i+1] = framebuffer[2*i-1];
+    }
+  }
     
   default: {
     put_char(cursor_pos, c, White, Black);

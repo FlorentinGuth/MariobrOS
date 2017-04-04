@@ -1,11 +1,4 @@
-#include "printer.h"
-#include "logging.h"
-#include "gdt.h"
-#include "idt.h"
-#include "isr.h"
-#include "irq.h"
-#include "timer.h"
-#include "keyboard.h"
+#include "kmain.h"
 
 /** kmain.c
  *  Contains the kernel main function.
@@ -34,5 +27,7 @@ int kmain()
     timer_wait(500);
     time++;
   }
+
+  for(;;);
   return 0xCAFEBABE;
 }
