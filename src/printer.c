@@ -1,7 +1,7 @@
 #include "types.h"
 #include "printer.h"
 #include "io.h"
-
+#include "string.h"
 
 char * const framebuffer = (char *)FRAMEBUFFER_LOCATION;
 
@@ -93,11 +93,18 @@ void write_char(const char c)
     break;
   }
 
-  case '\b' : {
+  case '\b' : { /* backspace */
     cursor_pos--;
     put_char(cursor_pos, ' ', White, Black);
     break;
   }
+
+  /* case '\177' : { /\* delete*\/ */
+  /*   for (int i = cursor_pos+1; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) { */
+  /*     framebuffer[2*i] = framebuffer[2*i-2]; */
+  /*     framebuffer[2*i+1] = framebuffer[2*i-1]; */
+  /*   } */
+  /* } */
     
   default: {
     put_char(cursor_pos, c, White, Black);
@@ -125,3 +132,10 @@ void write(const char *string)
       write_char(c);
   }
 }
+
+/* void write_int(const int n) */
+/* { */
+/*   char buf[32]; */
+/*   to_string(buf,n); */
+/*   write(buf); */
+/* } */

@@ -107,4 +107,11 @@ void write_char(const char c);
  */
 void write(const char *string);
 
+/** write_int:
+ *  Write an integer at the end of the framebuffer.
+ *
+ *  @param n The integer to write.
+ */
+//void write_int(const int n);
+
 #endif

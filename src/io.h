@@ -5,10 +5,7 @@
 #ifndef IO_H
 #define IO_H
 
-
 #include "types.h"
-
-
 
 /** outb:
  *  Sends data (a byte) to an I/O port.

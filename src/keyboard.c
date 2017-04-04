@@ -8,16 +8,16 @@
 unsigned char kbdus[128] =
 {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8', /* 9 */
-  '9', '0', '-', '=', '\b', /* Backspace */
+  '9', '0', ')', '=', '\b', /* Backspace */
   '\t', /* Tab */
-  'q', 'w', 'e', 'r', /* 19 */
-  't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',	/* Enter key */
+  'a', 'z', 'e', 'r', /* 19 */
+  't', 'y', 'u', 'i', 'o', 'p', '^', '$', '\n',	/* Enter key */
     'C', /* 29   - Control */
-  'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', /* 39 */
- '\'', '!',   'M', /* Left shift */
- '\\', 'z', 'x', 'c', 'v', 'b', 'n', /* 49 */
-  'm', ',', '.', '/',   'M', /* Right shift */
-  '*',
+  'q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', /* 39 */
+ '%', '*',   'M', /* Left shift */
+ '*', 'w', 'x', 'c', 'v', 'b', 'n', /* 49 */
+  ',', ';', ':', '!',   'M', /* Right shift */
+  '?',
     'A',/* Alt */
   ' ',	/* Space bar */
     'C',/* Caps lock */
@@ -38,8 +38,8 @@ unsigned char kbdus[128] =
     'B',/* Down Arrow */
     '?',/* Page Down */
     'I',/* Insert Key */
-    'D',/* Delete Key */
-    '?',   '?',   '?',
+    '\177',/* Delete Key */
+    '?',   '?',   '<',
     'F', /* F11 Key */
     'F', /* F12 Key */
     0,	/* All other keys are undefined */

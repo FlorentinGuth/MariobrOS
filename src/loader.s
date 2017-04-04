@@ -27,4 +27,4 @@ loader:                         ; The loader label (defined as entry point in th
   cli                           ; Prevents further interruptions
 
 .loop:
-  jmp .loop                     ; Loop forever
+  hlt                     ; Loop forever
