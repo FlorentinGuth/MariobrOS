@@ -94,6 +94,11 @@ void scroll();
  */
 void pad(pos_t cursor_pos, pos_t to_pad);
 
+/** clear:
+ *  Empties the framebuffer
+ */
+void clear();
+
 /** write_char:
  *  Write a single character at the end of the framebuffer.
  *

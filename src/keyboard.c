@@ -1,44 +1,91 @@
 #include "keyboard.h"
 
-unsigned char kbdus[128] =
+unsigned char kbdus[256] =
   {
-    0,  27, '1', '2', '3', '4', '5', '6', '7', '8', /* 9 */
-    '9', '0', ')', '=', '\b', /* Backspace */
+    0,  27, '&', '~', '"', '\'', '(', '-', '`', '_', /* 9 */
+    '^', '@', ')', '=', '\b', /* Backspace */
     '\t', /* Tab */
     'a', 'z', 'e', 'r', /* 19 */
     't', 'y', 'u', 'i', 'o', 'p', '^', '$', '\n',/* Enter key */
-    'C', /* 29   - Control */
+    0, /* 29   - Control */
     'q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', /* 39 */
-    '%', '*',   'M', /* Left shift */
+    '%', '?',   0, /* Left shift */
     '*', 'w', 'x', 'c', 'v', 'b', 'n', /* 49 */
-    ',', ';', ':', '!',   'M', /* Right shift */
+    ',', ';', ':', '!',   0, /* 54 - Right shift */
     '?',
-    'A',/* Alt */
+    0,/* 56 - Alt */
     ' ',/* Space bar */
-    'C',/* Caps lock */
-    'F', /* 59 - F1 key ... > */
+    0,/* 58 - Caps lock */
+    'F',/* 59 - F1 key ... > */
     'F',   'F',   'F',   'F',   'F',   'F',   'F',   'F',
     'H',/* < ... F10 */
-    'N',/* 69 - Num lock*/
-    'S',/* Scroll Lock */
-    'K',/* Home key */
-    'U',/* Up Arrow */
+    0,/* 69 - Num lock*/
+    0,/* 70 - Scroll Lock */
+    0,/* 71 - Home key */
+    0,/* 72 - Up Arrow */
     '?',/* Page Up */
     '-',
-    'L',/* Left Arrow */
+    0,/* 75 - Left Arrow */
     '?',
-    'R',/* Right Arrow */
+    0,/* 77 - Right Arrow */
     '+',
-    'E',/* 79 - End key*/
-    'B',/* Down Arrow */
+    0,/* 79 - End key*/
+    0,/* 80 - Down Arrow */
     '?',/* Page Down */
     'I',/* Insert Key */
     '\177',/* Delete Key */
     '?',   '?',   '<',
     'F', /* F11 Key */
     'F', /* F12 Key */
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,
+
+    /* With shift */
+    0,  27, '1', '2', '3', '4', '5', '6', '7', '8', /* 9 */
+    '9', '0', 0, '+', '\b', /* Backspace */
+    '\t', /* Tab */
+    'A', 'Z', 'E', 'R', /* 19 */
+    'T', 'Y', 'U', 'I', 'O', 'P', '^', '$', '\n',/* Enter key */
+    0, /* 29   - Control */
+    'Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', /* 39 */
+    '%', '*',   0, /* Left shift */
+    '*', 'W', 'X', 'C', 'V', 'B', 'N', /* 49 */
+    '?', '.', '/', '!',   0, /* 54 - Right shift */
+    '?',
+    0,/* 56 - Alt */
+    ' ',/* Space bar */
+    0,/* 58 - Caps lock */
+    'F',/* 59 - F1 key ... > */
+    'F',   'F',   'F',   'F',   'F',   'F',   'F',   'F',
+    'H',/* < ... F10 */
+    0,/* 69 - Num lock*/
+    0,/* 70 - Scroll Lock */
+    0,/* 71 - Home key */
+    0,/* 72 - Up Arrow */
+    '?',/* Page Up */
+    '-',
+    0,/* 75 - Left Arrow */
+    '?',
+    0,/* 77 - Right Arrow */
+    '+',
+    0,/* 79 - End key*/
+    0,/* 80 - Down Arrow */
+    '?',/* Page Down */
+    'I',/* Insert Key */
+    '\177',/* Delete Key */
+    '?',   '?',   '>',
+    'F', /* F11 Key */
+    'F', /* F12 Key */
     0,	/* All other keys are undefined */
   };
+
+bool k_caps_lock = FALSE;
+bool k_num_lock = FALSE;
+bool k_scroll_lock = FALSE;
+bool k_shift_count = 0;
+bool k_shift = FALSE;
+bool k_meta = 0;
+bool k_ctrl = 0;
 
 /* Handles the keyboard interrupt */
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -52,14 +99,100 @@ void keyboard_handler(struct regs *r)
    *  set, that means that a key has just been released */
   if (scancode & 0x80)
     {
-      /* You can use this one to see if the user released the
-       *  shift, alt, or control keys... */
+      switch(scancode^0x80) {
+
+      case 29: { // Ctrl
+        k_ctrl--;
+        break;
+      }
+      case 42: { // Left Shift
+        k_shift_count--;
+        k_shift = k_caps_lock ^ k_shift_count;
+        break;
+      }
+      case 54: { // Right Shift
+        k_shift_count--;
+        k_shift = k_caps_lock + k_shift_count;
+        break;
+      }
+      case 56: { // Alt
+        k_meta--;
+        break;
+      }
+
+      }
     }
   else
     {
-      /* Here, a key was just pressed. Please note that if you
-       *  hold a key down, you will get repeated key press
-       *  interrupts. */
+      switch (scancode) {
+
+      case 29: { // Ctrl
+        k_ctrl++;
+        break;
+      }
+      case 42: { // Left Shift
+        k_shift_count++;
+        k_shift = !k_caps_lock;
+        break;
+      }
+      case 54: { // Right Shift
+        k_shift_count++;
+        k_shift = !k_caps_lock;
+        break;
+      }
+      case 56: { // Alt
+        k_meta++;;
+        break;
+      }
+      case 58: { // Caps lock
+        k_caps_lock = !k_caps_lock;
+        k_shift =!k_shift;
+        break;
+      }
+      case 69: { // Num lock
+        k_num_lock = !k_num_lock;
+        break;
+      }
+      case 70: { // Scroll lock
+        k_scroll_lock = !k_scroll_lock;
+        break;
+      }
+        /* Next cases are only of use in the framebuffer */
+      case 71: { // Home
+        pos_t pos = get_cursor_pos();
+        set_cursor_pos(SCREEN_WIDTH * (pos / SCREEN_WIDTH));
+        break;
+      }
+      case 72: { // Up
+        pos_t pos = get_cursor_pos();
+        set_cursor_pos((pos-SCREEN_WIDTH) % (SCREEN_WIDTH*SCREEN_HEIGHT));
+        break;
+      }
+      case 75: { // Left
+        pos_t pos = get_cursor_pos();
+        set_cursor_pos((pos-1) % (SCREEN_WIDTH*SCREEN_HEIGHT));
+        break;
+      }
+      case 77: { // Right
+        pos_t pos = get_cursor_pos();
+        set_cursor_pos((pos+1) % (SCREEN_WIDTH*SCREEN_HEIGHT));
+        break;
+      }
+      case 79: { // End
+        pos_t pos = get_cursor_pos();
+        set_cursor_pos(SCREEN_WIDTH *((pos / SCREEN_WIDTH) + 1) - 1);
+        break;
+      }
+      case 80: { // Down
+        pos_t pos = get_cursor_pos();
+        set_cursor_pos((pos+SCREEN_WIDTH) % (SCREEN_WIDTH*SCREEN_HEIGHT));
+        break;
+      }
+      default: {
+        char c = kbdus[scancode+(k_shift*128)];
+        write_char(c);
+      }
+      }
 
       /* Just to show you how this works, we simply translate
        *  the keyboard scancode into an ASCII value, and then
@@ -69,8 +202,6 @@ void keyboard_handler(struct regs *r)
        *  to the above layout to correspond to 'shift' being
        *  held. If shift is held using the larger lookup table,
        *  you would add 128 to the scancode when you look for it */
-      char c = kbdus[scancode];
-      write_char(c);
     }
     
 }

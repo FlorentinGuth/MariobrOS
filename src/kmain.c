@@ -16,18 +16,27 @@ int kmain()
   timer_install();
   keyboard_install();
 
-  /* Essaie d'ajouter les minutes et les heures... BOCHS refuse chez moi. */
+  clear(); // Empties the framebuffer
 
-  unsigned int time = 0;
-
-  while(TRUE) {
-    write_int(time);
-    timer_wait(500);
-    write_char(','); write_char(' ');
-    timer_wait(500);
-    time++;
+  for(unsigned char c = 0; c<255; c++) {
+    write_char(c); write(", ");
   }
+  write_char('\n');
+  
 
-  for(;;);
+  /* int time = 0; */
+  /* int seconds; int minutes; int hours; */
+  /* while(TRUE) { */
+  /*   time++; */
+  /*   seconds = time%60; minutes = (time%3600 - seconds)/60; */
+  /*   hours = (time%(3600*24) - minutes*60 - seconds)/3600; */
+  /*   write_int(hours); write_char(':'); write_int(minutes); */
+  /*   write_char(':'); write_int(seconds); write_char('\n'); */
+  /*   timer_wait(1000); */
+  /* } */
+  
+  
+  for(;;)
+    __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;
 }

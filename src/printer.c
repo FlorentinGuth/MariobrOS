@@ -52,6 +52,13 @@ void pad(pos_t cursor_pos, pos_t to_pad)
   }
 }
 
+void clear()
+{
+  pad(0, SCREEN_WIDTH * SCREEN_HEIGHT);
+  set_cursor_pos(0);
+}
+
+
 void scroll()
 {
   pos_t last_line = SCREEN_WIDTH * (SCREEN_HEIGHT - 1);
@@ -78,7 +85,7 @@ void write_char(const char c)
     /* It should be useless to pad the spaces, but we keep it in case the user
        messes with the framebuffer by writing everywhere */
     pos_t to_pad = SCREEN_WIDTH * ((cursor_pos / SCREEN_WIDTH) + 1);
-    pad(cursor_pos, to_pad);
+    pad(cursor_pos+1, to_pad);
     cursor_pos = to_pad;
     break;
   }
@@ -98,10 +105,10 @@ void write_char(const char c)
   }
 
   case '\177' : { /* delete*/
-    for (int i = cursor_pos+1; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
-      framebuffer[2*i] = framebuffer[2*i-2];
-      framebuffer[2*i+1] = framebuffer[2*i-1];
+    for (int i = 2*cursor_pos; i < 2 * SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
+      framebuffer[i] = framebuffer[i+2];
     }
+    break;
   }
     
   default: {
@@ -133,7 +140,7 @@ void write(const char *string)
 
 void write_int(const int n)
 {
-  char buf[32];
+  char buf[20];
   to_string(buf,n);
   write(buf);
 }
