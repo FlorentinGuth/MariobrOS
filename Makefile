@@ -1,6 +1,3 @@
-print-%  : ; @echo $* = $($*)
-
-
 OS_NAME = MariobrOS
 
 # Options
@@ -17,7 +14,7 @@ $(shell mkdir -p $(BUILD_FOLDER) $(BOCHS_FOLDER))    # Ensures folders exist
 LINKER = link.ld
 OBJECTS = $(patsubst $(SRC_FOLDER)/%.c,%.o,$(wildcard $(SRC_FOLDER)/*.c)) \
           $(patsubst $(SRC_FOLDER)/%.s,%.o,$(wildcard $(SRC_FOLDER)/*.s))
-OBJECTS = loader.o kmain.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o
+OBJECTS = loader.o kmain.o paging.o paging_asm.o kheap.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o
 ISO = os.iso
 BOCHS_CONFIG = config.txt
 BOCHS_LOG = log.txt
@@ -81,6 +78,12 @@ endef
 
 
 all:	run
+
+.PHONY:	$(BOCHS_CONFIG) $(GRUB_CONFIG)
+
+print-%  :
+	@echo $* = $($*)
+
 
 run:	$(ISO) $(BOCHS_CONFIG)
     # Let's run it!

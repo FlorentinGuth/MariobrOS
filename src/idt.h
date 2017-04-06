@@ -4,7 +4,7 @@
 #include "idt_asm.h"
 
 /*
- * Bit:     | 7 | 6 5 | 4 | 3       0 |
+ * Bit:     | 7 | 6 5 | 4 |  3     0  |
  * Content: | P | DPL | S | Gate type |
  * Value:   | ? | ? ? | 0 |  1 1 1 0  | = 0x?7 */
 
@@ -14,8 +14,8 @@ struct idt_entry
 {
   unsigned short base_lo;
   unsigned short sel;        /* Our kernel segment goes here */
-  unsigned char always0;     /* This will ALWAYS be set to 0 */
-  unsigned char flags;       /* Set using the above table */
+  unsigned char  always0;    /* This will ALWAYS be set to 0 */
+  unsigned char  flags;      /* Set using the above table */
   unsigned short base_hi;
 } __attribute__((packed));
 

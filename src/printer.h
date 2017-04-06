@@ -12,9 +12,6 @@
 #include "io.h"
 #include "string.h"
 
-/* The framebuffer location in memory */
-#define FRAMEBUFFER_LOCATION 0x000B8000
-
 /* Some characteristic */
 #define SCREEN_WIDTH  80
 #define SCREEN_HEIGHT 25

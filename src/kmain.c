@@ -1,4 +1,5 @@
 #include "kmain.h"
+#include "paging.h"
 
 /** kmain.c
  *  Contains the kernel main function.
@@ -22,7 +23,13 @@ int kmain()
     write_char(c); write(", ");
   }
   write_char('\n');
-  
+
+  write("Brace yourselves...\n");
+
+  paging_install();
+
+  write("Victory?\n");
+
 
   /* int time = 0; */
   /* int seconds; int minutes; int hours; */
@@ -34,8 +41,8 @@ int kmain()
   /*   write_char(':'); write_int(seconds); write_char('\n'); */
   /*   timer_wait(1000); */
   /* } */
-  
-  
+
+
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;
