@@ -1,3 +1,5 @@
 build/**
 iso/boot/kernel.elf
 iso/boot/grub/menu.lst
+bochs/*.out
+bochs/*.txt

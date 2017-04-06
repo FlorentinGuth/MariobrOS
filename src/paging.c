@@ -2,6 +2,7 @@
 #include "paging.h"
 #include "kheap.h"
 #include "paging_asm.h"
+#include "logging.h"
 
 
 /** make_page_table_entry:
@@ -20,7 +21,9 @@ page_table_entry make_page_table_entry(unsigned int page_address, bool present, 
    * Content | Frame address |  AVAIL  | RSVD | D | A | RSVD | USR | R/W | P |
    */
 
-  page_table_entry entry = page_address & 0xFFF0000;  /* Better safe than sorry */
+  page_table_entry entry = page_address & 0xFFFFF000;  /* Better safe than sorry */
+  if (entry != page_address)
+    log("PROBLEM", Error);
 
   entry |=  present   & 0x0001;
   entry |= (writeable & 0x0001) << 1;
