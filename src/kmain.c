@@ -16,6 +16,7 @@ int kmain()
 
   timer_install();
   keyboard_install();
+  paging_install();
 
   clear(); // Empties the framebuffer
 
@@ -24,11 +25,7 @@ int kmain()
   }
   write_char('\n');
 
-  write("Brace yourselves...\n");
-
-  paging_install();
-
-  write("Victory?\n");
+  write("Victory!\n");
 
 
   /* int time = 0; */

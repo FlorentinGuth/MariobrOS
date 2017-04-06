@@ -85,7 +85,7 @@ void write_char(const char c)
     /* It should be useless to pad the spaces, but we keep it in case the user
        messes with the framebuffer by writing everywhere */
     pos_t to_pad = SCREEN_WIDTH * ((cursor_pos / SCREEN_WIDTH) + 1);
-    pad(cursor_pos+1, to_pad);
+    pad(cursor_pos, to_pad);
     cursor_pos = to_pad;
     break;
   }

@@ -1,7 +1,7 @@
 OS_NAME = MariobrOS
 
 # Options
-GUI_LIBRARY = sdl
+GUI_LIBRARY = x
 
 # Folders and paths
 SRC_FOLDER   = src
@@ -60,7 +60,7 @@ log:              $(BOCHS_FOLDER)/$(BOCHS_LOG)
 clock:            sync=realtime, time0=local
 cpu:              count=1, ips=1000000
 com1:             enabled=1, mode=file, dev=$(BOCHS_FOLDER)/com1.out
-keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=bochs/custom.map
+keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=$(BOCHS_FOLDER)/x11-pc-fr.map
 endef
 
 define GRUB_CONFIG_CONTENT
