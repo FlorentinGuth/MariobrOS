@@ -10,38 +10,36 @@ void str_copy(string source, string dest)
   dest[pos] = '\0';
 }
 
-/* inline string int_to_string(int n) */
-/* { */
-/*   // Computes the length to allocate the string */
-/*   int len = 0, rem = n; */
-/*   do { */
-/*     len++; */
-/*     rem /= 10; */
-/*   } while (rem != 0); // Works with n = 0 too! */
 
-/*   char str[len + 1]; */
-/*   for (int i = len - 1; i >= 0; i--) { */
-/*     str[i] = n % 10 + '0'; */
-/*     n /= 10; */
-/*   } */
-/*   str[len] = '\0'; */
+char digit_to_char(int digit)
+{
+  if (digit <= 9) {
+    return '0' + digit;
+  } else {
+    return 'A' + digit - 10;
+  }
+}
 
-/*   return str; */
-/* } */
-
-/* Will be replaced by string.h::int_to_string eventually */
-void to_string(char str[], int num)
+int int_to_string(char str[], int num, int base)
 {
   int i, rem, len = 0, n;
-    n = num;
-    do {
-        len++;
-        n /= 10;
-    } while (n != 0);
+
+  n = num;
+  do {
+    len++;
+    n /= base;
+  } while (n != 0);
+
+  if (str) {
     for (i = 0; i < len; i++) {
-        rem = num % 10;
-        num = num / 10;
-        str[len - (i + 1)] = rem + '0';
+      rem = num % base;
+      num = num / base;
+
+      str[len - (i + 1)] = digit_to_char(rem);
     }
+
     str[len] = '\0';
+  }
+
+  return len + 1;  /* Account for '\0' */
 }

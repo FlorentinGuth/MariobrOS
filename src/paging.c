@@ -1,68 +1,213 @@
 #include "types.h"
 #include "paging.h"
 #include "kheap.h"
-#include "paging_asm.h"
 #include "logging.h"
+#include "error.h"
+#include "memory.h"
+#include "irq.h"
+
+/* Source of everything: http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html */
 
 
-/** make_page_table_entry:
- *  Compress all the given parameters into an entry.
- *
- *  @param page_address The physical address of the page, must be 4KB-aligned (last 12 bits = 0)
- *  @param present      Whether the page is present in memory (i.e. accessible)
- *  @param writeable    If false, the page is read-only, but does not apply in kernel-mode
- *  @param user_mode    If true, this is a user-mode page (user-mode code cannot write in kernel-mode pages)
- *  @return             The page table entry corresponding to the given parameters
- */
-page_table_entry make_page_table_entry(unsigned int page_address, bool present, bool writeable, bool user_mode)
+/** Frame allocation */
+/*  TODO: Replace this implementation with a stack of free frames (alloc and free in O(1)) */
+
+/* A bitset of frames - used or free. */
+u_int32 *frames;
+u_int32 nb_frames;
+
+/* Macros used in the bitset algorithms. */
+#define INDEX_FROM_BIT(a)  (a/(8*4))
+#define OFFSET_FROM_BIT(a) (a%(8*4))
+
+/* Static function to set a bit in the frames bitset. */
+static void set_frame(u_int32 frame_addr)
 {
-  /* Source (among others): http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html
-   * Bits    | 31         12 | 11 10 9 | 8  7 | 6 | 5 | 4  3 |  2  |  1  | 0 |
-   * Content | Frame address |  AVAIL  | RSVD | D | A | RSVD | USR | R/W | P |
-   */
-
-  page_table_entry entry = page_address & 0xFFFFF000;  /* Better safe than sorry */
-  if (entry != page_address)
-    log("PROBLEM", Error);
-
-  entry |=  present   & 0x0001;
-  entry |= (writeable & 0x0001) << 1;
-  entry |= (user_mode & 0x0001) << 2;
-
-  return entry;
+  u_int32 frame = frame_addr/0x1000;
+  u_int32 idx = INDEX_FROM_BIT(frame);
+  u_int32 off = OFFSET_FROM_BIT(frame);
+  frames[idx] |= (0x1 << off);
 }
 
-
-/** make_page_directory_entry:
- *  Same as above.
- */
-page_directory_entry make_page_directory_entry(unsigned int page_table_address, bool present, bool writeable, bool user_mode)
+/* Static function to clear a bit in the frames bitset. */
+static void clear_frame(u_int32 frame_addr)
 {
-  return (page_directory_entry)make_page_table_entry(page_table_address, present, writeable, user_mode);
+  u_int32 frame = frame_addr/0x1000;
+  u_int32 idx = INDEX_FROM_BIT(frame);
+  u_int32 off = OFFSET_FROM_BIT(frame);
+  frames[idx] &= ~(0x1 << off);
 }
 
+/* /\* Static function to test if a bit is set. *\/ */
+/* static u_int32 test_frame(u_int32 frame_addr) */
+/* { */
+/*   u_int32 frame = frame_addr/0x1000; */
+/*   u_int32 idx = INDEX_FROM_BIT(frame); */
+/*   u_int32 off = OFFSET_FROM_BIT(frame); */
+/*   return (frames[idx] & (0x1 << off)); */
+/* } */
 
-unsigned int PAGE_DIRECTORY_LOCATION = 0;
-void paging_install()
+/* Static function to find the first free frame. */
+static u_int32 first_frame()
 {
-  page_directory_entry *pdir = (page_directory_entry *)kmalloc_aligned(sizeof(page_directory));
-  page_table_entry     *pt   = (page_table_entry *)PAGE_TABLES_LOCATION;
-  unsigned int page_address = 0;
-
-  for (int i = 0; i < 1024; i++) {
-    for (int j = 0; j < 1024; j++) {
-      page_table_entry table_entry = make_page_table_entry(page_address, TRUE, TRUE, FALSE);
-      pt[j] = table_entry;
-
-      page_address += 4 * 1024; /* Adds 4KB, i.e. the size of a page */
+  u_int32 i, j;
+  for (i = 0; i < INDEX_FROM_BIT(nb_frames); i++) {
+    if (frames[i] != 0xFFFFFFFF) { /* Nothing free, exit early. */
+      /* At least one bit is free here. */
+      for (j = 0; j < 32; j++) {
+        u_int32 toTest = 0x1 << j;
+        if ( !(frames[i]&toTest) ) {
+          return i*4*8+j;
+        }
+      }
     }
-
-    page_directory_entry directory_entry = make_page_directory_entry((unsigned int)pt, TRUE, TRUE, FALSE);
-    pdir[i] = directory_entry;
-
-    pt += 4 * 1024;  /* Adds 4KB, i.e. the size of a full page table */
   }
 
-  PAGE_DIRECTORY_LOCATION = (unsigned int)pdir;
-  enable_paging();
+  return (u_int32)-1;  /* No free frames */
+}
+
+
+
+/* Function to allocate a frame. */
+void alloc_frame(page_t *page, bool is_kernel, bool is_writeable)
+{
+  if (page->frame != 0) {
+    return;  /* Frame was already allocated, return straight away. */
+  } else {
+    u_int32 idx = first_frame();    /* idx is now the index of the first free frame. */
+
+    if (idx == (u_int32)-1) {
+      throw("No free frames!");
+    }
+
+    set_frame(idx * 0x1000);        /* This frame is now ours! */
+    page->present = TRUE;           /* Mark it as present. */
+    page->rw      = is_writeable;   /* Should the page be writable? */
+    page->user    = is_kernel;      /* Should the page be user-mode? */
+    page->frame   = idx;
+  }
+}
+
+/* Function to deallocate a frame. */
+void free_frame(page_t *page)
+{
+  u_int32 frame;
+  if (!(frame = page->frame)) {
+    return;              /* The given page didn't actually have an allocated frame! */
+  } else {
+    clear_frame(frame);  /* Frame is now free again. */
+    page->frame = 0x0;   /* Page now doesn't have a frame. */
+  }
+}
+
+
+/** Paging code */
+
+extern u_int32 sbrk;  /* Defined in kheap.c */
+
+page_directory_t *kernel_directory;
+page_directory_t *current_directory;
+
+void paging_install()
+{
+  /* The size of physical memory. For the moment we
+   * assume it is 16MB big. */
+  u_int32 mem_end_page = 0x1000000;
+
+  nb_frames = mem_end_page / 0x1000;
+  frames = (u_int32*)kmalloc(INDEX_FROM_BIT(nb_frames));
+  mem_set(frames, 0, INDEX_FROM_BIT(nb_frames));
+
+  /* Let's make a page directory. */
+  kernel_directory = (page_directory_t*)kmalloc_aligned(sizeof(page_directory_t));
+  mem_set(kernel_directory, 0, sizeof(page_directory_t));
+  current_directory = kernel_directory;
+
+  /* We need to identity map (phys addr = virt addr) from
+   * 0x0 to the end of used memory, so we can access this
+   * transparently, as if paging wasn't enabled.
+   * Note that we use a while loop here deliberately.
+   * inside the loop body we actually change placement_address
+   * by calling kmalloc(). A while loop causes this to be
+   * computed on-the-fly rather than once at the start. */
+  u_int32 i = 0;
+  while (i < sbrk) {
+    /* Kernel code is readable but not writeable from user-space. */
+    alloc_frame(get_page(i, 1, kernel_directory), 0, 0);
+    i += 0x1000;
+  }
+
+  /* Before we enable paging, we must register our page fault handler. */
+  irq_install_handler(14, page_fault);
+
+  /* Now, enable paging! */
+  switch_page_directory(kernel_directory);
+}
+
+void switch_page_directory(page_directory_t *dir)
+{
+  /* Loads address of the current directory into cr3 */
+  current_directory = dir;
+  __asm__ __volatile__("mov %0, %%cr3":: "r"(&dir->tables_physical_address));
+
+  /* Reads current cr0 */
+  u_int32 cr0;
+  __asm__ __volatile__("mov %%cr0, %0": "=r"(cr0));
+
+  /* Enables paging! */
+  cr0 |= 0x80000000;
+  __asm__ __volatile__("mov %0, %%cr0":: "r"(cr0));
+}
+
+page_t *get_page(u_int32 address, bool make, page_directory_t *dir)
+{
+  /* Turn the address into an index. */
+  address /= 0x1000;
+
+  /* Find the page table containing this address. */
+  u_int32 table_idx = address / 1024;
+
+  if (dir->tables[table_idx]) { /* If this table is already assigned */
+    return &dir->tables[table_idx]->pages[address%1024];
+  }
+  else if(make) {
+    u_int32 tmp;  /* To hold the physical address of the page */
+    dir->tables[table_idx] = (page_table_t*)kmalloc_physical_aligned(sizeof(page_table_t), &tmp);
+
+    mem_set(dir->tables[table_idx], 0, 0x1000);
+    dir->tables_physical_address[table_idx] = tmp | 0x7; // PRESENT, RW, US.
+
+    return &dir->tables[table_idx]->pages[address%1024];
+  }
+  else {
+    return 0;
+  }
+}
+
+
+void page_fault(regs_t *regs)
+{
+  /* A page fault has occurred. */
+  /* The faulting address is stored in the CR2 register. */
+  u_int32 faulting_address;
+  __asm__ __volatile__("mov %%cr2, %0" : "=r" (faulting_address));
+
+  /* The error code gives us details of what happened. */
+  bool present  = !(regs->err_code       & 0x1);  /* Page not present */
+  bool rw       =  (regs->err_code >> 1) & 0x1;   /* Write operation? */
+  bool us       =  (regs->err_code >> 2) & 0x1;   /* Processor was in user-mode? */
+  bool reserved =  (regs->err_code >> 3) & 0x1;   /* Overwritten CPU-reserved bits of page entry? */
+  /* bool id       = (regs.err_code >> 4) & 0x1;   /\* Caused by an instruction fetch? *\/ */
+
+  /* Output an error message. */
+  write_string("Page fault! ( ");
+  if (present)  {write_string("present ");}
+  if (rw)       {write_string("read-only ");}
+  if (us)       {write_string("user-mode ");}
+  if (reserved) {write_string("reserved ");}
+  write_string(") at ");
+  write_hex(faulting_address);
+  write_string("\n");
+
+  throw("Page fault");
 }

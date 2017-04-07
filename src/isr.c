@@ -1,4 +1,5 @@
 #include "isr.h"
+#include "error.h"
 
 /* This is a very repetitive function... it's not hard, it's
  *  just annoying. As you can see, we set the first 32 entries
@@ -97,9 +98,8 @@ void fault_handler(struct regs *r)
     /* Display the description for the Exception that occurred.
      * In this tutorial, we will simply halt the system using an
      * infinite loop */
-    log(exception_messages[r->int_no], Error);
-    write(exception_messages[r->int_no]);
-    write("\nException. System Halted!\n");
-    for (;;);
+    log_string(exception_messages[r->int_no], Error);
+    write_string(exception_messages[r->int_no]);
+    throw("Exception. System Halted");
   }
 }

@@ -6,7 +6,7 @@
  */
 
 
-int kmain()
+int kmain() /*struct multiboot mboot)*/
 {
   gdt_install();
   idt_install();
@@ -21,11 +21,11 @@ int kmain()
   clear(); // Empties the framebuffer
 
   for(unsigned char c = 0; c<255; c++) {
-    write_char(c); write(", ");
+    write_char(c); write_string(", ");
   }
   write_char('\n');
 
-  write("Victory!\n");
+  write_string("Victory!\n");
 
 
   /* int time = 0; */

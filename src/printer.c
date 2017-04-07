@@ -71,16 +71,16 @@ void scroll()
 }
 
 
-void write_char(const char c)
+void write_char(char c)
 {
   pos_t cursor_pos = get_cursor_pos();
   switch (c) {
-    
+
   case '\0': {
     return;
     break;
   }
-    
+
   case '\n': {
     /* It should be useless to pad the spaces, but we keep it in case the user
        messes with the framebuffer by writing everywhere */
@@ -89,7 +89,7 @@ void write_char(const char c)
     cursor_pos = to_pad;
     break;
   }
-    
+
   case '\t': {
     /* Same as '\n' */
     pos_t to_pad = TAB_WIDTH * ((cursor_pos / TAB_WIDTH) + 1);
@@ -110,13 +110,13 @@ void write_char(const char c)
     }
     break;
   }
-    
+
   default: {
     put_char(cursor_pos, c, White, Black);
     cursor_pos++;
   }
   }
-  
+
   /* Check if scrolling would be necessary
      TODO: maybe pre-compute the number of lines to scroll to do it only once */
   if (cursor_pos == SCREEN_WIDTH * SCREEN_HEIGHT) {
@@ -127,7 +127,7 @@ void write_char(const char c)
   set_cursor_pos(cursor_pos);
 }
 
-void write(const char *string)
+void write_string(const char *string)
 {
   for (unsigned int i = 0;; i++) {
     char c = string[i];
@@ -138,9 +138,19 @@ void write(const char *string)
   }
 }
 
-void write_int(const int n)
+void write_int(int n)
 {
-  char buf[20];
-  to_string(buf,n);
-  write(buf);
+  int len = int_to_string(0, n, 10);
+  char buf[len];
+  int_to_string(buf, n, 10);
+  write_string(buf);
+}
+
+void write_hex(int n)
+{
+  int len = int_to_string(0, n, 16);
+  char buf[len];
+  int_to_string(buf, n, 16);
+  write_string("0x");
+  write_string(buf);
 }
