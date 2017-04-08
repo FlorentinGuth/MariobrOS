@@ -117,4 +117,6 @@ void write(const char *string);
  */
 void write_int(const int n);
 
+void write_hex(const int n);
+
 #endif

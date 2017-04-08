@@ -3,6 +3,9 @@
 
 char * const framebuffer = (char *)FRAMEBUFFER_LOCATION;
 
+unsigned char utf8_c2[] = {173,155,156,234,157,179,21,234,234,166,234,170,174,234,234,248,241,253,234,'\'',230,20,249,',','1',167,175,172,171,234,168};
+unsigned char utf8_c3[] = {'A','A','A','A',142,143,146,128,'E',144,'E','E','I','I','I','I','D',165,'O','O','O','O',153,'x','O','U','U','U',154,'Y','0',225,133,160,131,'a',132,134,145,135,138,130,136,137,141,161,140,139,235,164,149,162,147,'o',148,246,237,151,163,150,129,'y',0,152};
+
 
 void put_char(pos_t i, char c, color_t fg, color_t bg)
 {
@@ -110,6 +113,8 @@ void write_char(const char c)
     }
     break;
   }
+
+  
     
   default: {
     put_char(cursor_pos, c, White, Black);
@@ -133,6 +138,14 @@ void write(const char *string)
     char c = string[i];
     if(c=='\0')
       return;
+    else if(c==0xc2) {
+      i++;
+      write_char(utf8_c2[(unsigned int)(string[i]-0xa1)]);
+    }
+    else if(c==0xc3) {
+      i++;
+      write_char(utf8_c3[(unsigned int)(string[i]-0x80)]);
+    }
     else
       write_char(c);
   }
@@ -143,4 +156,38 @@ void write_int(const int n)
   char buf[20];
   to_string(buf,n);
   write(buf);
+}
+
+void write_hex(const int n)
+{
+  char str[20];
+  write_char('0');write_char('x');
+  int i,rem,len=0,m=n;
+  do {
+    len++;
+    m/=16;
+  } while (m!=0);
+  m = n;
+  for(i=len-1; i>=0; i--) {
+    rem = m%16;
+    m = m/16;
+    switch(rem) {
+    case 10: {
+      str[i] = 'A';break; }
+    case 11: {
+      str[i] = 'B';break; }
+    case 12: {
+      str[i] = 'C';break; }
+    case 13: {
+      str[i] = 'D';break; }
+    case 14: {
+      str[i] = 'E';break; }
+    case 15: {
+      str[i] = 'F';break; }
+    default:
+      str[i] = rem + '0';
+    }
+  }
+  str[len] = '\0';
+  write(str);
 }
