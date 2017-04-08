@@ -228,24 +228,24 @@ void keyboard_handler(struct regs *r)
         char c = kbdus[(scancode+(k_shift*128))];
         if(k_dead_hat) {
           switch(c) {
-          case 'a': { write("â"); break; }
-          case 'e': { write("ê"); break; }
-          case 'i': { write("î"); break; }
-          case 'o': { write("ô"); break; }
-          case 'u': { write("û"); break; }
+          case 'a': { write_string("â"); break; }
+          case 'e': { write_string("ê"); break; }
+          case 'i': { write_string("î"); break; }
+          case 'o': { write_string("ô"); break; }
+          case 'u': { write_string("û"); break; }
           default: write_char(c);
           }
         } else if(k_dead_trema){
           switch(c) {
-          case 'a': { write("ä"); break; }
-          case 'e': { write("ë"); break; }
-          case 'i': { write("ï"); break; }
-          case 'o': { write("ö"); break; }
-          case 'u': { write("ü"); break; }
-          case 'y': { write("ÿ"); break; }
-          case 'A': { write("Ä"); break; }
-          case 'O': { write("Ö"); break; }
-          case 'U': { write("Ü"); break; }
+          case 'a': { write_string("ä"); break; }
+          case 'e': { write_string("ë"); break; }
+          case 'i': { write_string("ï"); break; }
+          case 'o': { write_string("ö"); break; }
+          case 'u': { write_string("ü"); break; }
+          case 'y': { write_string("ÿ"); break; }
+          case 'A': { write_string("Ä"); break; }
+          case 'O': { write_string("Ö"); break; }
+          case 'U': { write_string("Ü"); break; }
           default: write_char(c);
           }
         } else

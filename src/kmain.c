@@ -22,12 +22,12 @@ int kmain() /*struct multiboot mboot)*/
 
 
   for(unsigned int c = 128; c<256; c++) {
-    write_int(c);write_char('=');write_char(c); write(",\t");
+    write_int(c);write_char('=');write_char(c); write_string(",\t");
   }
   write_char('\n');write_char('\n');
 
-  write("La plupart des accents courants sont désormais gérés.\nVoici les accents qui existent : éèêë É(ÈÊË) à(À) ù(Ù) ô(Ô) çÇ\nEntre parenthèses, ceux qui n'existent pas (cf tableau)\n");
-  
+  write_string("La plupart des accents courants sont désormais gérés.\nVoici les accents qui existent : éèêë É(ÈÊË) à(À) ù(Ù) ô(Ô) çÇ\nEntre parenthèses, ceux qui n'existent pas (cf tableau)\n");
+
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;
