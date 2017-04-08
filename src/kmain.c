@@ -6,7 +6,7 @@
  */
 
 
-int kmain()
+int kmain() /*struct multiboot mboot)*/
 {
   gdt_install();
   idt_install();
@@ -19,6 +19,7 @@ int kmain()
   paging_install();
 
   clear(); // Empties the framebuffer
+
 
   for(unsigned int c = 128; c<256; c++) {
     write_int(c);write_char('=');write_char(c); write(",\t");

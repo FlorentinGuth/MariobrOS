@@ -97,25 +97,32 @@ void pad(pos_t cursor_pos, pos_t to_pad);
 void clear();
 
 /** write_char:
- *  Write a single character at the end of the framebuffer.
+ *  Writes a single character at the end of the framebuffer.
  *
  *  @param c The character to write.
  */
-void write_char(const char c);
+void write_char(char c);
 
-/** write:
- *  Write a string at the end of the framebuffer.
+/** write_string:
+ *  Writes a string at the end of the framebuffer.
  *
  *  @param string The null-terminated string to write.
  */
-void write(const char *string);
+void write_string(const char *string);
 
 /** write_int:
- *  Write an integer at the end of the framebuffer.
+ *  Writes an integer at the end of the framebuffer (in base 10).
  *
  *  @param n The integer to write.
  */
-void write_int(const int n);
+void write_int(int n);
+
+/** write_hex:
+ *  Writes a hex integer at the end of the framebuffer.
+ *
+ *  @param n The integer to write.
+ */
+void write_hex(int n);
 
 void write_hex(const int n);
 

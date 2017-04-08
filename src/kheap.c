@@ -1,6 +1,7 @@
 #include "types.h"
 #include "kheap.h"
 #include "printer.h"
+#include "error.h"
 
 
 /* TODO: chose a type between void*, unsigned int, something else (long?) */
@@ -31,9 +32,8 @@ unsigned int kmalloc_internal(unsigned int size, bool align, unsigned int *physi
   }
 
   /* Detect if there's no space anymore */
-  if (sbrk + size > PAGE_TABLES_LOCATION) {
-    write("\nERROR: Out of Memory on kernel heap\n");
-    for(;;);  /* Endless loop, TODO: add a proper error function somewhere */
+  if (sbrk + size > END_OF_KERNEL_HEAP) {
+    throw("Out of Memory on kernel heap");
   }
 
   if (physical_address) {

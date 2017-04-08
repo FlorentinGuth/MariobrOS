@@ -84,6 +84,6 @@ typedef enum LogLevel log_level_t;
  *  @param string The string to send
  *  @param lvl    The severeness of the message
  */
-void log(const char *string, log_level_t lvl);
+void log_string(const char *string, log_level_t lvl);
 
 #endif
