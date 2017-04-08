@@ -20,26 +20,14 @@ int kmain() /*struct multiboot mboot)*/
 
   clear(); // Empties the framebuffer
 
-  for(unsigned char c = 0; c<255; c++) {
-    write_char(c); write_string(", ");
+
+  for(unsigned int c = 128; c<256; c++) {
+    write_int(c);write_char('=');write_char(c); write(",\t");
   }
-  write_char('\n');
+  write_char('\n');write_char('\n');
 
-  write_string("Victory!\n");
-
-
-  /* int time = 0; */
-  /* int seconds; int minutes; int hours; */
-  /* while(TRUE) { */
-  /*   time++; */
-  /*   seconds = time%60; minutes = (time%3600 - seconds)/60; */
-  /*   hours = (time%(3600*24) - minutes*60 - seconds)/3600; */
-  /*   write_int(hours); write_char(':'); write_int(minutes); */
-  /*   write_char(':'); write_int(seconds); write_char('\n'); */
-  /*   timer_wait(1000); */
-  /* } */
-
-
+  write("La plupart des accents courants sont désormais gérés.\nVoici les accents qui existent : éèêë É(ÈÊË) à(À) ù(Ù) ô(Ô) çÇ\nEntre parenthèses, ceux qui n'existent pas (cf tableau)\n");
+  
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;

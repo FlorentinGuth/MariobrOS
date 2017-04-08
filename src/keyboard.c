@@ -53,7 +53,7 @@ unsigned char kbdus[256] =
     'Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', /* 39 */
     '%', 234,   0, /* Left shift */
     230, 'W', 'X', 'C', 'V', 'B', 'N', /* 49 */
-    '?', '.', '/', '!',   0, /* 54 - Right shift */
+    '?', '.', '/', 21,   0, /* 54 - Right shift */
     234,
     0,/* 56 - Alt */
     ' ',/* Space bar */
@@ -97,11 +97,13 @@ void keyboard_set_lights(unsigned char signal)
 bool k_caps_lock = FALSE;
 bool k_num_lock = FALSE;
 bool k_scroll_lock = FALSE;
-bool k_shift_count = 0;
+unsigned char k_shift_count = 0;
 bool k_shift = FALSE;
-bool k_meta = 0;
-bool k_ctrl = 0;
+unsigned char k_meta = 0;
+unsigned char k_ctrl = 0;
 unsigned char k_lights = 0x00;
+bool k_dead_hat = FALSE;
+bool k_dead_trema = FALSE;
 /* Bit:     | 7       3 |  2  |  1  |  0  |
    Content: | 0 0 0 0 0 | Cap | Num | Scr | */
 
@@ -146,6 +148,17 @@ void keyboard_handler(struct regs *r)
     {
       switch (scancode) {
 
+      case 26: { // Dead ^
+        if(k_shift) {
+          k_dead_hat = FALSE;
+          k_dead_trema = TRUE; }
+        else if(k_dead_hat) {
+          write_char('^');
+          k_dead_hat = FALSE; }
+        else
+          k_dead_hat = TRUE;
+        break;
+      }
       case 29: { // Ctrl
         k_ctrl++;
         break;
@@ -167,7 +180,7 @@ void keyboard_handler(struct regs *r)
       case 58: { // Caps lock
         k_lights = k_lights ^ 0x04;
         k_shift =!k_shift;
-        keyboard_set_lights(k_lights);
+        //keyboard_set_lights(k_lights);
         break;
       }
       case 69: { // Num lock
@@ -213,20 +226,35 @@ void keyboard_handler(struct regs *r)
       }
       default: {
         char c = kbdus[(scancode+(k_shift*128))];
-        write_char(c);
+        if(k_dead_hat) {
+          switch(c) {
+          case 'a': { write("â"); break; }
+          case 'e': { write("ê"); break; }
+          case 'i': { write("î"); break; }
+          case 'o': { write("ô"); break; }
+          case 'u': { write("û"); break; }
+          default: write_char(c);
+          }
+        } else if(k_dead_trema){
+          switch(c) {
+          case 'a': { write("ä"); break; }
+          case 'e': { write("ë"); break; }
+          case 'i': { write("ï"); break; }
+          case 'o': { write("ö"); break; }
+          case 'u': { write("ü"); break; }
+          case 'y': { write("ÿ"); break; }
+          case 'A': { write("Ä"); break; }
+          case 'O': { write("Ö"); break; }
+          case 'U': { write("Ü"); break; }
+          default: write_char(c);
+          }
+        } else
+          write_char(c);
       }
+        k_dead_hat = FALSE;
+        k_dead_trema = FALSE;
       }
-
-      /* Just to show you how this works, we simply translate
-       *  the keyboard scancode into an ASCII value, and then
-       *  display it to the screen. You can get creative and
-       *  use some flags to see if a shift is pressed and use a
-       *  different layout, or you can add another 128 entries
-       *  to the above layout to correspond to 'shift' being
-       *  held. If shift is held using the larger lookup table,
-       *  you would add 128 to the scancode when you look for it */
     }
-
 }
 #pragma GCC diagnostic pop
 

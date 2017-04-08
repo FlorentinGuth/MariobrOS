@@ -124,4 +124,6 @@ void write_int(int n);
  */
 void write_hex(int n);
 
+void write_hex(const int n);
+
 #endif
