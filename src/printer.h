@@ -124,6 +124,12 @@ void write_int(int n);
  */
 void write_hex(int n);
 
-void write_hex(const int n);
+/** writef:
+ *  Writes a formatted string
+ *
+ *  @param s       Formatted string
+ *  @param ...     Arguments of the formatted string
+ */
+void writef(char s[], ...);
 
 #endif

@@ -5,6 +5,8 @@
 #ifndef STRING_H
 #define STRING_H
 
+#include <stdarg.h>
+
 /** string:
  *  The type of a string.
  *  It is a pointer towards an array of characters, terminated by '\0'.
@@ -26,7 +28,6 @@ void str_copy(string source, string dest);
 /** int_to_string:
  *  Computes the representation of an integer.
  *  Usage: char str[int_to_string(0, n, b)]; int_to_string(str, n, b);
- *  TODO: make GCC understand that it's OK to return a local variable address.
  *
  *  @param str  The buffer which will receive the null-terminated output (if non-null)
  *  @param num  The integer to transform into a string
@@ -34,5 +35,15 @@ void str_copy(string source, string dest);
  *  @return     The length of the representation
  */
 int int_to_string(char str[], int num, int base);
+
+/** format_to_string:
+ *  printf-like function that fills a buffer with the formatted string
+ *  
+ *  @param buf  The buffer to fill
+ *  @param s    The format string
+ *  @param ap   The arguments of the format string
+ *  @return     The length of the string written to the buffer
+ */
+int format_to_string(char buf[], char s[], va_list* ap);
 
 #endif
