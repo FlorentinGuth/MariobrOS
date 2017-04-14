@@ -46,10 +46,6 @@ void isrs_install()
   idt_set_gate(31, (unsigned)isr31, 0x08, 0x8E);
 }
 
-/* This is a simple string array. It contains the message that
- *  corresponds to each and every exception. We get the correct
- *  message by accessing like:
- *  exception_message[interrupt_number] */
 const char *exception_messages[] = {
   "Division By Zero",
   "Debug",
@@ -95,9 +91,6 @@ void fault_handler(struct regs *r)
 {
   /* Is this a fault whose number is from 0 to 31? */
   if (r->int_no < 32) {
-    /* Display the description for the Exception that occurred.
-     * In this tutorial, we will simply halt the system using an
-     * infinite loop */
     log_string(exception_messages[r->int_no], Error);
     write_string(exception_messages[r->int_no]);
     throw("Exception. System Halted");

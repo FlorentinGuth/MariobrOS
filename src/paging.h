@@ -22,7 +22,7 @@ typedef struct page
 typedef struct page_table
 {
   page_t pages[1024];
-} __attribute__((packed))page_table_t;
+} __attribute__((packed)) page_table_t;
 
 typedef struct page_directory
 {

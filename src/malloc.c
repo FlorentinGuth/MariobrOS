@@ -4,10 +4,11 @@
 
 /** Memory layout:
  *  The memory is split up into blocks. Each block has a header, which contains:
- *   - Its size (4 byte, so up to 4GB)
- *   - The address of the next free block (4 byte, 4-byte-alignment implies that the last two bits are 0)
- *   - One of those bit is used to tell if the block is used (1) or free (0)
- *   - The last bit is currently unused.
+ *   - Its size (4 bytes, so up to 4GB)
+ *   - The address of the next free block (4 bytes)
+ *       -> 4-byte-alignment implies that the last two bits are 0
+ *       -> The last bit is used to tell if the block is used (1) or free (0)
+ *       -> The remaining bit is currently unused.
  *   - The address of the previous free block
  *  Each block is laid out as follows:
  *   - Its header (12 bytes)
@@ -21,7 +22,7 @@
  *  2-byte-alignment is sufficient since we only need one bit */
 
 #define WORD_SIZE   4
-#define HEADER_SIZE 3 * WORD_SIZE
+#define HEADER_SIZE 12
 
 void *first_free_block;
 
@@ -64,7 +65,8 @@ void set_size(void *block, size_t size)
 
 void set_next_free_block(void *block, void *next)
 {
-  *(u_int32 *)(block + WORD_SIZE) = ((u_int32)next & 0xFFFFFFFC) | (u_int32)get_used(block);
+  *(u_int32 *)(block + WORD_SIZE) = \
+    ((u_int32)next & 0xFFFFFFFC) | (u_int32)get_used(block);
 }
 
 void set_previous_free_block(void *block, void *prev)
@@ -74,21 +76,21 @@ void set_previous_free_block(void *block, void *prev)
 
 void set_used(void *block, bool used)
 {
-  *(u_int32 *)(block + WORD_SIZE) = (u_int32)get_next_free_block(block) | used;
+  *(u_int32 *)(block + WORD_SIZE) = \
+    ((u_int32)get_next_free_block(block) & 0xFFFFFFFC) | used;
 }
 
 
 void set_block(void* ptr, size_t size, void *next, void *prev, bool used)
 {
+  writef("Setting : ptr=%x, size=%x, next=%x, prev=%x, used=%d\n", ptr, size, next, prev, used);
   set_size(ptr, size);
-  set_next_free_block(ptr, next); /* Could do these two together, but I'm too lazy */
-  set_used(ptr, used);
+  *(u_int32 *)(ptr + WORD_SIZE) = (u_int32)next | used; // Next free block
   set_previous_free_block(ptr, prev);
 
   void *header_end = ptr + size - HEADER_SIZE;
   set_size(header_end, size);
-  set_next_free_block(header_end, next);
-  set_used(header_end, used);
+  *(u_int32 *)(header_end + WORD_SIZE) = (u_int32)next | used;
   set_previous_free_block(header_end, prev);
 }
 
@@ -97,32 +99,33 @@ void malloc_install()
 {
   first_free_block = (void *)END_OF_KERNEL_HEAP;
   set_block(first_free_block, 0x00800000, 0, 0, FALSE);  /* Setting size of 8MB, total hack */
-  log_string("Malloc installed\n", Info);
+  writef("Malloc installed\n");
 }
 
 void *mem_alloc(size_t size)
 {
-  log_string("Allocating a block\n", Info);
+  writef("Allocating a block\n");
   size = size + 2*HEADER_SIZE;  /* Account for the two headers */
   if (size % 4) {
     size = (size & 0xFFFFFFFC) + 4;
   }
 
   void *block = first_free_block;
-
+  writef("%c Initial size of first_free_block: %x\n",219,*(u_int32*)block);
+  
   while (block && (get_used(block) || get_size(block) < size)) {
     block = get_next_free_block(block);
   }
-
+  
   if (!block) {
-    log_string("No free memory\n", Debug);
+    writef("No free memory\n");
     return 0;  /* No free block big enough */
     /* TODO: allocate a new page */
   }
 
   size_t size_block = get_size(block);
   if (size_block - size >= WORD_SIZE + 2*HEADER_SIZE) {
-    log_string("There is enough place for another block\n", Debug);
+    writef("There is enough place for another block\n");
     void *previous = get_previous_free_block(block);
     void *next     = get_next_free_block(block);
 
@@ -130,17 +133,18 @@ void *mem_alloc(size_t size)
     set_block(block + size, size_block - size, next, previous, FALSE);
 
     if (next) {
-      log_string("There is a next free block\n", Debug);
+      writef("There is a next free block\n");
       set_previous_free_block(next, block + size);
     }
     if (previous) {
-      log_string("There is a previous free block\n", Debug);
+      writef("There is a previous free block\n");
       set_next_free_block(previous, block + size);
     } else {
       first_free_block = block + size;
     }
   } else {
     /* There is not enough place for another block */
+    writef("There is not enough place for another block\n");
     void *previous = get_previous_free_block(block);
     void *next     = get_next_free_block(block);
 
@@ -165,17 +169,22 @@ void mem_free(void *block)
   /* In case this changes:
      If A and B are contiguous free blocks, we update the list from C->A->D & E->B->F to
      C->A+B->D & E->F */
-  void *previous;
-  if ((u_int32)block > 0x00800000 + HEADER_SIZE) { /* TODO: merge this into get_previous_block */
-    previous = get_previous_block(block);
-  } else {
-    previous = 0;
-  }
-  void *next = get_next_block(block);
-  if ((u_int32)next >= 0x01000000) {
-    next = 0;
-  }
+  writef("Freeing block %x\n", block);
 
+  block = block-HEADER_SIZE; // Go back to the header
+  
+  void *previous;
+  if ((u_int32)block > 0x00800000 + HEADER_SIZE)
+    // TODO: merge this into get_previous_block
+    previous = get_previous_block(block);
+  else
+    previous = 0;
+  void *next = get_next_block(block);
+  if ((u_int32)next >= 0x01000000)
+    next = 0;
+
+  writef("%c In free, block=%x, size=%x, previous=%x, next=%x, used=%d\n", 219, block,get_size(block), previous, next, get_used(block));
+  
   void *new_block;
   void *previous_free;
   void *next_free;
@@ -188,8 +197,9 @@ void mem_free(void *block)
       /* Neither blocks are free, simple case */
       size = get_size(block);
       next_free = get_next_free_block(block);
-    } else {
+    } else { 
       /* Only the next block is free */
+      writef("%c Sizes : %d, %d\n", 219, get_size(block), get_size(next));
       size = get_size(block) + get_size(next);
       next_free = get_next_free_block(next);
     }

@@ -30,25 +30,18 @@ int kmain() /*struct multiboot mboot)*/
 
   clear(); /* Empties the framebuffer */
 
-
-  write_string("Installing malloc...\n");
   malloc_install();
-  write_string("Malloc installed!\n");
 
-  void *a = mem_alloc(0x700000);
-  write_hex((u_int32)a);
-  void *b = mem_alloc(0x700000);
-  write_hex((u_int32)b);
+  void *a = mem_alloc(4);
+  writef("a:%x\n",a);
+  void* b = mem_alloc(4);
+  writef("b:%x\n",b);
   mem_free(a);
-  void *c = mem_alloc(0x700000);
-  write_hex((u_int32)c);
-  void *d = mem_alloc(1);
-  write_hex((u_int32)d);
-  mem_free(c);
-  mem_free(d);
-  void *e = mem_alloc(0x700000);
-  write_hex((u_int32)e);
-
+  void *c = mem_alloc(4);
+  writef("c:%x\n",c);
+  void *d = mem_alloc(4);
+  writef("d:%x\n",d);
+  
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;

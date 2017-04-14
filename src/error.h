@@ -15,6 +15,7 @@
   write_string(": ERROR "); \
   write_string(string); \
   \
-  for(;;);  /* Endless loop */
+  for(;;) {\
+    __asm__ __volatile__("hlt");} // idle state, still reacts to interrupts
 
 #endif

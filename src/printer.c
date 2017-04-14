@@ -188,7 +188,12 @@ void writef(char s[], ...)
         write_string(buffer); break; }
       case 'c': { // Character
         write_char(va_arg(param,int)); break; }
-      default: { write_string("Invalid format string"); for(;;); } // Halt
+      case 's': { // String
+        write_string(va_arg(param,string)); break; }
+      default:  { // Emergency stop
+        write_string("Invalid format string");
+        for(;;)
+          __asm__ __volatile__("hlt"); }
       }
     } else if(c==0xc2) {
       read++;

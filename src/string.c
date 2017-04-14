@@ -1,13 +1,14 @@
 #include "string.h"
 
 
-void str_copy(string source, string dest)
+int str_copy(string source, string dest)
 {
   int pos;
   for (pos = 0; source[pos] != '\0'; pos++) {
     dest[pos] = source[pos];
   }
   dest[pos] = '\0';
+  return pos + 1;
 }
 
 
@@ -64,6 +65,9 @@ int format_to_string(char buf[], char s[], va_list* ap)
         break; }
       case 'c': {
         buf[write]=va_arg(param,int); write++; break; }
+      case 's': {
+        write+= str_copy(va_arg(param,string), (char*) (buf+write)) - 1;
+        break; }
       default: { buf = "Invalid format string"; return 22; }
       }
     } else {

@@ -21,8 +21,9 @@ typedef char* string;
  *
  *  @param source The string to be copied
  *  @param dest   The string to be overwritten
+ *  @return       The length of the copied string
  */
-void str_copy(string source, string dest);
+int str_copy(string source, string dest);
 
 
 /** int_to_string:
