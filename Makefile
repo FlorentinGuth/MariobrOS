@@ -14,7 +14,7 @@ $(shell mkdir -p $(BUILD_FOLDER) $(BOCHS_FOLDER))           # Ensures folders ex
 LINKER = link.ld
 OBJECTS = $(patsubst $(SRC_FOLDER)/%.c,%.o,$(wildcard $(SRC_FOLDER)/*.c)) \
           $(patsubst $(SRC_FOLDER)/%.s,%.o,$(wildcard $(SRC_FOLDER)/*.s))
-OBJECTS = loader.o kmain.o paging.o kheap.o memory.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o
+OBJECTS = loader.o kmain.o malloc.o paging.o kheap.o memory.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o
 ISO = os.iso
 BOCHS_CONFIG = config.txt
 BOCHS_LOG = log.txt
@@ -30,8 +30,8 @@ CFLAGS =  -m32 \
           -fno-stack-protector \
           -nostartfiles \
           -nodefaultlibs \
-	      -funsigned-char \
-	      -funsigned-bitfields \
+          -funsigned-char \
+          -funsigned-bitfields \
           -Wall -Wextra -Werror \
           -O0 \
           -c

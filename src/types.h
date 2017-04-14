@@ -16,11 +16,11 @@
 /* The framebuffer location in memory */
 #define FRAMEBUFFER_LOCATION    0x000B8000
 
-#define END_OF_KERNEL_HEAP      0x00800000
-
 /* A variable who is stored at the end of kernel space */
 extern unsigned int ld_end;
 #define END_OF_KERNEL_LOCATION  &ld_end
+
+#define END_OF_KERNEL_HEAP      0x00800000
 
 
 /* This defines what the stack looks like after an ISR was running */
@@ -35,11 +35,11 @@ typedef struct regs regs_t;
 
 
 typedef unsigned int   u_int32;
-typedef          int   s_int32;
+typedef   signed int   s_int32;
 typedef unsigned short u_int16;
-typedef          short s_int16;
+typedef   signed short s_int16;
 typedef unsigned char  u_int8;
-typedef          char  s_int8;
+typedef   signed char  s_int8;
 
 typedef u_int32 size_t;  /* A type to hold a number of bytes */
 

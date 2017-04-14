@@ -1,8 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "kernel.h"
 
-int main(int argc, char* argv[])
+int main()
 {
     printf("Initial state\n");
     state* s = init();
@@ -55,7 +53,7 @@ int main(int argc, char* argv[])
 
     printf("On with idle, to listen to the grandchild!\n");
     s->registers[0] = Receive;
-    s->registers[1] = 1; // Little hack, not supposed to know it's gonna be channel one
+    s->registers[1] = 1;       /* Little hack, not supposed to know it's gonna be channel one */
     s->registers[2] = -1;
     s->registers[3] = -1;
     s->registers[4] = -1;
@@ -84,7 +82,7 @@ int main(int argc, char* argv[])
 
     printf("Our job is done, back to dad! (see 42 in r2?)\n");
     s->registers[0] = Exit;
-    s->registers[1] = 12; // Return value
+    s->registers[1] = 12;       /* Return value */
     transition(s, SysCall);
     log_state(s);
 
@@ -92,6 +90,6 @@ int main(int argc, char* argv[])
     s->registers[0] = Wait;
     transition(s, SysCall);
     log_state(s);
-    
+
     return 0;
 }

@@ -17,12 +17,12 @@ typedef struct page
   bool    dirty      : 1;   /* Has the page been written to since last refresh? */
   u_int16 unused     : 7;   /* Amalgamation of unused and reserved bits */
   u_int32 frame      : 20;  /* Frame address (shifted right 12 bits) */
-} page_t;
+} __attribute__((packed)) page_t;
 
 typedef struct page_table
 {
   page_t pages[1024];
-} page_table_t;
+} __attribute__((packed))page_table_t;
 
 typedef struct page_directory
 {
@@ -37,7 +37,7 @@ typedef struct page_directory
    * when we get our kernel heap allocated and the directory
    * may be in a different location in virtual memory. */
   u_int32 physical_address;
-} page_directory_t;
+} __attribute__((packed)) page_directory_t;
 
 
 /** paging_install:

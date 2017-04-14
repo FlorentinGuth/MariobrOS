@@ -7,7 +7,7 @@
 /* TODO: chose a type between void*, unsigned int, something else (long?) */
 
 /* The heap pointer */
-unsigned int sbrk = 0;
+unsigned int brk = 0;
 
 
 /** kmalloc_internal:
@@ -21,27 +21,27 @@ unsigned int sbrk = 0;
 unsigned int kmalloc_internal(unsigned int size, bool align, unsigned int *physical_address)
 {
   /* Initialization */
-  if (sbrk == 0) {
-    sbrk = (unsigned int)END_OF_KERNEL_LOCATION;
+  if (brk == 0) {
+    brk = (unsigned int)END_OF_KERNEL_LOCATION;
   }
 
   /* Align only if it is not already page-aligned */
-  if (align && (sbrk & 0xFFFFF000)) {
-    sbrk &= 0xFFFFF000;
-    sbrk += 0x1000;
+  if (align && (brk & 0xFFFFF000)) {
+    brk &= 0xFFFFF000;
+    brk += 0x1000;
   }
 
   /* Detect if there's no space anymore */
-  if (sbrk + size > END_OF_KERNEL_HEAP) {
+  if (brk + size > END_OF_KERNEL_HEAP) {
     throw("Out of Memory on kernel heap");
   }
 
   if (physical_address) {
-    *physical_address = sbrk;
+    *physical_address = brk;
   }
 
-  unsigned int address = sbrk;
-  sbrk += size;
+  unsigned int address = brk;
+  brk += size;
   return address;
 }
 

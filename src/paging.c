@@ -56,9 +56,8 @@ static u_int32 first_frame()
       /* At least one bit is free here. */
       for (j = 0; j < 32; j++) {
         u_int32 toTest = 0x1 << j;
-        if ( !(frames[i]&toTest) ) {
+        if ( !(frames[i]&toTest) )
           return i*4*8+j;
-        }
       }
     }
   }
@@ -103,7 +102,7 @@ void free_frame(page_t *page)
 
 /** Paging code */
 
-extern u_int32 sbrk;  /* Defined in kheap.c */
+extern u_int32 brk;  /* Defined in kheap.c */
 
 page_directory_t *kernel_directory;
 page_directory_t *current_directory;
@@ -125,14 +124,10 @@ void paging_install()
 
   /* We need to identity map (phys addr = virt addr) from
    * 0x0 to the end of used memory, so we can access this
-   * transparently, as if paging wasn't enabled.
-   * Note that we use a while loop here deliberately.
-   * inside the loop body we actually change placement_address
-   * by calling kmalloc(). A while loop causes this to be
-   * computed on-the-fly rather than once at the start. */
+   * transparently, as if paging wasn't enabled. */
   u_int32 i = 0;
-  while (i < sbrk) {
-    /* Kernel code is readable but not writeable from user-space. */
+  while (i < mem_end_page) {  /* TODO: do this properly */
+    /* Kernel code is readable but not writable from user-space. */
     alloc_frame(get_page(i, 1, kernel_directory), 0, 0);
     i += 0x1000;
   }
