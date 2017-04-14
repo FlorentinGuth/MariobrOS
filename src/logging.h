@@ -86,4 +86,14 @@ typedef enum LogLevel log_level_t;
  */
 void log_string(const char *string, log_level_t lvl);
 
+
+/** kloug:
+ *  Sens a formatted string to the COM1 port.
+ *
+ *  @param size    Expected string size after deformatting
+ *  @param s       Formatted string
+ *  @param ...     Arguments of the formatted string
+ */
+void kloug(const int size, char s[], ...);
+
 #endif

@@ -43,3 +43,36 @@ int int_to_string(char str[], int num, int base)
 
   return len + 1;  /* Account for '\0' */
 }
+
+int format_to_string(char buf[], char s[], va_list* ap)
+{
+  va_list param = *ap;
+  
+  int read  = 0;
+  int write = 0;
+
+  while(s[read]!='\0') {
+    if(s[read]=='%') {
+      read++;
+      switch(s[read]) {
+        
+      case 'd': {
+        write += int_to_string((char*) (buf+write), va_arg(param,int), 10) - 1;
+        break; }
+      case 'x': {
+        write += int_to_string((char*) (buf+write), va_arg(param,int), 16) - 1;
+        break; }
+      case 'c': {
+        buf[write]=va_arg(param,int); write++; break; }
+      default: { buf = "Invalid format string"; return 22; }
+      }
+    } else {
+      buf[write] = s[read];
+      write++;
+    }
+    read++;
+  }
+  buf[write] = '\0';
+  
+  return write + 1;
+}

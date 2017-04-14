@@ -78,3 +78,13 @@ void log_string(const char *string, log_level_t lvl)
   }
   outb(SERIAL_COM1_BASE, '\n');
 }
+
+void kloug(const int size, char s[], ...)
+{
+  va_list param;
+  va_start(param,0);
+  char buffer[size];
+  format_to_string(buffer, s, &param);
+  log_string(buffer, Debug);
+  va_end(param);
+}

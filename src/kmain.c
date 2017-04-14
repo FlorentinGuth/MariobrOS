@@ -19,11 +19,11 @@ int kmain() /*struct multiboot mboot)*/
   keyboard_install();
 
   for(unsigned int c = 128; c<256; c++) {
-    write_int(c);write_char('=');write_char(c); write_string(",\t");
+    writef("%d%x=%c\t",c,c,c);
   }
-  write_char('\n');write_char('\n');
 
-  write_string("La plupart des accents courants sont désormais gérés.\nVoici les accents qui existent : éèêë É(ÈÊË) à(À) ù(Ù) ô(Ô) çÇ\nEntre parenthèses, ceux qui n'existent pas (cf tableau)\n");
+  write_string("Done\n");
+  kloug(100, "%c%c%c%c : %c %d %x éàù", 'T','e','s','t','a', 42, 42);
 
 
   paging_install();

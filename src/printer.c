@@ -166,3 +166,43 @@ void write_hex(int n)
   write_string(buf);
 }
 
+void writef(char s[], ...)
+{
+  va_list param;
+  va_start(param,0);
+  
+  int read  = 0;
+  char buffer[16];
+  char c = s[0];
+
+  while(c!='\0') {
+    if(c=='%') {
+      read++;
+      switch(s[read]) {
+        
+      case 'd': { // Decimal
+        int_to_string(buffer, va_arg(param,int), 10);
+        write_string(buffer); break; }
+      case 'x': { // Hexadecimal
+        int_to_string(buffer, va_arg(param,int), 16);
+        write_string(buffer); break; }
+      case 'c': { // Character
+        write_char(va_arg(param,int)); break; }
+      default: { write_string("Invalid format string"); for(;;); } // Halt
+      }
+    } else if(c==0xc2) {
+      read++;
+      write_char(utf8_c2[(unsigned int)(s[read]-0xa1)]);
+    }
+    else if(c==0xc3) {
+      read++;
+      write_char(utf8_c3[(unsigned int)(s[read]-0x80)]);
+    }
+    else
+      write_char(c);
+    read++;
+    c = s[read];
+  }
+  va_end(param);
+}
+
