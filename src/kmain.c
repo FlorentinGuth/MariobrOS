@@ -36,11 +36,13 @@ int kmain() /*struct multiboot mboot)*/
   writef("a:%x\n",a);
   void* b = mem_alloc(4);
   writef("b:%x\n",b);
-  mem_free(a);
   void *c = mem_alloc(4);
   writef("c:%x\n",c);
-  void *d = mem_alloc(4);
+  mem_free(b);
+  void* d = mem_alloc(4);
   writef("d:%x\n",d);
+  void* e = mem_alloc(4);
+  writef("e:%x\n",e);
   
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts

@@ -48,8 +48,7 @@ void *get_previous_free_block(void *block)
 
 void *get_previous_block(void *block)
 {
-  void *header = block - HEADER_SIZE;  /* Header of the previous block in memory */
-  return block - get_size(header);
+  return block - get_size(block - HEADER_SIZE);
 }
 
 void *get_next_block(void *block)
@@ -57,6 +56,25 @@ void *get_next_block(void *block)
   return block + get_size(block);
 }
 
+void *get_physical_previous_free_block(void *block)
+{
+  while(get_used(block) && (u_int32)block >= END_OF_KERNEL_HEAP) {
+    block -= get_size(block - HEADER_SIZE);
+  }
+  if((u_int32)block < 0x00800000)
+    return 0;
+  return block;
+}
+
+void *get_physical_next_free_block(void *block)
+{
+  while(get_used(block) && (u_int32)block < 0x00800000 + END_OF_KERNEL_HEAP) {
+    block += get_size(block + get_size(block));
+  }
+  if((u_int32)block >= 0x00800000 + END_OF_KERNEL_HEAP)
+    return 0;
+  return block;
+}
 
 void set_size(void *block, size_t size)
 {
@@ -77,7 +95,7 @@ void set_previous_free_block(void *block, void *prev)
 void set_used(void *block, bool used)
 {
   *(u_int32 *)(block + WORD_SIZE) = \
-    ((u_int32)get_next_free_block(block) & 0xFFFFFFFC) | used;
+    (*(u_int32*)(block + WORD_SIZE) & 0xFFFFFFFC) | used;
 }
 
 
@@ -98,20 +116,20 @@ void set_block(void* ptr, size_t size, void *next, void *prev, bool used)
 void malloc_install()
 {
   first_free_block = (void *)END_OF_KERNEL_HEAP;
-  set_block(first_free_block, 0x00800000, 0, 0, FALSE);  /* Setting size of 8MB, total hack */
+  set_block(first_free_block, 0x00800000, 0, 0, FALSE);  // Setting size of 8MB
   writef("Malloc installed\n");
 }
 
 void *mem_alloc(size_t size)
 {
   writef("Allocating a block\n");
-  size = size + 2*HEADER_SIZE;  /* Account for the two headers */
+  size = size + 2*HEADER_SIZE;  // Account for the two headers
   if (size % 4) {
     size = (size & 0xFFFFFFFC) + 4;
   }
 
   void *block = first_free_block;
-  writef("%c Initial size of first_free_block: %x\n",219,*(u_int32*)block);
+  /* writef("%c first_free_block: %x, size=%x\n",219,first_free_block,*(u_int32*)first_free_block); */
   
   while (block && (get_used(block) || get_size(block) < size)) {
     block = get_next_free_block(block);
@@ -119,35 +137,29 @@ void *mem_alloc(size_t size)
   
   if (!block) {
     writef("No free memory\n");
-    return 0;  /* No free block big enough */
+    return 0;  // No free block big enough
     /* TODO: allocate a new page */
   }
 
   size_t size_block = get_size(block);
-  if (size_block - size >= WORD_SIZE + 2*HEADER_SIZE) {
-    writef("There is enough place for another block\n");
-    void *previous = get_previous_free_block(block);
-    void *next     = get_next_free_block(block);
+  void *previous = get_previous_free_block(block);
+  void *next     = get_next_free_block(block);
+  
+  if (size_block - size >= WORD_SIZE + 2*HEADER_SIZE) { // New block
 
     set_block(block,        size,              0,    0,        TRUE);
     set_block(block + size, size_block - size, next, previous, FALSE);
 
     if (next) {
-      writef("There is a next free block\n");
       set_previous_free_block(next, block + size);
     }
     if (previous) {
-      writef("There is a previous free block\n");
       set_next_free_block(previous, block + size);
     } else {
       first_free_block = block + size;
     }
-  } else {
-    /* There is not enough place for another block */
-    writef("There is not enough place for another block\n");
-    void *previous = get_previous_free_block(block);
-    void *next     = get_next_free_block(block);
-
+  } else { // No new possible block
+    
     set_block(block, size_block, 0, 0, TRUE);
 
     if (next) {
@@ -163,62 +175,77 @@ void *mem_alloc(size_t size)
   return block + HEADER_SIZE;  /* Pointer to the free memory, after the header */
 }
 
-void mem_free(void *block)
+void mem_free(void *B)
 {
-  /* We maintain the invariant that the doubly-linked list of free blocks is sorted by address */
-  /* In case this changes:
-     If A and B are contiguous free blocks, we update the list from C->A->D & E->B->F to
-     C->A+B->D & E->F */
-  writef("Freeing block %x\n", block);
-
-  block = block-HEADER_SIZE; // Go back to the header
+  /* Merging conditions: say the block to free is B, contiguous within A - B - C 
+   * 1) If A is free, with W-> A-> X and C is used, then W-> A-B-> X
+   * 2) If C is free, with Y-> C-> Z and A is used, then Y-> B-C-> Z
+   * 3) If both are free, then 
+   *   -> Note: necessarily, W!=Y, X!=Z, W!=X and Y!=Z
+   *   -> W = Z and Y = X is an impossible case (W-> A-> X-> C-> W !)
+   *   a) if W!= Z and Y!= X then W-> A-B-C-> Z and Y-> X
+   *   b) if W!= Z and Y = X then W-> A-B-C-> Z and 0-> X-> first_free_block
+   *   c) if W = Z and Y!= X then Y-> A-B-C-> X and 0-> W-> first_free_block
+   * 4) If none are free, then 0-> B-> first_free_block */
   
-  void *previous;
-  if ((u_int32)block > 0x00800000 + HEADER_SIZE)
+  
+  /* /!\ OBSOLETE: 
+   * If A and B are contiguous free blocks, we update the list from C->A->D 
+   * and E->B->F to C->A+B->D & E->F */
+  B -= HEADER_SIZE; // Go back to the header
+  writef("Freeing block %x\n", B);
+  
+  void *A;
+  if ((u_int32)B > 0x00800000)
     // TODO: merge this into get_previous_block
-    previous = get_previous_block(block);
+    A = get_previous_block(B);
   else
-    previous = 0;
-  void *next = get_next_block(block);
-  if ((u_int32)next >= 0x01000000)
-    next = 0;
+    A = 0;
+  void *C = get_next_block(B);
+  if ((u_int32)C >= 0x01000000)
+    C = 0;
 
-  writef("%c In free, block=%x, size=%x, previous=%x, next=%x, used=%d\n", 219, block,get_size(block), previous, next, get_used(block));
+  size_t size = get_size(B);
   
-  void *new_block;
-  void *previous_free;
-  void *next_free;
-  size_t size;
-  /* TODO: refactor this into non-nested conditions */
-  if (!previous || get_used(previous)) {
-    new_block = block;
-    previous_free = get_previous_free_block(block);
-    if (!next || get_used(next)) {
-      /* Neither blocks are free, simple case */
-      size = get_size(block);
-      next_free = get_next_free_block(block);
-    } else { 
-      /* Only the next block is free */
-      writef("%c Sizes : %d, %d\n", 219, get_size(block), get_size(next));
-      size = get_size(block) + get_size(next);
-      next_free = get_next_free_block(next);
+  if(A && !get_used(A)) { // 1) or 3)
+    void* W = get_previous_free_block(A);
+    void* X = get_next_free_block(A);
+    if(!C || get_used(C)) // 1) : W-> A-B-> X
+      set_block(A, get_size(A)+size, X, W, FALSE);
+    else { // 3)
+      void* Y = get_previous_free_block(C);
+      void* Z = get_next_free_block(C);
+      if(W!=Z) { // 3)a) or 3)b) : W-> A-B-C-> Z
+        set_block(A, get_size(A)+get_size(C)+size, Z, W, FALSE);
+        set_previous_free_block(Z,A);
+        if(Y!=Z) { // 3)a) : Y-> X
+          set_previous_free_block(X, Y);
+          set_next_free_block(Y, X);
+        } else { // 3)b) : 0-> X=Y-> first_free_block
+          set_previous_free_block(X,0);
+          set_next_free_block(X,first_free_block);
+          first_free_block = X;
+        }
+      } else { // 3)c) : Y-> A-B-C-> X and 0-> W-> first_free_block
+        set_block(A, get_size(A)+get_size(C)+size, X, Y, FALSE);
+        set_next_free_block(Y,A);
+        set_previous_free_block(W,0);
+        set_next_free_block(W, first_free_block);
+        first_free_block = W;
+      }
     }
-  } else {
-    new_block = previous;
-    previous_free = get_previous_free_block(previous);
-    if (!next || get_used(next)) {
-      /* Only the previous block is free */
-      size = get_size(previous) + get_size(block);
-      next_free = get_next_free_block(block);
-    } else {
-      /* Both blocks are free */
-      size = get_size(previous) + get_size(block) + get_size(next);
-      next_free = get_next_free_block(next);
+  } else { // 2)-4)
+    if(C && !get_used(C)) { // 2) : Y-> B-C-> Z
+      void* Y = get_previous_free_block(C);
+      void* Z = get_next_free_block(C);
+      set_block(B, get_size(C)+size, Z, Y, FALSE);
+      set_next_free_block(Y,B);
+      set_previous_free_block(Z,B);
+      if(C==first_free_block)
+        first_free_block=B;
+    } else { // 4) : 0-> B-> first_free_block
+      set_block(B, size, first_free_block, 0, FALSE);
+      first_free_block = B;
     }
-  }
-
-  set_block(new_block, size, next_free, previous_free, FALSE);
-  if (!previous_free) {
-    first_free_block = new_block;
   }
 }
