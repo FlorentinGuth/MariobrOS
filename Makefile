@@ -57,7 +57,7 @@ vgaromimage:      file=/usr/share/bochs/VGABIOS-lgpl-latest
 ata0-master:      type=cdrom, path=$(BUILD_FOLDER)/$(ISO), status=inserted
 boot:             cdrom
 log:              $(BOCHS_FOLDER)/$(BOCHS_LOG)
-clock:            sync=realtime, time0=local
+clock:            sync=none, time0=local
 cpu:              count=1, ips=1000000
 com1:             enabled=1, mode=file, dev=$(BOCHS_FOLDER)/com1.out
 keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=$(BOCHS_FOLDER)/x11-pc-fr.map
