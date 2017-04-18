@@ -1,7 +1,9 @@
 OS_NAME = MariobrOS
 
 # Options
-GUI_LIBRARY = x
+GUI_LIBRARY  = x
+GUEST_MEMORY = 512  # Memory that our OS should have
+HOST_MEMORY  = 512  # Memory that bochs should use to emulate our OS
 
 # Folders and paths
 SRC_FOLDER   = src
@@ -59,6 +61,7 @@ boot:             cdrom
 log:              $(BOCHS_FOLDER)/$(BOCHS_LOG)
 clock:            sync=none, time0=local
 cpu:              count=1, ips=1000000
+memory:           guest=$(GUEST_MEMORY), host=$(HOST_MEMORY)
 com1:             enabled=1, mode=file, dev=$(BOCHS_FOLDER)/com1.out
 keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=$(BOCHS_FOLDER)/x11-pc-fr.map
 endef

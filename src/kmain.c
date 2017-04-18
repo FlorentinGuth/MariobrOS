@@ -7,43 +7,29 @@
  */
 
 
-int kmain() /*struct multiboot mboot)*/
+int kmain(multiboot_info_t* mbd)
 {
+  /* Setting the memory limits (which are given in number of 1024 bytes) */
+  const u_int32 LOWER_MEMORY = 1024 * mbd->mem_lower;
+  const u_int32 UPPER_MEMORY = 1024 * mbd->mem_upper;
+
+  /* Installing everything */
   gdt_install();
   idt_install();
   isrs_install();
   irq_install();
   __asm__ __volatile__ ("sti");
+  paging_install();
+  malloc_install();
 
   timer_install();
   keyboard_install();
 
-  for(unsigned int c = 128; c<256; c++) {
-    writef("%d%x=%c\t",c,c,c);
-  }
-
-  write_string("Done\n");
-  kloug(100, "%c%c%c%c : %c %d %x éàù", 'T','e','s','t','a', 42, 42);
-
-
-  paging_install();
-
   clear(); /* Empties the framebuffer */
 
-  malloc_install();
+  writef("LOWER_MEMORY: %x\nUPPER_MEMORY: %x\n", LOWER_MEMORY, UPPER_MEMORY);
 
-  void *a = mem_alloc(4);
-  writef("a:%x\n",a);
-  void* b = mem_alloc(4);
-  writef("b:%x\n",b);
-  void *c = mem_alloc(4);
-  writef("c:%x\n",c);
-  mem_free(b);
-  void* d = mem_alloc(4);
-  writef("d:%x\n",d);
-  void* e = mem_alloc(4);
-  writef("e:%x\n",e);
-  
+
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;
