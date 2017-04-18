@@ -37,9 +37,14 @@ int str_copy(string source, string dest);
  */
 int int_to_string(char str[], int num, int base);
 
+/** u_int_to_string:
+ *  Same as before, but with an unsigned int.
+ */
+int u_int_to_string(char str[], unsigned int num, int base);
+
 /** format_to_string:
  *  printf-like function that fills a buffer with the formatted string
- *  
+ *
  *  @param buf  The buffer to fill
  *  @param s    The format string
  *  @param ap   The arguments of the format string

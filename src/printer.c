@@ -169,22 +169,25 @@ void write_hex(int n)
 void writef(char s[], ...)
 {
   va_list param;
-  va_start(param,0);
-  
+  va_start(param, 0);
+
   int read  = 0;
-  char buffer[16];
+  char buffer[17];
   char c = s[0];
 
   while(c!='\0') {
     if(c=='%') {
       read++;
       switch(s[read]) {
-        
-      case 'd': { // Decimal
+
+      case 'd': { // Decimal (signed)
         int_to_string(buffer, va_arg(param,int), 10);
         write_string(buffer); break; }
+      case 'u': { // Decimal (unsigned)
+        u_int_to_string(buffer, va_arg(param,unsigned int), 10);
+        write_string(buffer); break; }
       case 'x': { // Hexadecimal
-        int_to_string(buffer, va_arg(param,int), 16);
+        u_int_to_string(buffer, va_arg(param,int), 16);
         write_string(buffer); break; }
       case 'c': { // Character
         write_char(va_arg(param,int)); break; }
