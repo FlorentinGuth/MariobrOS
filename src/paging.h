@@ -61,6 +61,15 @@ void switch_page_directory(page_directory_t *new);
  */
 page_t * get_page(u_int32 address, bool make, page_directory_t *dir);
 
+/**
+ * @name alloc_frame - Allocates and initializes a page
+ * @param page - The page
+ * @param is_kernel - Whether the page is reserved by the kernel
+ * @param is_writable - Whether the page is writable
+ * @return void
+ */
+void alloc_frame(page_t *page, bool is_kernel, bool is_writable);
+
 /** page_fault:
  *  Handler for page faults.
  */

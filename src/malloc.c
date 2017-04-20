@@ -22,7 +22,7 @@
  *  2-byte-alignment is sufficient since we only need one bit */
 
 #define WORD_SIZE   4
-#define HEADER_SIZE 12
+#define HEADER_SIZE 3*WORD_SIZE
 
 void *first_free_block;
 
@@ -56,25 +56,25 @@ void *get_next_block(void *block)
   return block + get_size(block);
 }
 
-void *get_physical_previous_free_block(void *block)
-{
-  while(get_used(block) && (u_int32)block >= END_OF_KERNEL_HEAP) {
-    block -= get_size(block - HEADER_SIZE);
-  }
-  if((u_int32)block < 0x00800000)
-    return 0;
-  return block;
-}
+/* void *get_physical_previous_free_block(void *block) */
+/* { */
+/*   while(get_used(block) && (u_int32)block >= END_OF_KERNEL_HEAP) { */
+/*     block -= get_size(block - HEADER_SIZE); */
+/*   } */
+/*   if((u_int32)block < 0x00800000) */
+/*     return 0; */
+/*   return block; */
+/* } */
 
-void *get_physical_next_free_block(void *block)
-{
-  while(get_used(block) && (u_int32)block < 0x00800000 + END_OF_KERNEL_HEAP) {
-    block += get_size(block + get_size(block));
-  }
-  if((u_int32)block >= 0x00800000 + END_OF_KERNEL_HEAP)
-    return 0;
-  return block;
-}
+/* void *get_physical_next_free_block(void *block) */
+/* { */
+/*   while(get_used(block) && (u_int32)block < 0x00800000 + END_OF_KERNEL_HEAP) { */
+/*     block += get_size(block + get_size(block)); */
+/*   } */
+/*   if((u_int32)block >= 0x00800000 + END_OF_KERNEL_HEAP) */
+/*     return 0; */
+/*   return block; */
+/* } */
 
 void set_size(void *block, size_t size)
 {
@@ -103,7 +103,7 @@ void set_block(void* ptr, size_t size, void *next, void *prev, bool used)
 {
   writef("Setting : ptr=%x, size=%x, next=%x, prev=%x, used=%d\n", ptr, size, next, prev, used);
   set_size(ptr, size);
-  *(u_int32 *)(ptr + WORD_SIZE) = (u_int32)next | used; // Next free block
+  *(u_int32 *)(ptr + WORD_SIZE) = (u_int32)next | used;  /* Next free block */
   set_previous_free_block(ptr, prev);
 
   void *header_end = ptr + size - HEADER_SIZE;
@@ -123,29 +123,29 @@ void malloc_install()
 void *mem_alloc(size_t size)
 {
   writef("Allocating a block\n");
-  size = size + 2*HEADER_SIZE;  // Account for the two headers
+  size = size + 2*HEADER_SIZE;  /* Account for the two headers */
   if (size % 4) {
     size = (size & 0xFFFFFFFC) + 4;
   }
 
   void *block = first_free_block;
   /* writef("%c first_free_block: %x, size=%x\n",219,first_free_block,*(u_int32*)first_free_block); */
-  
+
   while (block && (get_used(block) || get_size(block) < size)) {
     block = get_next_free_block(block);
   }
-  
+
   if (!block) {
     writef("No free memory\n");
-    return 0;  // No free block big enough
+    return 0;                    /* No free block big enough */
     /* TODO: allocate a new page */
   }
 
   size_t size_block = get_size(block);
   void *previous = get_previous_free_block(block);
   void *next     = get_next_free_block(block);
-  
-  if (size_block - size >= WORD_SIZE + 2*HEADER_SIZE) { // New block
+
+  if (size_block - size >= WORD_SIZE + 2*HEADER_SIZE) { /*  New block */
 
     set_block(block,        size,              0,    0,        TRUE);
     set_block(block + size, size_block - size, next, previous, FALSE);
@@ -158,8 +158,8 @@ void *mem_alloc(size_t size)
     } else {
       first_free_block = block + size;
     }
-  } else { // No new possible block
-    
+  } else {  /* No new possible block */
+
     set_block(block, size_block, 0, 0, TRUE);
 
     if (next) {
@@ -177,24 +177,20 @@ void *mem_alloc(size_t size)
 
 void mem_free(void *B)
 {
-  /* Merging conditions: say the block to free is B, contiguous within A - B - C 
+  /* Merging conditions: say the block to free is B, contiguous within A - B - C
    * 1) If A is free, with W-> A-> X and C is used, then W-> A-B-> X
    * 2) If C is free, with Y-> C-> Z and A is used, then Y-> B-C-> Z
-   * 3) If both are free, then 
+   * 3) If both are free, then
    *   -> Note: necessarily, W!=Y, X!=Z, W!=X and Y!=Z
    *   -> W = Z and Y = X is an impossible case (W-> A-> X-> C-> W !)
    *   a) if W!= Z and Y!= X then W-> A-B-C-> Z and Y-> X
    *   b) if W!= Z and Y = X then W-> A-B-C-> Z and 0-> X-> first_free_block
    *   c) if W = Z and Y!= X then Y-> A-B-C-> X and 0-> W-> first_free_block
    * 4) If none are free, then 0-> B-> first_free_block */
-  
-  
-  /* /!\ OBSOLETE: 
-   * If A and B are contiguous free blocks, we update the list from C->A->D 
-   * and E->B->F to C->A+B->D & E->F */
+
   B -= HEADER_SIZE; // Go back to the header
   writef("Freeing block %x\n", B);
-  
+
   void *A;
   if ((u_int32)B > 0x00800000)
     // TODO: merge this into get_previous_block
@@ -206,7 +202,7 @@ void mem_free(void *B)
     C = 0;
 
   size_t size = get_size(B);
-  
+
   if(A && !get_used(A)) { // 1) or 3)
     void* W = get_previous_free_block(A);
     void* X = get_next_free_block(A);

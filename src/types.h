@@ -6,6 +6,21 @@
 #define TYPES_H
 
 
+typedef unsigned int   u_int32;
+typedef   signed int   s_int32;
+typedef unsigned short u_int16;
+typedef   signed short s_int16;
+typedef unsigned char  u_int8;
+typedef   signed char  s_int8;
+
+typedef u_int32 size_t;  /* A type to hold a number of bytes */
+
+
+typedef unsigned char bool;
+#define FALSE (bool)0
+#define TRUE  (bool)1
+
+
 /* Constants defining the memory layout */
 /* The memory  is laid out as follows:
  *  - from 0MB to 1MB (0x10000), we have BIOS and GRUB-reserved memory (such as the framebuffer)
@@ -22,6 +37,10 @@ extern unsigned int ld_end;
 
 #define END_OF_KERNEL_HEAP      0x00800000
 
+/* Two variables set by kmain function right at the beginning of the call */
+extern const u_int32 LOWER_MEMORY;  /* The memory from 0x0 to LOWER_MEMORY is free */
+extern const u_int32 UPPER_MEMORY;  /* The memory from 1MB to UPPER_MEMORY is free */
+
 
 /* This defines what the stack looks like after an ISR was running */
 struct regs
@@ -32,21 +51,6 @@ struct regs
   unsigned int eip, cs, eflags, useresp, ss;            /* pushed by the processor automatically */
 };
 typedef struct regs regs_t;
-
-
-typedef unsigned int   u_int32;
-typedef   signed int   s_int32;
-typedef unsigned short u_int16;
-typedef   signed short s_int16;
-typedef unsigned char  u_int8;
-typedef   signed char  s_int8;
-
-typedef u_int32 size_t;  /* A type to hold a number of bytes */
-
-
-typedef unsigned char bool;
-#define FALSE (bool)0
-#define TRUE  (bool)1
 
 
 /** port_t:

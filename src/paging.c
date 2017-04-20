@@ -68,7 +68,7 @@ static u_int32 first_frame()
 
 
 /* Function to allocate a frame. */
-void alloc_frame(page_t *page, bool is_kernel, bool is_writeable)
+void alloc_frame(page_t *page, bool is_kernel, bool is_writable)
 {
   if (page->frame != 0) {
     return;  /* Frame was already allocated, return straight away. */
@@ -81,7 +81,7 @@ void alloc_frame(page_t *page, bool is_kernel, bool is_writeable)
 
     set_frame(idx * 0x1000);        /* This frame is now ours! */
     page->present = TRUE;           /* Mark it as present. */
-    page->rw      = is_writeable;   /* Should the page be writable? */
+    page->rw      = is_writable;    /* Should the page be writable? */
     page->user    = is_kernel;      /* Should the page be user-mode? */
     page->frame   = idx;
   }
