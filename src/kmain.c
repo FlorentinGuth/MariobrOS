@@ -22,13 +22,19 @@ int kmain(multiboot_info_t* mbd)
   paging_install();
   malloc_install();
 
+  clear(); /* Empties the framebuffer */
+  
   timer_install();
   keyboard_install();
 
-  clear(); /* Empties the framebuffer */
 
+  writef("Jusqu'ici, tout va bien...\n");
   writef("LOWER_MEMORY: %x\nUPPER_MEMORY: %x\n", LOWER_MEMORY, UPPER_MEMORY);
-
+  
+  paging_install();
+  malloc_install();
+  
+  writef("Are you still there?\n");
 
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts

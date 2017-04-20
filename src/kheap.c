@@ -4,7 +4,7 @@
 #include "error.h"
 
 
-/* TODO: chose a type between void*, unsigned int, something else (long?) */
+/* TODO: choose a type between void*, unsigned int, something else (long?) */
 
 /* The heap pointer */
 unsigned int brk = 0;
