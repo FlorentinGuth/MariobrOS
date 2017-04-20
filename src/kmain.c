@@ -19,14 +19,11 @@ int kmain(multiboot_info_t* mbd)
   isrs_install();
   irq_install();
   __asm__ __volatile__ ("sti");
-  paging_install();
-  malloc_install();
 
   clear(); /* Empties the framebuffer */
   
   timer_install();
   keyboard_install();
-
 
   writef("Jusqu'ici, tout va bien...\n");
   writef("LOWER_MEMORY: %x\nUPPER_MEMORY: %x\n", LOWER_MEMORY, UPPER_MEMORY);
