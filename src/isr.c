@@ -46,6 +46,11 @@ void isrs_install()
   idt_set_gate(31, (unsigned)isr31, 0x08, 0x8E);
 }
 
+void *isr_routines[32] = {
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
 const char *exception_messages[] = {
   "Division By Zero",
   "Debug",
@@ -81,6 +86,19 @@ const char *exception_messages[] = {
   "Reserved"
 };
 
+
+/* This installs a custom ISR handler for the given ISR */
+void isr_install_handler(int isr, void (*handler)(struct regs *r))
+{
+  isr_routines[isr] = handler;
+}
+
+/* This clears the handler for a given ISR */
+void isr_uninstall_handler(int isr)
+{
+  isr_routines[isr] = 0;
+}
+
 /* All of our Exception handling Interrupt Service Routines will
  * point to this function. This will tell us what exception has
  * happened! Right now, we simply halt the system by hitting an
@@ -91,8 +109,14 @@ void fault_handler(struct regs *r)
 {
   /* Is this a fault whose number is from 0 to 31? */
   if (r->int_no < 32) {
-    log_string(exception_messages[r->int_no], Error);
-    write_string(exception_messages[r->int_no]);
-    throw("Exception. System Halted");
+    void (*handler)(struct regs *r);
+    handler = isr_routines[r->int_no];
+    if(handler) {
+      handler(r);
+    } else {
+      log_string(exception_messages[r->int_no], Error);
+      write_string(exception_messages[r->int_no]);
+      throw("Exception. System Halted");
+    }
   }
 }

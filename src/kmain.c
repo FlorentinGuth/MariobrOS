@@ -15,17 +15,16 @@ int kmain() /*struct multiboot mboot)*/
   irq_install();
   __asm__ __volatile__ ("sti");
 
+  clear(); /* Empties the framebuffer */
+  
   timer_install();
   keyboard_install();
 
-  writef("Pour information, le symbole %c est le caractère %d\n", 47,47);
-  writef("-1 : %d\n", (u_int32)(-1));
+  writef("Jusqu'ici, tout va bien...\n");
   
   paging_install();
-  /* malloc_install(); */
-
-  clear(); /* Empties the framebuffer */
-
+  malloc_install();
+  
   writef("Test test TEST !");
   
   for(;;)

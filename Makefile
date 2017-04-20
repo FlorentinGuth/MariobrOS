@@ -1,70 +1,49 @@
 OS_NAME = MariobrOS
 
 # Options
-GUI_LIBRARY = x
+GUI = x
 
 # Folders and paths
-SRC_FOLDER   = src
-BUILD_FOLDER = build
-ISO_FOLDER   = iso
-BOCHS_FOLDER = bochs
-VPATH        = $(SRC_FOLDER) $(BUILD_FOLDER) $(BOCH_FOLDER) # Helps make find our files
-$(shell mkdir -p $(BUILD_FOLDER) $(BOCHS_FOLDER))           # Ensures folders exist
+SRC_DIR   = src
+BUILD_DIR = build
+ISO_DIR   = iso
+BOCHS_DIR = bochs
+
+DISK_DIR  = disk
+LOOP_DEVICE = /dev/loop0
+MNT_DIR = /mnt/$(OS_NAME)_tmp
+DISK_IMG = $(DISK_DIR)/disk.img
+
 # File names
-LINKER = link.ld
-OBJECTS = $(patsubst $(SRC_FOLDER)/%.c,%.o,$(wildcard $(SRC_FOLDER)/*.c)) \
-          $(patsubst $(SRC_FOLDER)/%.s,%.o,$(wildcard $(SRC_FOLDER)/*.s))
+LINKER = $(SRC_DIR)/link.ld
 OBJECTS = loader.o kmain.o malloc.o paging.o kheap.o memory.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o
-ISO = os.iso
+OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
+OS_ISO = $(BUILD_DIR)/os.iso
+KERNEL_ELF = $(ISO_DIR)/boot/kernel.elf
+
 BOCHS_CONFIG_CD = config_cd.txt
 BOCHS_CONFIG_DISK = config_disk.txt
 BOCHS_LOG = log.txt
-GRUB_CONFIG = $(ISO_FOLDER)/boot/grub/menu.lst
+GRUB_CONFIG = $(ISO_DIR)/boot/grub/menu.lst
+GRUB2_CONFIG = $(ISO_DIR)/boot/grub/grub.cfg
 ELTORITO = boot/grub/stage2_eltorito
-
-# C compiler and flags
-CC =      gcc
-CFLAGS =  -m32 \
-          -nostdlib \
-          -ffreestanding \
-          -fno-builtin \
-          -fno-stack-protector \
-          -nostartfiles \
-          -nodefaultlibs \
-          -funsigned-char \
-          -funsigned-bitfields \
-          -Wall -Wextra -Werror \
-          -O0 \
-          -c
-# Compiles in 32 bits mode, without any std, with all warnings (and treating warning as errors) \
-  and with no linking (and disable optimizations)
-
-# Linker and flags
-LD =      ld
-LDFLAGS = -T $(SRC_FOLDER)/$(LINKER) \
-          -melf_i386
-
-# ASM compiler and flags
-AS =      nasm
-ASFLAGS = -f elf32
-
 
 # Configuration files
 
 define BOCHS_CONFIG_CONTENT
 megs:             32
-display_library:  $(GUI_LIBRARY)
+display_library:  $(GUI)
 romimage:         file=/usr/share/bochs/BIOS-bochs-latest
 vgaromimage:      file=/usr/share/bochs/VGABIOS-lgpl-latest
-log:              $(BOCHS_FOLDER)/$(BOCHS_LOG)
+log:              bochs/$(BOCHS_LOG)
 clock:            sync=none, time0=local
 cpu:              count=1, ips=1000000
-com1:             enabled=1, mode=file, dev=$(BOCHS_FOLDER)/com1.out
-keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=$(SRC_FOLDER)/x11-pc-fr.map
+com1:             enabled=1, mode=file, dev=$(BOCHS_DIR)/com1.out
+keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=$(SRC_DIR)/x11-pc-fr.map
 endef
 
 define BOCHS_CONFIG_BOOT_CD
-ata0-master:      type=cdrom, path=$(BUILD_FOLDER)/$(ISO), status=inserted
+ata0-master:      type=cdrom, path=$(OS_ISO), status=inserted
 boot:             cdrom
 endef
 define BOCHS_CONFIG_BOOT_DISK
@@ -80,30 +59,83 @@ title $(OS_NAME)
 kernel /boot/kernel.elf
 endef
 
+define GRUB2_CONFIG_CONTENT
+set timeout=0
+menuentry "MarioBrOS" {
+	multiboot /boot/kernel.elf
+}
+endef
+
 define NEWLINE
 
 
 endef
 
+# C compiler and flags
+CC =      gcc
+CFLAGS =-m32 \
+        -nostdlib -nodefaultlibs \
+        -ffreestanding \
+        -fno-builtin -nostartfiles\
+        -fno-stack-protector \
+        -funsigned-char -funsigned-bitfields \
+        -Wall -Wextra -Werror \
+        -O0 \
+        -c
+# Compiles in 32 bits mode, without any std, with all warnings (and treating warning as errors) \
+  and with no linking (and disable optimizations)
 
-all:	run
+# Linker and flags
+LD =      ld
+LDFLAGS = -T $(LINKER)
 
-.PHONY:	run $(ISO) kernel.elf umountdisk
+# ASM compiler and flags
+AS =      nasm
+ASFLAGS = -f elf
 
-print-%  :
-	@echo $* = $($*)
 
 
-run:	$(ISO) $(BOCHS_CONFIG_CD)
-    # Let's run it!
-	bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG_CD) | exit 0
+all: $(OS_ISO) $(BOCHS_CONFIG_CD) run
+
+
+.PHONY: all run rundisk syncdisk disk clean cleandisk
+
+
+$(BUILD_DIR) $(BOCHS_DIR): # Ensures folders exist
+	mkdir -p $@
+
+# Configuration files writing
+ECHO_CONFIG = @echo '$(subst $(NEWLINE),\n,$(1))' > $(2)
+
+$(BOCHS_CONFIG_CD): $(BOCHS_DIR)
+	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_CD),$(BOCHS_DIR)/$(BOCHS_CONFIG_CD))
+$(BOCHS_CONFIG_DISK): $(BOCHS_DIR)
+	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_DISK),$(BOCHS_DIR)/$(BOCHS_CONFIG_DISK))
+
+$(GRUB_CONFIG):
+	$(call ECHO_CONFIG,$(GRUB_CONFIG_CONTENT),$(GRUB_CONFIG))
+$(GRUB2_CONFIG):
+	$(call ECHO_CONFIG,$(GRUB2_CONFIG_CONTENT),$(GRUB2_CONFIG))
+
+
+
+
+run:
+	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_CD) | exit 0
 
 rundisk:
-	bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG_DISK) | exit 0
+	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_DISK) | exit 0
 
-$(ISO):	kernel.elf $(GRUB_CONFIG)
+
+$(BUILD_DIR)/%.o: src/%.c $(BUILD_DIR)
+	@$(CC) $< -c -o $@  $(CFLAGS) $(CPPFLAGS)
+
+$(BUILD_DIR)/%.o: src/%.s $(BUILD_DIR)
+	@$(AS) $< -o $@ $(ASFLAGS)
+
+$(OS_ISO):	$(KERNEL_ELF) $(GRUB_CONFIG)
     # Builds the ISO image from the ISO folder
-	genisoimage -R \
+	@genisoimage -R \
                 -b $(ELTORITO) \
                 -no-emul-boot \
                 -boot-load-size 4 \
@@ -111,91 +143,47 @@ $(ISO):	kernel.elf $(GRUB_CONFIG)
                 -input-charset utf8 \
                 -quiet \
                 -boot-info-table \
-                -o $(BUILD_FOLDER)/$(ISO) \
+                -o $(OS_ISO) \
                 iso
 
-kernel.elf:	$(OBJECTS)
+$(KERNEL_ELF):	$(OBJS)
     # Links the file and produces the .elf in the ISO folder
-	$(LD) $(LDFLAGS) $(addprefix $(BUILD_FOLDER)/,$(OBJECTS)) -o $(ISO_FOLDER)/boot/kernel.elf
+	$(LD) $(LDFLAGS) $(OBJS) -o $(KERNEL_ELF) -melf_i386
 
-
-ECHO_CONFIG = @echo '$(subst $(NEWLINE),\n,$(1))' > $(2)
-
-$(BOCHS_CONFIG_CD):
-	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_CD),$(BOCHS_FOLDER)/$(BOCHS_CONFIG_CD))
-$(BOCHS_CONFIG_DISK):
-	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_DISK),$(BOCHS_FOLDER)/$(BOCHS_CONFIG_DISK))
-
-$(GRUB_CONFIG):
-	$(call ECHO_CONFIG,$(GRUB_CONFIG_CONTENT),$(GRUB_CONFIG))
-
-
-LOOP_DEVICE = /dev/loop0
-MNT_DIR = /mnt/MarioDisk
-DISK_IMG = disk/disk.img
 
 $(DISK_IMG):
+	@mkdir -p $(DISK_DIR)
 	dd if=/dev/zero of=$(DISK_IMG) bs=512 count=131072
-	sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
-	sudo parted $(LOOP_DEVICE) mklabel msdos
-	sudo parted $(LOOP_DEVICE) mkpart primary ext2 1 64
-	sudo parted $(LOOP_DEVICE) set 1 boot on
-	sudo partprobe $(LOOP_DEVICE)
-	sudo mkfs.ext2 -b 2048 $(LOOP_DEVICE)p1
-	sudo mkdir -p $(MNT_DIR)
-	sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
+	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
+	@sudo echo "," | sfdisk --quiet disk/disk.img
+	@sudo partprobe $(LOOP_DEVICE)
+	@sudo mkfs.ext2 -q -b 2048 $(LOOP_DEVICE)p1
+	@sudo mkdir -p $(MNT_DIR)
+	@sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
 	sudo grub-install --root-directory=$(MNT_DIR) --no-floppy --modules="normal part_msdos ext2 multiboot" --target=i386-pc $(LOOP_DEVICE)
-	sudo umount -d $(MNT_DIR)
-	sudo rm -rf $(MNT_DIR)
-	sudo losetup -d $(LOOP_DEVICE)
+	@sudo umount -d $(MNT_DIR)
+	@sudo rm -rf $(MNT_DIR)
+	@sudo losetup -d $(LOOP_DEVICE)
 
-$(shell mkdir -p disk)
 
-syncdisk: $(DISK_IMG) $(ISO) $(BOCHS_CONFIG_DISK)
-	sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
-	sudo mkdir -p $(MNT_DIR)
-	sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
-	sudo rsync -r $(ISO_FOLDER)/boot $(MNT_DIR)
+syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF)
+	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
+	@sudo mkdir -p $(MNT_DIR)
+	@sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
+	sudo rsync -r $(ISO_DIR)/boot $(MNT_DIR)
+	@sudo umount -d $(MNT_DIR)
+	@sudo rm -rf $(MNT_DIR)
+	@sudo losetup -d $(LOOP_DEVICE)
 
-umountdisk:
-	sudo umount -d $(MNT_DIR)
-	sudo rm -rf $(MNT_DIR)
-	sudo losetup -d $(LOOP_DEVICE)
-
-disk:	syncdisk umountdisk rundisk
+disk:	syncdisk rundisk
 
 
 clean:
-	rm -rf $(BUILD_FOLDER)
-	rm -rf $(BOCHS_FOLDER)
-	rm -f $(ISO_FOLDER)/boot/kernel.elf
+	rm -rf $(BUILD_DIR)
+	rm -rf $(BOCHS_DIR)
+	rm -f $(ISO_DIR)/boot/kernel.elf
 	rm -f $(GRUB_CONFIG)
+	rm -f $(GRUB2_CONFIG)
 
 cleandisk: clean
 	rm -rf disk
-
-# Brace yourselves, here comes the C compilation with automatic dependency generation
-# For explanations (you probably don't want any, let me tell you), see:
-# http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
-
-SRCS = (wildcard $(SRC_FOLDER)/*.c)
-DEPDIR = $(BUILD_FOLDER)
-$(shell mkdir -p $(DEPDIR))
-DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
-
-COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS)
-POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
-
-%.o:	%.c
-%.o:	%.c $(DEPDIR)/%.d
-	$(COMPILE.c) -o $(BUILD_FOLDER)/$@ $<
-	$(POSTCOMPILE)
-
-%.o:	%.s
-%.o:	%.s
-	$(AS) $(ASFLAGS) -o $(BUILD_FOLDER)/$@ $<
-
-$(DEPDIR)/%.d: ;
-.PRECIOUS: $(DEPDIR)/%.d
-
-include $(wildcard $(patsubst %,$(DEPDIR)/%.d,$(basename $(SRCS))))
