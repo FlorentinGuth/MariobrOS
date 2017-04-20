@@ -65,7 +65,7 @@ endef
 
 define GRUB2_CONFIG_CONTENT
 set timeout=0
-menuentry "MarioBrOS" {
+menuentry "$(OS_NAME)" {
 	multiboot /boot/kernel.elf
 }
 endef
