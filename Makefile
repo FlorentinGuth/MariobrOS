@@ -16,7 +16,8 @@ OBJECTS = $(patsubst $(SRC_FOLDER)/%.c,%.o,$(wildcard $(SRC_FOLDER)/*.c)) \
           $(patsubst $(SRC_FOLDER)/%.s,%.o,$(wildcard $(SRC_FOLDER)/*.s))
 OBJECTS = loader.o kmain.o malloc.o paging.o kheap.o memory.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o
 ISO = os.iso
-BOCHS_CONFIG = config.txt
+BOCHS_CONFIG_CD = config_cd.txt
+BOCHS_CONFIG_DISK = config_disk.txt
 BOCHS_LOG = log.txt
 GRUB_CONFIG = $(ISO_FOLDER)/boot/grub/menu.lst
 ELTORITO = boot/grub/stage2_eltorito
@@ -49,18 +50,26 @@ ASFLAGS = -f elf32
 
 
 # Configuration files
+
 define BOCHS_CONFIG_CONTENT
 megs:             32
 display_library:  $(GUI_LIBRARY)
 romimage:         file=/usr/share/bochs/BIOS-bochs-latest
 vgaromimage:      file=/usr/share/bochs/VGABIOS-lgpl-latest
-ata0-master:      type=cdrom, path=$(BUILD_FOLDER)/$(ISO), status=inserted
-boot:             cdrom
 log:              $(BOCHS_FOLDER)/$(BOCHS_LOG)
 clock:            sync=none, time0=local
 cpu:              count=1, ips=1000000
 com1:             enabled=1, mode=file, dev=$(BOCHS_FOLDER)/com1.out
-keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=$(BOCHS_FOLDER)/x11-pc-fr.map
+keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=$(SRC_FOLDER)/x11-pc-fr.map
+endef
+
+define BOCHS_CONFIG_BOOT_CD
+ata0-master:      type=cdrom, path=$(BUILD_FOLDER)/$(ISO), status=inserted
+boot:             cdrom
+endef
+define BOCHS_CONFIG_BOOT_DISK
+ata0-master:     type=disk, path=$(DISK_IMG), mode=flat, translation=auto
+boot:             disk
 endef
 
 define GRUB_CONFIG_CONTENT
@@ -79,16 +88,18 @@ endef
 
 all:	run
 
-.PHONY:	$(BOCHS_CONFIG) $(GRUB_CONFIG)
+.PHONY:	run $(ISO) kernel.elf umountdisk
 
 print-%  :
 	@echo $* = $($*)
 
 
-run:	$(ISO) $(BOCHS_CONFIG)
+run:	$(ISO) $(BOCHS_CONFIG_CD)
     # Let's run it!
-	bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG)
+	bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG_CD) | exit 0
 
+rundisk:
+	bochs -q -f $(BOCHS_FOLDER)/$(BOCHS_CONFIG_DISK) | exit 0
 
 $(ISO):	kernel.elf $(GRUB_CONFIG)
     # Builds the ISO image from the ISO folder
@@ -110,19 +121,58 @@ kernel.elf:	$(OBJECTS)
 
 ECHO_CONFIG = @echo '$(subst $(NEWLINE),\n,$(1))' > $(2)
 
-$(BOCHS_CONFIG):
-	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT),$(BOCHS_FOLDER)/$(BOCHS_CONFIG))
+$(BOCHS_CONFIG_CD):
+	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_CD),$(BOCHS_FOLDER)/$(BOCHS_CONFIG_CD))
+$(BOCHS_CONFIG_DISK):
+	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_DISK),$(BOCHS_FOLDER)/$(BOCHS_CONFIG_DISK))
 
 $(GRUB_CONFIG):
 	$(call ECHO_CONFIG,$(GRUB_CONFIG_CONTENT),$(GRUB_CONFIG))
 
 
+LOOP_DEVICE = /dev/loop0
+MNT_DIR = /mnt/MarioDisk
+DISK_IMG = disk/disk.img
+
+$(DISK_IMG):
+	dd if=/dev/zero of=$(DISK_IMG) bs=512 count=131072
+	sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
+	sudo parted $(LOOP_DEVICE) mklabel msdos
+	sudo parted $(LOOP_DEVICE) mkpart primary ext2 1 64
+	sudo parted $(LOOP_DEVICE) set 1 boot on
+	sudo partprobe $(LOOP_DEVICE)
+	sudo mkfs.ext2 -b 2048 $(LOOP_DEVICE)p1
+	sudo mkdir -p $(MNT_DIR)
+	sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
+	sudo grub-install --root-directory=$(MNT_DIR) --no-floppy --modules="normal part_msdos ext2 multiboot" --target=i386-pc $(LOOP_DEVICE)
+	sudo umount -d $(MNT_DIR)
+	sudo rm -rf $(MNT_DIR)
+	sudo losetup -d $(LOOP_DEVICE)
+
+$(shell mkdir -p disk)
+
+syncdisk: $(DISK_IMG) $(ISO) $(BOCHS_CONFIG_DISK)
+	sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
+	sudo mkdir -p $(MNT_DIR)
+	sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
+	sudo rsync -r $(ISO_FOLDER)/boot $(MNT_DIR)
+
+umountdisk:
+	sudo umount -d $(MNT_DIR)
+	sudo rm -rf $(MNT_DIR)
+	sudo losetup -d $(LOOP_DEVICE)
+
+disk:	syncdisk umountdisk rundisk
+
+
 clean:
 	rm -rf $(BUILD_FOLDER)
-	rm -f $(BOCHS_FOLDER)/com1.out $(BOCHS_FOLDER)/config.txt $(BOCHS_FOLDER)/log.txt
+	rm -rf $(BOCHS_FOLDER)
 	rm -f $(ISO_FOLDER)/boot/kernel.elf
 	rm -f $(GRUB_CONFIG)
 
+cleandisk: clean
+	rm -rf disk
 
 # Brace yourselves, here comes the C compilation with automatic dependency generation
 # For explanations (you probably don't want any, let me tell you), see:

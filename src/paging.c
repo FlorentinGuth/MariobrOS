@@ -75,7 +75,8 @@ void alloc_frame(page_t *page, bool is_kernel, bool is_writeable)
   } else {
     u_int32 idx = first_frame();    /* idx is now the index of the first free frame. */
 
-    if (idx == (u_int32)-1) {
+    if (idx == (u_int32) (-1)) {
+      writef("Début-- %d --Fin\n", (u_int32)idx);
       throw("No free frames!");
     }
 
