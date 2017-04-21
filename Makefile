@@ -169,9 +169,9 @@ $(DISK_IMG):
 	@sudo rm -rf $(MNT_DIR)
 	@sudo losetup -d $(LOOP_DEVICE)
 
-
 syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF)
 	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
+	@sudo partprobe $(LOOP_DEVICE)
 	@sudo mkdir -p $(MNT_DIR)
 	@sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
 	sudo rsync -r $(ISO_DIR)/boot $(MNT_DIR)

@@ -5,3 +5,4 @@ bochs/*.out
 bochs/*.txt
 G*
 src/cscope.*
+disk/*

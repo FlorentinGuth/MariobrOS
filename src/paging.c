@@ -111,7 +111,7 @@ void paging_install()
 {
   /* The size of physical memory. For the moment we
    * assume it is 16MB big. */
-  u_int32 mem_end_page = 0x1000000;
+  u_int32 mem_end_page = 0x4000000;
 
   nb_frames = mem_end_page / 0x1000;
   frames = (u_int32*)kmalloc(INDEX_FROM_BIT(nb_frames));
