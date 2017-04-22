@@ -19,7 +19,7 @@ DISK_IMG = $(DISK_DIR)/disk.img
 
 # File names
 LINKER = $(SRC_DIR)/link.ld
-OBJECTS = loader.o kmain.o malloc.o paging.o kheap.o memory.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o
+OBJECTS = loader.o kmain.o malloc.o paging.o kheap.o memory.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o
 OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
 OS_ISO = $(BUILD_DIR)/os.iso
 KERNEL_ELF = $(ISO_DIR)/boot/kernel.elf
@@ -125,10 +125,10 @@ $(GRUB2_CONFIG):
 
 
 run: $(OS_ISO) $(BOCHS_CONFIG_CD)
-	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_CD) | exit 0
+	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_CD)
 
 rundisk: syncdisk
-	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_DISK) | exit 0
+	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_DISK)
 
 
 $(BUILD_DIR)/%.o: src/%.c $(BUILD_DIR)

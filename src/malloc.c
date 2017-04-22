@@ -1,6 +1,7 @@
 #include "malloc.h"
 #include "paging.h"
 #include "logging.h"
+#include "math.h"
 
 
 /** Memory layout:
@@ -103,7 +104,7 @@ void set_used(void *block, bool used)
 
 void set_block(void* ptr, size_t size, void *next, void *prev, bool used)
 {
-  writef("Setting : ptr=%x, size=%x, next=%x, prev=%x, used=%d\n", ptr, size, next, prev, used);
+  /* writef("Setting : ptr=%x, size=%x, next=%x, prev=%x, used=%d\n", ptr, size, next, prev, used); */
   set_size(ptr, size);
   *(u_int32 *)(ptr + WORD_SIZE) = (u_int32)next | used;  /* Next free block */
   set_previous_free_block(ptr, prev);
@@ -115,6 +116,23 @@ void set_block(void* ptr, size_t size, void *next, void *prev, bool used)
 }
 
 
+void write_block(void *block)
+{
+  writef("Block at %x, size %x, prev free %x, next free %x, used %u\n", \
+         block, get_size(block), get_previous_free_block(block), get_next_free_block(block), get_used(block));
+}
+
+void write_memory()
+{
+  writef("First free block at %x\n", first_free_block);
+  void* block = (void *)END_OF_KERNEL_HEAP;
+  while (block < unallocated_mem) {
+    write_block(block);
+    block = get_next_block(block);
+  }
+}
+
+
 void malloc_install()
 {
   /* Allocates a page */
@@ -123,12 +141,12 @@ void malloc_install()
 
   first_free_block = (void *)END_OF_KERNEL_HEAP;
   set_block(first_free_block, 0x00001000, 0, 0, FALSE);  /* Setting size of 4KB: the whole page */
-  writef("Malloc installed\n");
+  /* writef("Malloc installed\n"); */
 }
 
 void *mem_alloc(size_t size)
 {
-  writef("Allocating a block\n");
+  /* writef("Allocating a block\n"); */
   size = size + 2*HEADER_SIZE;  /* Account for the two headers */
   if (size % 4) {
     size = (size & 0xFFFFFFFC) + 4;
@@ -142,19 +160,46 @@ void *mem_alloc(size_t size)
   }
 
   if (!block) {
-    writef("Let's try to allocate a page\n");
+    /* writef("Let's try to allocate a page\n"); */
 
-    alloc_frame(get_page((u_int32)unallocated_mem, TRUE, current_directory), FALSE, TRUE);
-    set_block(unallocated_mem, 0x1000, first_free_block, 0, FALSE);
-    first_free_block = unallocated_mem;
-    unallocated_mem += 0x1000;
+    void *last_block = unallocated_mem - HEADER_SIZE;
+    size_t last_size = get_size(last_block);
+    bool free = !get_used(last_block);
+    last_block = unallocated_mem - last_size;
+    /* writef("Last physical block at %x, size %x, free: %u\n", last_block, last_size, free); */
 
-    /* TODO: compute the number of pages to allocate before */
-    /* TODO: merge this new block with the previous if needed */
-    return mem_alloc(size);  /* Horrible hack, TODO: do not redo all the search */
+    int nb_pages;
+    void *new_block, *previous_free, *next_free;
+    size_t new_size;
+    if (free) {
+      /* We just extend the last free block */
+      nb_pages = ceil_ratio(size - last_size, 0x1000);
+      new_block = last_block;
+      new_size = last_size + nb_pages * 0x1000;
+      previous_free = get_previous_free_block(last_block);
+      next_free = get_next_free_block(last_block);
+    } else {
+      /* We create a new free block, which will be placed at the start of the queue */
+      nb_pages = ceil_ratio(size, 0x1000);
+      new_block = unallocated_mem;
+      new_size = nb_pages * 0x1000;
+      previous_free = 0;
+      next_free = first_free_block;
 
+      /* Inserting at the start of the queue */
+      set_previous_free_block(first_free_block, new_block);
+      first_free_block = new_block;
+    }
+    /* writef("Allocating %u pages\n", nb_pages); */
 
-    return 0;                    /* No free block big enough */
+    for (int i = 0; i < nb_pages; i++) {
+      alloc_frame(get_page((u_int32)unallocated_mem, TRUE, current_directory), FALSE, TRUE);
+      unallocated_mem += 0x1000;
+    }
+
+    set_block(new_block, new_size, next_free, previous_free, FALSE);
+
+    return mem_alloc(size - 2*HEADER_SIZE);  /* Kinda a hack, but fast since first block is good */
   }
 
   size_t size_block = get_size(block);
@@ -204,8 +249,10 @@ void mem_free(void *B)
    *   c) if W = Z and Y!= X then Y-> A-B-C-> X and 0-> W-> first_free_block
    * 4) If none are free, then 0-> B-> first_free_block */
 
+  /* TODO: free pages when not used anymore? */
+
   B -= HEADER_SIZE; // Go back to the header
-  writef("Freeing block %x\n", B);
+  /* writef("Freeing block %x\n", B); */
 
   void *A;
   if ((u_int32)B > 0x00800000)
