@@ -38,8 +38,8 @@ extern unsigned int ld_end;
 #define END_OF_KERNEL_HEAP      0x00800000
 
 /* Two variables set by kmain function right at the beginning of the call */
-extern const u_int32 LOWER_MEMORY;  /* The memory from 0x0 to LOWER_MEMORY is free */
-extern const u_int32 UPPER_MEMORY;  /* The memory from 1MB to UPPER_MEMORY is free */
+extern u_int32 LOWER_MEMORY;  /* The memory from 0x0 to LOWER_MEMORY is free */
+extern u_int32 UPPER_MEMORY;  /* The memory from 1MB to UPPER_MEMORY is free */
 
 
 /* This defines what the stack looks like after an ISR was running */

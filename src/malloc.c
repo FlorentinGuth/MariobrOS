@@ -1,4 +1,5 @@
 #include "malloc.h"
+#include "paging.h"
 #include "logging.h"
 
 
@@ -25,6 +26,7 @@
 #define HEADER_SIZE 3*WORD_SIZE
 
 void *first_free_block;
+void *unallocated_mem;
 
 size_t get_size(void *block)
 {
@@ -115,8 +117,12 @@ void set_block(void* ptr, size_t size, void *next, void *prev, bool used)
 
 void malloc_install()
 {
+  /* Allocates a page */
+  alloc_frame(get_page(END_OF_KERNEL_HEAP, TRUE, current_directory), FALSE, TRUE);
+  unallocated_mem = (void *)(END_OF_KERNEL_HEAP + 0x1000);
+
   first_free_block = (void *)END_OF_KERNEL_HEAP;
-  set_block(first_free_block, 0x00800000, 0, 0, FALSE);  // Setting size of 8MB
+  set_block(first_free_block, 0x00001000, 0, 0, FALSE);  /* Setting size of 4KB: the whole page */
   writef("Malloc installed\n");
 }
 
@@ -136,9 +142,19 @@ void *mem_alloc(size_t size)
   }
 
   if (!block) {
-    writef("No free memory\n");
+    writef("Let's try to allocate a page\n");
+
+    alloc_frame(get_page((u_int32)unallocated_mem, TRUE, current_directory), FALSE, TRUE);
+    set_block(unallocated_mem, 0x1000, first_free_block, 0, FALSE);
+    first_free_block = unallocated_mem;
+    unallocated_mem += 0x1000;
+
+    /* TODO: compute the number of pages to allocate before */
+    /* TODO: merge this new block with the previous if needed */
+    return mem_alloc(size);  /* Horrible hack, TODO: do not redo all the search */
+
+
     return 0;                    /* No free block big enough */
-    /* TODO: allocate a new page */
   }
 
   size_t size_block = get_size(block);

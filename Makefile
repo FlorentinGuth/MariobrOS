@@ -51,7 +51,7 @@ ata0-master:      type=cdrom, path=$(OS_ISO), status=inserted
 boot:             cdrom
 endef
 define BOCHS_CONFIG_BOOT_DISK
-ata0-master:     type=disk, path=$(DISK_IMG), mode=flat, translation=auto
+ata0-master:      type=disk, path=$(DISK_IMG), mode=flat, translation=auto
 boot:             disk
 endef
 
@@ -76,7 +76,7 @@ define NEWLINE
 endef
 
 # C compiler and flags
-CC =      gcc
+CC =     gcc
 CFLAGS =-m32 \
         -nostdlib -nodefaultlibs \
         -ffreestanding \
@@ -99,7 +99,7 @@ ASFLAGS = -f elf
 
 
 
-all: $(OS_ISO) $(BOCHS_CONFIG_CD) run
+all: run
 
 
 .PHONY: all run rundisk syncdisk disk clean cleandisk
@@ -124,10 +124,10 @@ $(GRUB2_CONFIG):
 
 
 
-run:
+run: $(OS_ISO) $(BOCHS_CONFIG_CD)
 	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_CD) | exit 0
 
-rundisk:
+rundisk: syncdisk
 	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_DISK) | exit 0
 
 

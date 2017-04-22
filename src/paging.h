@@ -39,6 +39,9 @@ typedef struct page_directory
   u_int32 physical_address;
 } __attribute__((packed)) page_directory_t;
 
+page_directory_t* current_directory;
+page_directory_t* kernel_directory;
+
 
 /** paging_install:
  *  Enables paging.

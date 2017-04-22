@@ -109,9 +109,8 @@ page_directory_t *current_directory;
 
 void paging_install()
 {
-  /* The size of physical memory. For the moment we
-   * assume it is 16MB big. */
-  u_int32 mem_end_page = 0x4000000;
+  /* The size of physical memory */
+  u_int32 mem_end_page = UPPER_MEMORY;
 
   nb_frames = mem_end_page / 0x1000;
   frames = (u_int32*)kmalloc(INDEX_FROM_BIT(nb_frames));
@@ -123,12 +122,12 @@ void paging_install()
   current_directory = kernel_directory;
 
   /* We need to identity map (phys addr = virt addr) from
-   * 0x0 to the end of used memory, so we can access this
+   * 0x0 to the end of the kernel heap, so we can access this
    * transparently, as if paging wasn't enabled. */
   u_int32 i = 0;
-  while (i < mem_end_page) {  /* TODO: do this properly */
+  while (i < END_OF_KERNEL_HEAP) {  /* TODO: do this properly */
     /* Kernel code is readable but not writable from user-space. */
-    alloc_frame(get_page(i, 1, kernel_directory), 0, 0);
+    alloc_frame(get_page(i, TRUE, kernel_directory), TRUE, FALSE);
     i += 0x1000;
   }
 

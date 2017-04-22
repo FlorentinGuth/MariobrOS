@@ -6,12 +6,16 @@
  *  Contains the kernel main function.
  */
 
+u_int32 UPPER_MEMORY;
+u_int32 LOWER_MEMORY;
 
 int kmain(multiboot_info_t* mbd)
 {
+  log_string("Successfully booted\n", Info);
+
   /* Setting the memory limits (which are given in number of 1024 bytes) */
-  const u_int32 LOWER_MEMORY = 1024 * mbd->mem_lower;
-  const u_int32 UPPER_MEMORY = 1024 * mbd->mem_upper;
+  LOWER_MEMORY = 1024 * mbd->mem_lower;
+  UPPER_MEMORY = 1024 * mbd->mem_upper;
 
   /* Installing everything */
   gdt_install();
@@ -21,15 +25,15 @@ int kmain(multiboot_info_t* mbd)
   __asm__ __volatile__ ("sti");
 
   clear(); /* Empties the framebuffer */
-  
+
   timer_install();
   keyboard_install();
 
   writef("LOWER_MEMORY: %x\nUPPER_MEMORY: %x\n", LOWER_MEMORY, UPPER_MEMORY);
-  
+
   paging_install();
   malloc_install();
-  
+
   writef("Yes ! YES !! It works !!!\n");
 
   for(;;)
