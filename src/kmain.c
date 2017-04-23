@@ -36,21 +36,30 @@ int kmain(multiboot_info_t* mbd)
 
   writef("Yes ! YES !! It works !!!\n");
 
-  void *a = mem_alloc(4);
-  writef("%x\n", a);
-
+  void *a = mem_alloc(1);
   void *b = mem_alloc(0x1000);
-  writef("%x\n", b);
-
-  void *c = mem_alloc(0xF000);
-  writef("%x\n", c);
-
-  void *d = mem_alloc(0xFB4 - 2*3*4);  /* Fills last page */
-  writef("%x\n", d);
-
-  void *e = mem_alloc(1);
-  writef("%x\n", e);
+  void *c = mem_alloc(1);
+  void *d = mem_alloc(15);
   write_memory();
+  writef("1\n");
+
+  mem_free(a);
+  write_memory();
+  writef("2\n");
+  mem_free(c);
+  write_memory();
+  writef("3\n");
+  mem_free(b);
+  write_memory();
+  writef("4\n");
+
+  mem_alloc(0x1004);
+  mem_alloc(0x1000);
+  write_memory();
+
+  mem_free(d);
+  write_memory();
+
 
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts

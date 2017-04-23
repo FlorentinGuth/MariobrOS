@@ -105,6 +105,10 @@ all: run
 .PHONY: all run rundisk syncdisk disk clean cleandisk
 
 
+log: run
+	cat $(BOCHS_DIR)/$(BOCHS_LOG)
+
+
 $(BUILD_DIR) $(BOCHS_DIR): # Ensures folders exist
 	mkdir -p $@
 

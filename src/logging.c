@@ -76,7 +76,7 @@ void log_string(const char *string, log_level_t lvl)
     outb(SERIAL_COM1_BASE, string[i]);
     write_char('\0'); // Truly terrible hack used to slow down the output pace
   }
-  outb(SERIAL_COM1_BASE, '\n');
+  /* outb(SERIAL_COM1_BASE, '\n'); */
 }
 
 void kloug(const int size, char s[], ...)
