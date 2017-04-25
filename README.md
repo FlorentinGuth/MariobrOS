@@ -6,7 +6,8 @@ Packages used: bochs (bochs-sdl) bochs-x genisoimage nasm build-essential
 
 ### How to run: ###
 * **make** will run bochs, you may have to type c in the console to tell it to continue
-* **make disk** will create a hard disk and boot on it. It will need superuser rights
+* **make disk** will create a hard disk and boot with bochs on it. It will need superuser rights
+* **make qemu** and **make diskqemu** : same as before, but run qemu instead of bochs.
 
 ### Contents: ###
 - *build*:    intermediary files

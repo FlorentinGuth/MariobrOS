@@ -15,6 +15,8 @@
  */
 void outb (unsigned short port, unsigned char data);
 
+void outw (unsigned short port, unsigned int data);
+
 /** inb:
  *  Receives data (a byte) from an I/O port.
  *
@@ -22,5 +24,7 @@ void outb (unsigned short port, unsigned char data);
  *  @return The data
  */
 unsigned char inb (unsigned short port);
+
+unsigned char inw (unsigned short port);
 
 #endif

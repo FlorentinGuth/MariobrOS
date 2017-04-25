@@ -19,7 +19,7 @@ DISK_IMG = $(DISK_DIR)/disk.img
 
 # File names
 LINKER = $(SRC_DIR)/link.ld
-OBJECTS = loader.o kmain.o malloc.o paging.o kheap.o memory.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o
+OBJECTS = loader.o kmain.o malloc.o paging.o kheap.o memory.o ata_pio.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o
 OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
 OS_ISO = $(BUILD_DIR)/os.iso
 KERNEL_ELF = $(ISO_DIR)/boot/kernel.elf
@@ -51,6 +51,7 @@ ata0-master:      type=cdrom, path=$(OS_ISO), status=inserted
 boot:             cdrom
 endef
 define BOCHS_CONFIG_BOOT_DISK
+ata0:             enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata0-master:      type=disk, path=$(DISK_IMG), mode=flat, translation=auto
 boot:             disk
 endef
@@ -131,9 +132,14 @@ $(GRUB2_CONFIG):
 run: $(OS_ISO) $(BOCHS_CONFIG_CD)
 	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_CD)
 
-rundisk: syncdisk
+disk: syncdisk
 	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_DISK)
 
+qemu: $(OS_ISO) $(BOCHS_CONFIG_CD)
+	qemu-system-i386 -cdrom build/os.iso
+
+diskqemu: syncdisk
+	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m 512 -s
 
 $(BUILD_DIR)/%.o: src/%.c $(BUILD_DIR)
 	@$(CC) $< -c -o $@  $(CFLAGS) $(CPPFLAGS)
@@ -182,9 +188,6 @@ syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF)
 	@sudo umount -d $(MNT_DIR)
 	@sudo rm -rf $(MNT_DIR)
 	@sudo losetup -d $(LOOP_DEVICE)
-
-disk:	syncdisk rundisk
-
 
 clean:
 	rm -rf $(BUILD_DIR)

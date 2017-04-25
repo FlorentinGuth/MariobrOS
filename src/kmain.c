@@ -1,6 +1,4 @@
 #include "kmain.h"
-#include "paging.h"
-#include "malloc.h"
 
 /** kmain.c
  *  Contains the kernel main function.
@@ -60,7 +58,8 @@ int kmain(multiboot_info_t* mbd)
   mem_free(d);
   write_memory();
 
-
+  identify();
+  
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;
