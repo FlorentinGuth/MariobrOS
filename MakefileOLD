@@ -22,7 +22,7 @@ LINKER = $(SRC_DIR)/link.ld
 OBJECTS = loader.o kmain.o malloc.o paging.o kheap.o memory.o ata_pio.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o
 OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
 OS_ISO = $(BUILD_DIR)/os.iso
-KERNEL_BIN = $(ISO_DIR)/boot/kernel.bin
+KERNEL_ELF = $(ISO_DIR)/boot/kernel.elf
 
 BOCHS_CONFIG_CD = config_cd.txt
 BOCHS_CONFIG_DISK = config_disk.txt
@@ -34,7 +34,7 @@ ELTORITO = boot/grub/stage2_eltorito
 # Configuration files
 
 define BOCHS_CONFIG_CONTENT
-megs:             512
+megs:             32
 display_library:  $(GUI)
 romimage:         file=/usr/share/bochs/BIOS-bochs-latest
 vgaromimage:      file=/usr/share/bochs/VGABIOS-lgpl-latest
@@ -44,7 +44,6 @@ cpu:              count=1, ips=1000000
 memory:           guest=$(GUEST_MEMORY), host=$(HOST_MEMORY)
 com1:             enabled=1, mode=file, dev=$(BOCHS_DIR)/com1.out
 keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=$(SRC_DIR)/x11-pc-fr.map
-debug: 		  action=ignore, pic=ignore, keyboard=ignore, harddrv=report
 endef
 
 define BOCHS_CONFIG_BOOT_CD
@@ -86,14 +85,18 @@ CFLAGS =-m32 \
         -fno-stack-protector \
         -funsigned-char -funsigned-bitfields \
         -Wall -Wextra -Werror \
-        -O0
+        -O0 \
+        -c
 # Compiles in 32 bits mode, without any std, with all warnings (and treating warning as errors) \
   and with no linking (and disable optimizations)
 
+# Linker and flags
+LD =      ld
+LDFLAGS = -T $(LINKER)
 
 # ASM compiler and flags
-AS =      as
-ASFLAGS = -am --32
+AS =      nasm
+ASFLAGS = -f elf
 
 
 
@@ -138,13 +141,13 @@ qemu: $(OS_ISO) $(BOCHS_CONFIG_CD)
 diskqemu: syncdisk
 	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m 512 -s
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(BUILD_DIR)
-	@$(CC) $< -c -o $@  $(CFLAGS)
+$(BUILD_DIR)/%.o: src/%.c $(BUILD_DIR)
+	@$(CC) $< -c -o $@  $(CFLAGS) $(CPPFLAGS)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.s $(BUILD_DIR)
+$(BUILD_DIR)/%.o: src/%.s $(BUILD_DIR)
 	@$(AS) $< -o $@ $(ASFLAGS)
 
-$(OS_ISO):	$(KERNEL_BIN) $(GRUB_CONFIG)
+$(OS_ISO):	$(KERNEL_ELF) $(GRUB_CONFIG)
     # Builds the ISO image from the ISO folder
 	@genisoimage -R \
                 -b $(ELTORITO) \
@@ -157,9 +160,9 @@ $(OS_ISO):	$(KERNEL_BIN) $(GRUB_CONFIG)
                 -o $(OS_ISO) \
                 iso
 
-$(KERNEL_BIN):	$(OBJS)
+$(KERNEL_ELF):	$(OBJS)
     # Links the file and produces the .elf in the ISO folder
-	$(CC$ -T $(SRC_DIR)/link.ld -o $@ $(CFLAGS) $(OBJS)
+	$(LD) $(LDFLAGS) $(OBJS) -o $(KERNEL_ELF) -melf_i386
 
 
 $(DISK_IMG):
@@ -176,7 +179,7 @@ $(DISK_IMG):
 	@sudo rm -rf $(MNT_DIR)
 	@sudo losetup -d $(LOOP_DEVICE)
 
-syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_BIN)
+syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF)
 	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
 	@sudo partprobe $(LOOP_DEVICE)
 	@sudo mkdir -p $(MNT_DIR)

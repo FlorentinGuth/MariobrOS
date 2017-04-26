@@ -1,7 +1,7 @@
 #ifndef IDT_H
 #define IDT_H
 
-#include "idt_asm.h"
+#include "types.h"
 
 /*
  * Bit:     | 7 | 6 5 | 4 |  3     0  |
@@ -12,11 +12,11 @@
 typedef struct idt_entry idt_e;
 struct idt_entry
 {
-  unsigned short base_lo;
-  unsigned short sel;        /* Our kernel segment goes here */
-  unsigned char  always0;    /* This will ALWAYS be set to 0 */
-  unsigned char  flags;      /* Set using the above table */
-  unsigned short base_hi;
+  u_int16 base_lo;
+  u_int16 sel;        /* Our kernel segment goes here */
+  u_int8  always0;    /* This will ALWAYS be set to 0 */
+  u_int8  flags;      /* Set using the above table */
+  u_int16 base_hi;
 } __attribute__((packed));
 
 typedef struct idt_ptr idt_ptr;
