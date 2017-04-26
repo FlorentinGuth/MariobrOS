@@ -1,33 +1,49 @@
+MBOOT_PAGE_ALIGN    equ 1<<0    ; Load kernel and modules on a page boundary
+MBOOT_MEM_INFO      equ 1<<1    ; Provide your kernel with memory info
+MBOOT_HEADER_MAGIC  equ 0x1BADB002 ; Multiboot Magic value
+MBOOT_HEADER_FLAGS  equ MBOOT_PAGE_ALIGN | MBOOT_MEM_INFO
+MBOOT_CHECKSUM      equ -(MBOOT_HEADER_MAGIC + MBOOT_HEADER_FLAGS)
 
-	.set ALIGN,     1<<0
-	.set MEMINFO,   1<<1
-	.set FLAGS,     ALIGN | MEMINFO
-	.set MAGIC,     0x1BADB002
-	.set CHECKSUM,  -(MAGIC + FLAGS)
+KERNEL_STACK_SIZE   equ 4096    ; Define a stack of 4 KB
 
 
-	.section .multiboot
-	.align 4
-	.long MAGIC
-	.long FLAGS        
-	.long CHECKSUM
+section .bss                    ; Uninitialized data section
+align 4                         ; Align at 4 bytes
+kernel_stack:                   ; Label points to beginning of memory
+  resb KERNEL_STACK_SIZE        ; Reserve stack for the kernel
 
-	.code32
 
-	.section .bootstrap_stack
-stack_bootom:
-	.skip 16384 # 16 KiB
+section .text                   ; Code section
+align 4                         ; 4 byte-aligned code
 
-stack_top:
-	.section .text
+global mboot                    ; The multi-boot header is accessible from C
+extern ld_code
+extern ld_bss
+extern ld_end
 
-        .global loader
-loader: 
-        movl $stack_top, %esp
-        push %ebx
-        call kmain
+mboot:
+  dd MBOOT_HEADER_MAGIC         ; Write the magic number to the machine code,
+  dd MBOOT_HEADER_FLAGS         ; The flags,
+  dd MBOOT_CHECKSUM             ; And the checksum
+
+  dd  mboot                     ; Location of this descriptor
+  dd  ld_code                   ; Start of kernel '.text' (code) section.
+  dd  ld_bss                    ; End of kernel '.data' section.
+  dd  ld_end                    ; End of kernel.
+  dd  loader                    ; Kernel entry point (initial EIP).
+
+
+global loader                   ; The entry symbol for ELF (Executable and Linkable Format)
+extern kmain                    ; The kmain function is not defined her (in kmain.c)
+
+loader:                         ; The loader label (defined as entry point in the linker script)
+  mov eax, 0xDEADBEEF           ; Place whatever we want in the register eax
+  mov esp, kernel_stack + KERNEL_STACK_SIZE ; Points esp to the start of the stack (end of memory area)
+
+  ; Push eventual arguments to the stack, from last to first
+  push ebx                      ; Load multi-boot header location, which have been set up by GRUB
+  call kmain                    ; Call the kmain function from kmain.c (return in eax)
+  cli                           ; Prevents further interruptions
 
 .loop:
-        hlt
-        jmp .loop                     ; Loop forever
-
+  jmp .loop                     ; Loop forever

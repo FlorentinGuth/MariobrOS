@@ -21,17 +21,6 @@ typedef unsigned char bool;
 #define TRUE  (bool)1
 
 
-#define GDT_BASE 0x0000000800
-#define GDT_SIZE 0x8
-
-#define IDT_BASE 0x00000000
-#define IDT_SIZE 0xF
-#define INTGATE 0x8E //Defines the type for an interruption gate
-#define TRAPGATE 0x8F //Defines the type for a trap gate
-#define TRAPGATE_USER 0xEF //Allows the user to use such interruptions
-
-// DISCLAIMER: The following value might no more be valid!
-
 /* Constants defining the memory layout */
 /* The memory  is laid out as follows:
  *  - from 0MB to 1MB (0x10000), we have BIOS and GRUB-reserved memory (such as the framebuffer)
@@ -64,12 +53,10 @@ struct regs
 typedef struct regs regs_t;
 
 
-/**
- * @name port_t - The type of an I/O port.
+/** port_t:
+ *  The type of an I/O port.
  */
 typedef unsigned short port_t;
 
-
-void *memcpy(void *dst, void *src, u_int32 n);
 
 #endif

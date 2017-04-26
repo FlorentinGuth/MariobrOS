@@ -1,5 +1,5 @@
 ENTRY(loader)               /* The name of the entry label */
-OUTPUT_FORMAT("elf32-i386")
+
 /* Every section is page-aligned (4KB, i.e. 0x1000) */
 SECTIONS {
   /* Space reserved for the BIOS and GRUB */
@@ -10,27 +10,21 @@ SECTIONS {
   .text ALIGN (0x1000) :    /* Align at 4KB */
   {
     ld_code = .;            /* Declares a variable whose ADDRESS is the start of the code */
-    *(.multiboot);
-    *(.text);               /* All text sections from all files */
-  }
-
-  .rodata ALIGN(0x1000):
-  {
-    *(.rodata);             /* All read-only data sections from all files */
+    *(.text)                /* All text sections from all files */
   }
 
   .data ALIGN (0x1000) :    /* Align at 4 KB */
   {
     ld_data = .;            /* Declares a variable whose ADDRESS is the start of the data section */
-    *(.data);               /* All data sections from all files */
+    *(.data)                /* All data sections from all files */
+    *(.rodata)              /* All read-only data sections from all files */
   }
 
   .bss ALIGN (0x1000) :     /* Align at 4 KB */
   {
     ld_bss = .;             /* Declares a variable whose ADDRESS is the start of the bss section */
-    *(COMMON);              /* All COMMON sections from all files */
-    *(.bss);                /* All bss (Block Started by Symbol) sections from all files */
-    *(.bootstrap_stack);
+    *(.bss)                 /* All bss (Block Started by Symbol) sections from all files */
+    *(COMMON)               /* All COMMON sections from all files */
   }
 
   ld_end = .;               /* Declares a variable whose ADDRESS is the end of the kernel-reserved space */
