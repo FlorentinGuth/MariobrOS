@@ -1,4 +1,5 @@
 #include "kmain.h"
+#include "shell.h"
 
 /** kmain.c
  *  Contains the kernel main function.
@@ -25,41 +26,15 @@ int kmain(multiboot_info_t* mbd)
   clear(); /* Empties the framebuffer */
 
   timer_install();
-  keyboard_install();
-
-  writef("LOWER_MEMORY: %x\nUPPER_MEMORY: %x\n", LOWER_MEMORY, UPPER_MEMORY);
+  keyboard_install(TRUE);
 
   paging_install();
   malloc_install();
 
-  writef("Yes ! YES !! It works !!!\n");
+  shell_install();
 
-  void *a = mem_alloc(1);
-  void *b = mem_alloc(0x1000);
-  void *c = mem_alloc(1);
-  void *d = mem_alloc(15);
-  write_memory();
-  writef("1\n");
+  /* identify(); */
 
-  mem_free(a);
-  write_memory();
-  writef("2\n");
-  mem_free(c);
-  write_memory();
-  writef("3\n");
-  mem_free(b);
-  write_memory();
-  writef("4\n");
-
-  mem_alloc(0x1004);
-  mem_alloc(0x1000);
-  write_memory();
-
-  mem_free(d);
-  write_memory();
-
-  identify();
-  
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;

@@ -1,4 +1,5 @@
 #include "keyboard.h"
+#include "shell.h"
 
 unsigned char kbdus[256] =
   {
@@ -258,8 +259,157 @@ void keyboard_handler(struct regs *r)
 }
 #pragma GCC diagnostic pop
 
-
-void keyboard_install()
+/* Handles the keyboard interrupt for the shell */
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void keyboard_shell_handler(struct regs *r)
 {
-  irq_install_handler(1, keyboard_handler);
+  int scancode;
+
+  /* Read from the keyboard's data buffer */
+  scancode = inb(0x60);
+  /* If the top bit of the byte we read from the keyboard is
+   * set, that means that a key has just been released */
+  if (scancode & 0x80)
+    {
+      switch(scancode^0x80) {
+
+      case 29: { // Ctrl
+        k_ctrl--;
+        break;
+      }
+      case 42: { // Left Shift
+        k_shift_count--;
+        k_shift = ((k_lights&0x04)>>2) ^ k_shift_count;
+        // k_shift = k_caps_lock ^ k_shift_count
+        break;
+      }
+      case 54: { // Right Shift
+        k_shift_count--;
+        k_shift = ((k_lights&0x04)>>2) ^ k_shift_count;
+        // k_shift = k_caps_lock ^ k_shift_count
+        break;
+      }
+      case 56: { // Alt
+        k_meta--;
+        break;
+      }
+
+      }
+    }
+  else
+    {
+      switch (scancode) {
+
+      case 26: { // Dead ^
+        if(k_shift) {
+          k_dead_hat = FALSE;
+          k_dead_trema = TRUE; }
+        else if(k_dead_hat) {
+          shell_write_char('^');
+          k_dead_hat = FALSE; }
+        else
+          k_dead_hat = TRUE;
+        break;
+      }
+      case 29: { // Ctrl
+        k_ctrl++;
+        break;
+      }
+      case 42: { // Left Shift
+        k_shift_count++;
+        k_shift = ((k_lights&0x04) ^ 0x04)>>2;
+        break;
+      }
+      case 54: { // Right Shift
+        k_shift_count++;
+        k_shift = ((k_lights&0x04) ^ 0x04)>>2;
+        break;
+      }
+      case 56: { // Alt
+        k_meta++;;
+        break;
+      }
+      case 58: { // Caps lock
+        k_lights = k_lights ^ 0x04;
+        k_shift =!k_shift;
+        //keyboard_set_lights(k_lights);
+        break;
+      }
+      case 69: { // Num lock
+        k_lights = k_lights ^ 0x02;
+        keyboard_set_lights(k_lights);
+        break;
+      }
+      case 70: { // Scroll lock
+        k_lights = k_lights ^ 0x01;
+        keyboard_set_lights(k_lights);
+        break;
+      }
+        /* Next cases are only of use in the framebuffer */
+      case 71: { // Home
+        shell_home();
+        break;
+      }
+      case 72: { // Up
+        shell_up();
+        break;
+      }
+      case 75: { // Left
+        shell_left();
+        break;
+      }
+      case 77: { // Right
+        shell_right();
+        break;
+      }
+      case 79: { // End
+        shell_end();
+        break;
+      }
+      case 80: { // Down
+        shell_down();
+        break;
+      }
+      default: {
+        char c = kbdus[(scancode+(k_shift*128))];
+        if(k_dead_hat) {
+          switch(c) {
+          case 'a': { shell_write_string("â"); break; }
+          case 'e': { shell_write_string("ê"); break; }
+          case 'i': { shell_write_string("î"); break; }
+          case 'o': { shell_write_string("ô"); break; }
+          case 'u': { shell_write_string("û"); break; }
+          default: shell_write_char(c);
+          }
+        } else if(k_dead_trema){
+          switch(c) {
+          case 'a': { shell_write_string("ä"); break; }
+          case 'e': { shell_write_string("ë"); break; }
+          case 'i': { shell_write_string("ï"); break; }
+          case 'o': { shell_write_string("ö"); break; }
+          case 'u': { shell_write_string("ü"); break; }
+          case 'y': { shell_write_string("ÿ"); break; }
+          case 'A': { shell_write_string("Ä"); break; }
+          case 'O': { shell_write_string("Ö"); break; }
+          case 'U': { shell_write_string("Ü"); break; }
+          default: shell_write_char(c);
+          }
+        } else
+          shell_write_char(c);
+      }
+        k_dead_hat = FALSE;
+        k_dead_trema = FALSE;
+      }
+    }
+}
+#pragma GCC diagnostic pop
+
+
+
+void keyboard_install(bool shell)
+{
+  if (shell)
+    irq_install_handler(1, keyboard_shell_handler);
+  else
+    irq_install_handler(1, keyboard_handler);
 }

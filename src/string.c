@@ -1,4 +1,5 @@
 #include "string.h"
+#include "malloc.h"
 
 
 int str_copy(string source, string dest)
@@ -10,6 +11,72 @@ int str_copy(string source, string dest)
   dest[pos] = '\0';
   return pos + 1;
 }
+
+bool str_cmp(string a, string b)
+{
+  int pos;
+  for (pos = 0; a[pos] != '\0' && b[pos] != '\0' && a[pos] == b[pos]; pos++) {
+  }
+  return a[pos] == b[pos];
+}
+
+void str_fill(string s, char c, int length)
+{
+  if (length) {
+    for (int pos = 0; pos < length; pos++) {
+      s[pos] = c;
+    }
+  } else {
+    for (int pos = 0; s[pos] != '\0'; pos++) {
+      s[pos] = c;
+    }
+  }
+}
+
+unsigned int str_length(string s)
+{
+  int pos = 0;
+  for (; s[pos] != '\0'; pos++);
+  return pos;
+}
+
+
+list_t str_split(string s, char c, bool empty)
+{
+  char buffer[128];
+  int pos = 0;
+  list_t res = 0;
+  /* TODO: handle buffer overflow */
+
+  for (int i = 0; s[i] != '\0'; i++) {
+    if (s[i] == c && !(pos == 0 && !empty)) {
+      /* Split! */
+      buffer[pos] = '\0';
+      string word = mem_alloc(pos + 1);
+      str_copy(buffer, word);
+      append(&res, (u_int32)word);
+      pos = 0;
+    } else {
+      if (s[i] != c) {
+        buffer[pos] = s[i];
+        pos++;
+      }
+    }
+  }
+
+  /* Flush last buffer */
+  if (!(pos == 0 && !empty)) {
+    buffer[pos] = '\0';
+    string word = mem_alloc(pos + 1);
+    str_copy(buffer, word);
+    append(&res, (u_int32)word);
+    pos = 0;
+  }
+
+  reverse(&res);
+  return res;
+}
+
 
 
 char digit_to_char(int digit)

@@ -6,6 +6,9 @@
 #define STRING_H
 
 #include <stdarg.h>
+#include "types.h"
+#include "list.h"
+
 
 /** string:
  *  The type of a string.
@@ -24,6 +27,32 @@ typedef char* string;
  *  @return       The length of the copied string
  */
 int str_copy(string source, string dest);
+/**
+ * @name str_cmp - Compares two strings
+ * @param a -  a
+ * @param b -  b
+ * @return TRUE if the string are the same, FALSE otherwise
+ */
+bool str_cmp(string a, string b);
+/**
+ * @name str_fill - Fills a string with a char
+ * @param s -  s
+ * @param c - Character c
+ * @param length - The number of characters to fill. If 0, fills until it finds a '\0'
+ * @return void
+ */
+void str_fill(string s, char c, int length);
+
+unsigned int str_length(string s);
+
+/**
+ * @name str_split - Splits a string on a given char
+ * @param s -  s
+ * @param c - Character c
+ * @param empty - If FALSE, do not add empty strings in the result
+ * @return A list of strings, which do not contain the character c
+ */
+list_t str_split(string s, char c, bool empty);
 
 
 /** int_to_string:

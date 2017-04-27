@@ -3,6 +3,11 @@
 
 #include "irq.h"
 
-void keyboard_install();
+/**
+ * @name keyboard_install - Enables keyboard support
+ * @param shell - Whether to send the keys to the sell or write them down directly
+ * @return void
+ */
+void keyboard_install(bool shell);
 
 #endif

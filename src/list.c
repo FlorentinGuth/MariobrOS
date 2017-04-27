@@ -1,47 +1,42 @@
 #include "list.h"
-#include <stdlib.h>
+#include "malloc.h"
+#include "utils.h"
 
-void append(list* l, int v)
+
+void append(list_t *l, u_int32 x)
 {
-    struct List* u = malloc(sizeof(struct List));
-    u->head = v;
-    u->tail = *l;
-    *l = u;
+  list_t u = mem_alloc(sizeof(struct list));
+  u->head = x;
+  u->tail = *l;
+  *l = u;
 }
 
-void remove_elt(list* l, int v)
+void remove_elt(list_t *l, u_int32 x)
 {
-    if (*l)
-    {
-        if ((*l)->head == v)
-        {
-            struct List* tail = (*l)->tail;
-            free(*l);
-            *l = (*l)->tail;
-        }
-        else
-        {
-            struct List* curr = *l;
-            while (curr->tail && curr->tail->head != v)
-            {
-                curr = curr->tail;
-            }
-            if (curr->tail)
-            {
-                struct List* tail = curr->tail->tail;
-                free(curr->tail);
-                curr->tail = tail;
-            }
-        }
+  if (*l) {
+    if ((*l)->head == x) {
+      list_t tail = (*l)->tail;
+      mem_free(*l);
+      *l = tail;
+    } else {
+      list_t curr = *l;
+      while (curr->tail && curr->tail->head != x) {
+        curr = curr->tail;
+      }
+      if (curr->tail) {
+        list_t tail = curr->tail->tail;
+        mem_free(curr->tail);
+        curr->tail = tail;
+      }
     }
+  }
 }
 
 
-int max(int a, int b) { return a > b ? a : b; }
-int max_list(list* l) // Assumes *l != NULL
+u_int32 max_list(list_t *l) // Assumes *l != NULL, i.e. non-empty list
 {
-    int max_elt = (*l)->head;
-    struct List* curr = (*l)->tail;
+    u_int32 max_elt = (*l)->head;
+    list_t curr = (*l)->tail;
     while (curr)
     {
         max_elt = max(max_elt, curr->head);
@@ -50,9 +45,36 @@ int max_list(list* l) // Assumes *l != NULL
     return max_elt;
 }
 
-int extract_max(list* l)
+u_int32 extract_max(list_t *l)
 {
-    int max_elt = max_list(l);
+    u_int32 max_elt = max_list(l);
     remove_elt(l, max_elt);
     return max_elt;
+}
+
+
+void reverse(list_t *l)
+{
+  list_t rev = 0;
+  list_t curr = *l;
+  while (curr) {
+    append(&rev, curr->head);
+    curr = curr->tail;
+  }
+  *l = rev;
+}
+
+u_int32 find(list_t *l, bool (*p)(u_int32), bool remove)
+{
+  list_t curr = *l;
+  while (curr) {
+    if (p(curr->head)) {
+      if (remove) {
+        remove_elt(l, curr->head);
+      }
+      return curr->head;
+    }
+    curr = curr->tail;
+  }
+  return 0;
 }

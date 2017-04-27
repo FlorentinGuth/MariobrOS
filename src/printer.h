@@ -125,7 +125,15 @@ void write_int(int n);
 void write_hex(int n);
 
 /** writef:
- *  Writes a formatted string
+ *  Writes a formatted string:
+ *  - %d: a signed integer
+ *  - %u: an unsigned integer
+ *  - %x: an unsigned integer, in hex
+ *  - %c: a char
+ *  - %s: a string
+ *  - %f: changes the foreground color
+ *  - %b: changes the background color
+ *  - %%: writes a '%'
  *
  *  @param s       Formatted string
  *  @param ...     Arguments of the formatted string

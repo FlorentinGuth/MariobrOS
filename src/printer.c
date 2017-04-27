@@ -48,10 +48,15 @@ void set_cursor_pos(pos_t pos)
 }
 
 
+/* The colors used in the shell */
+color_t foreground = White;
+color_t background = Black;
+
+
 void pad(pos_t cursor_pos, pos_t to_pad)
 {
   for(int i=cursor_pos; i<to_pad; i++) {
-    put_char(i, ' ', White, Black);
+    put_char(i, ' ', foreground, background);
   }
 }
 
@@ -103,7 +108,7 @@ void write_char(char c)
 
   case '\b' : { /* backspace */
     cursor_pos--;
-    put_char(cursor_pos, ' ', White, Black);
+    put_char(cursor_pos, ' ', foreground, background);
     break;
   }
 
@@ -115,7 +120,7 @@ void write_char(char c)
   }
 
   default: {
-    put_char(cursor_pos, c, White, Black);
+    put_char(cursor_pos, c, foreground, background);
     cursor_pos++;
   }
   }
@@ -193,6 +198,12 @@ void writef(char s[], ...)
         write_char(va_arg(param,int)); break; }
       case 's': { // String
         write_string(va_arg(param,string)); break; }
+      case 'f': { // Foreground color
+        foreground = va_arg(param, color_t); break; }
+      case 'b': { // Background color
+        background = va_arg(param, color_t); break; }
+      case '%': { // Writes a '%'
+        write_char('%'); break; }
       default:  { // Emergency stop
         write_string("Invalid format string");
         for(;;)
@@ -213,4 +224,3 @@ void writef(char s[], ...)
   }
   va_end(param);
 }
-
