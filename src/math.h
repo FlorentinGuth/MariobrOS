@@ -15,4 +15,19 @@ unsigned int floor_ratio(unsigned int a, unsigned int b);
  */
 unsigned int ceil_ratio(unsigned int a, unsigned int b);
 
+/**
+ * @name floor_multiple -
+ * @param n -
+ * @param k -
+ * @return The highest multiple of k lesser than or equal to n
+ */
+unsigned int floor_multiple(unsigned int n, unsigned int k);
+/**
+ * @name ceil_multiple -
+ * @param n -
+ * @param k -
+ * @return The smallest multiple of k greater than or equal to n
+ */
+unsigned int ceil_multiple(unsigned int n, unsigned int k);
+
 #endif

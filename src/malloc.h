@@ -5,27 +5,40 @@
 #include "paging.h"
 
 
-/** malloc_install:
- *  Initializes the memory to allow dynamic allocation and freeing.
+/**
+ * @name malloc_install - Initializes the block structure
+ * @return void
  */
 void malloc_install();
 
-/** malloc:
- *  Allocates memory using paging. This is always 4 bytes-aligned.
- *
- *  @param size The number of bytes to allocate.
- *  @return     A pointer to the free memory.
+/**
+
+ * @name mem_alloc - Allocates memory
+ * @param size - the number of bytes to allocate
+ * @return a pointer to the free memory, or 0 if there's not enough space
  */
 void *mem_alloc(size_t size);
 
-/** free:
- *  Frees previously-mallocated memory.
- *
- *  @param ptr A pointer to the memory to free.
+/**
+ * @name mem_alloc_aligned - Allocates aligned memory
+ * @param size - the number of bytes to allocate
+ * @param alignment - alignment of the block
+ * @return a pointer, whose value is a multiple of alignment
+ */
+void *mem_alloc_aligned(size_t size, unsigned int alignment);
+
+/**
+ * @name mem_free - Frees used memory
+ * @param ptr - Pointer to the used memory
+ * @return void
  */
 void mem_free(void* ptr);
 
 
+/**
+ * @name write_memory - Print the memory structure to the framebuffer
+ * @return void
+ */
 void write_memory();
 
 #endif
