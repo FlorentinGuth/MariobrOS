@@ -5,10 +5,10 @@
 
 void timer_install();
 
-/** timer_wait:
- *  Stops the system for a given amount of time.
+/**
+ *  @name timer_wait - Stops the system for a given amount of time.
  *
- *  @param amount : amount of time to wait, in milliseconds
+ *  @param amount    - The amount of time to wait, in milliseconds
  */
 void timer_wait(unsigned int amount);
 

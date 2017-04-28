@@ -29,7 +29,7 @@ void update_max_length()
 
 char user[] = "lazoub";
 char machine[] = "MariobrOS";
-char path[] = "~/Porn/";
+char path[] = "~/Porn/OSDev";
 void echo_thingy()
 {
   writef("%f%s@%s:%f%s%f$ ", Green, user, machine, LightBlue, path, White);

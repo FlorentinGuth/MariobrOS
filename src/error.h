@@ -4,8 +4,9 @@
 
 #include "printer.h"
 
-/** throw:
- *  Prints the string to the screen, along with the location of the error, and loop forever.
+/**
+ *  @name throw - Prints the string to the screen, along with the location of
+ *  the error, and loop forever.
  */
 #define throw(string) \
   write_string("\nFile "); \

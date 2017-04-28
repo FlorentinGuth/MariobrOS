@@ -18,22 +18,25 @@ int kmain(multiboot_info_t* mbd)
 
   /* Installing everything */
   gdt_install();
-  idt_install();
-  isrs_install();
-  irq_install();
-  __asm__ __volatile__ ("sti");
-
-  clear(); /* Empties the framebuffer */
+  init_pic();
 
   timer_install();
   keyboard_install(TRUE);
 
   paging_install();
   malloc_install();
-
+  
+  idt_install();
+  isrs_install();
+  irq_install();
+  
+  __asm__ __volatile__ ("sti");
+  
+  clear(); /* Empties the framebuffer */
+  
   shell_install();
+  identify();
 
-  /* identify(); */
 
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
