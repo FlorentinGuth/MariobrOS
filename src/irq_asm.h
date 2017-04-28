@@ -1,7 +1,7 @@
 #ifndef IRQ_ASM_H
 #define IRQ_ASM_H
 
-/* These are own our ISRs that point to our special IRQ handler
+/*  These are own our ISRs that point to our special IRQ handler
  *  instead of the regular 'fault_handler' function */
 void irq0();
 void irq1();

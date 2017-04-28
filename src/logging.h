@@ -1,8 +1,9 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
-/** logging.h:
- *  Provides utilities for logging with Bochs, through a serial port.
+/**
+ *  @name logging.h - Provides utilities for logging with Bochs, through a 
+ *  serial port.
  */
 
 #include "printer.h"
@@ -30,69 +31,75 @@
 #define SERIAL_LINE_ENABLE_DLAB         0x80
 
 
-/** serial_configure_baud_rate:
+/**
+ *  @name serial_configure_baud_rate -
  *  Sets the speed of the data being sent. The default speed of a serial
  *  port is 115200 bits/s. The argument is a divisor of that number, hence
  *  the resulting speed becomes (115200 / divisor) bits/s.
  *
- *  @param com     The serial port to configure
- *  @param divisor The divisor
+ *  @param com     - The serial port to configure
+ *  @param divisor - The divisor
  */
 void serial_configure_baud_rate(port_t com, unsigned short divisor);
 
-/** serial_configure_line:
- * Configures the line of the given serial port. The port is set to have a
- * data length of 8 bits, no parity bits, one stop bit and break control
- * disabled.
+/**
+ *  @name serial_configure_line -
+ *  Configures the line of the given serial port. The port is set to have a
+ *  data length of 8 bits, no parity bits, one stop bit and break control
+ *  disabled.
  *
- * @param com The serial port to configure
+ *  @param com     - The serial port to configure
  */
 void serial_configure_line(port_t com);
 
-/** serial_configure_buffers:
+/**
+ *  @name serial_configure_buffers:
  *  Configures the buffers (in and out) of the given serial port. The buffers are
  *  set in FIFO mode, a queue of 64 bytes and we clear them.
  *
- *  @param com The serial port to configure
+ *  @param com     - The serial port to configure
  */
 void serial_configure_buffers(port_t com);
 
-/** serial_configure_modem:
+/**
+ *  @name serial_configure_modem:
  *  Configures the modem of the given serial port. It is set to be ready to
  *  transmit data.
  *
- * @param com The serial port to configure
+ *  @param com      - The serial port to configure
  */
 void serial_configure_modem(port_t com);
 
 
-/** serial_is_transmit_fifo_empty:
+/**
+ *  @name serial_is_transmit_fifo_empty:
  *  Checks whether the transmit FIFO queue is empty or not for the given COM
  *  port.
  *
- * @param com The COM port
- * @return    Whether the FIFO queue is empty or not
+ *  @param com - The COM port
+ *  @return    - Whether the FIFO queue is empty or not
  */
 bool serial_is_transmit_fifo_empty(port_t com);
 
 
 enum LogLevel { Debug, Info, Error };
 typedef enum LogLevel log_level_t;
-/** log:
+/**
+ *  @name log:
  *  Sends a string to the COM1 port, i.e. to the com1.out file thanks to Bochs.
  *
- *  @param string The string to send
- *  @param lvl    The severeness of the message
+ *  @param string - The string to send
+ *  @param lvl    - The severeness of the message
  */
 void log_string(const char *string, log_level_t lvl);
 
 
-/** kloug:
- *  Sens a formatted string to the COM1 port.
+/**
+ *  @name kloug - Sens a formatted string to the COM1 port.
  *
- *  @param size    Expected string size after deformatting
- *  @param s       Formatted string
- *  @param ...     Arguments of the formatted string
+ *  @param size - Expected string size after deformatting
+ *  @param s    - Formatted string
+ *  @param ...  - Arguments of the formatted string
  */
 void kloug(const int size, char s[], ...);
 

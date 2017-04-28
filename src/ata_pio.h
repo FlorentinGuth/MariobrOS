@@ -11,15 +11,15 @@
 /* #define ATA_IRQ_SECONDARY   0x0F */
  
 /* The necessary I/O ports, indexed by "bus". */
-#define ATA_DATA(x)         (x)
-#define ATA_FEATURES(x)     (x+1)
-#define ATA_SECTOR_COUNT(x) (x+2)
-#define ATA_ADDRESS1(x)     (x+3) /* LBA low  */
-#define ATA_ADDRESS2(x)     (x+4) /* LBA mid  */
-#define ATA_ADDRESS3(x)     (x+5) /* LBA high */
-#define ATA_DRIVE_SELECT(x) (x+6)
-#define ATA_COMMAND(x)      (x+7)
-#define ATA_DCR(x)          (x+0x206)   /* device control register */
+#define ATA_DATA_BUS(x)         (x)
+#define ATA_FEATURES_BUS(x)     (x+1)
+#define ATA_SECTOR_COUNT_BUS(x) (x+2)
+#define ATA_ADDRESS1_BUS(x)     (x+3) /* LBA low  */
+#define ATA_ADDRESS2_BUS(x)     (x+4) /* LBA mid  */
+#define ATA_ADDRESS3_BUS(x)     (x+5) /* LBA high */
+#define ATA_DRIVE_SELECT_BUS(x) (x+6)
+#define ATA_COMMAND_BUS(x)      (x+7)
+#define ATA_DCR_BUS(x)          (x+0x206)   /* device control register */
  
 /* valid values for "bus" */
 #define ATA_BUS_PRIMARY     0x1F0
@@ -27,11 +27,25 @@
 /* valid values for "drive" */
 #define ATA_DRIVE_MASTER    0xA0
 #define ATA_DRIVE_SLAVE     0xB0
- 
+
+#define ATA_DATA         0x1F0
+#define ATA_FEATURES     0x1F1
+#define ATA_SECTOR_COUNT 0x1F2
+#define ATA_ADDRESS1     0x1F3 /* LBA low  */
+#define ATA_ADDRESS2     0x1F4 /* LBA mid  */
+#define ATA_ADDRESS3     0x1F5 /* LBA high */
+#define ATA_DRIVE_SELECT 0x1F6
+#define ATA_COMMAND      0x1F7
+#define ATA_DCR          0x3F6   /* device control register */
+
+
 /* ATA specifies a 400ns delay after drive switching -- often
  * implemented as 4 Alternative Status queries. */
-#define ATA_SELECT_DELAY(bus) \
+#define ATA_SELECT_DELAY_BUS(bus) \
   {inb(ATA_DCR(bus));inb(ATA_DCR(bus));inb(ATA_DCR(bus));inb(ATA_DCR(bus));}
+
+#define ATA_DELAY \
+  {inb(ATA_DCR); inb(ATA_DCR); inb(ATA_DCR); inb(ATA_DCR);}
 
 /* Status Byte layout masks */
 #define ATA_ERR 0x01 // Error (except DF)

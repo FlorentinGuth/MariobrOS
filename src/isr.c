@@ -71,19 +71,19 @@ const char *exception_messages[] = {
   "Coprocessor Fault",
   "Alignment Check",
   "Machine Check",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved"
+  "Reserved(19)",
+  "Reserved(20)",
+  "Reserved(21)",
+  "Reserved(22)",
+  "Reserved(23)",
+  "Reserved(24)",
+  "Reserved(25)",
+  "Reserved(26)",
+  "Reserved(27)",
+  "Reserved(28)",
+  "Reserved(29)",
+  "Reserved(30)",
+  "Reserved(31)"
 };
 
 
