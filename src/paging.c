@@ -125,7 +125,7 @@ void paging_install()
    * 0x0 to the end of the kernel heap, so we can access this
    * transparently, as if paging wasn't enabled. */
   u_int32 i = 0;
-  while (i < END_OF_KERNEL_HEAP) {  /* TODO: do this properly */
+  while (i < END_OF_KERNEL_HEAP) {
     /* Kernel code is readable but not writable from user-space. */
     alloc_frame(get_page(i, TRUE, kernel_directory), TRUE, FALSE);
     i += 0x1000;

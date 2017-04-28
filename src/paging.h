@@ -10,12 +10,12 @@
 
 typedef struct page
 {
-  bool    present    : 1;   /* Page present in memory */
-  bool    rw         : 1;   /* Read-only if clear, readwrite if set */
-  bool    user       : 1;   /* Supervisor level only if clear */
-  bool    accessed   : 1;   /* Has the page been accessed since last refresh? */
-  bool    dirty      : 1;   /* Has the page been written to since last refresh? */
-  u_int16 unused     : 7;   /* Amalgamation of unused and reserved bits */
+  bool    present    :  1;  /* Page present in memory */
+  bool    rw         :  1;  /* Read-only if clear, readwrite if set */
+  bool    user       :  1;  /* Supervisor level only if clear */
+  bool    accessed   :  1;  /* Has the page been accessed since last refresh? */
+  bool    dirty      :  1;  /* Has the page been written to since last refresh? */
+  u_int16 unused     :  7;  /* Amalgamation of unused and reserved bits */
   u_int32 frame      : 20;  /* Frame address (shifted right 12 bits) */
 } __attribute__((packed)) page_t;
 
