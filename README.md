@@ -5,13 +5,13 @@ Currently following [James Molloy's tutorial](www.jamesmolloy.co.uk/tutorial_htm
 Packages used: bochs (bochs-sdl) bochs-x genisoimage nasm build-essential
 
 ### How to run: ###
-* **make** will run bochs, you may have to type c in the console to tell it to continue
-* **make disk** will create a hard disk and boot with bochs on it. It will need superuser rights
-* **make qemu** and **make diskqemu** : same as before, but run qemu instead of bochs.
+* **make** or **make runq** will run qemu
+* **make disk** or **make diskq** will create a hard disk and boot with qemu on it. It will need superuser rights
+* **make runb** and **make diskb** : same as before, but run bochs instead of qemu. You may have to type c in the console to tell it to continue
 
 ### Contents: ###
 - *build*:    intermediary files
-- *bochs*:    config, logs, etc for bochs
+- *emu*:      config for bochs, log for both bochs and qemu
 - *doc*:      tutorials used (useful when offline)
 - *iso*:      the contents of the iso
 - *kernel*:   legacy C kernel (unused yet)

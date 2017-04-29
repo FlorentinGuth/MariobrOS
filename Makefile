@@ -27,7 +27,7 @@ KERNEL_ELF = $(BOOT_DIR)/kernel.elf
 
 BOCHS_CONFIG_CD = config_cd.txt
 BOCHS_CONFIG_DISK = config_disk.txt
-BOCHS_LOG = $(EMU_DIR)/log.txt
+BOCHS_LOG = $(EMU_DIR)/logb.txt
 GRUB_CONFIG = $(BOOT_DIR)/grub/menu.lst
 GRUB2_CONFIG = $(BOOT_DIR)/grub/grub.cfg
 ELTORITO = boot/grub/stage2_eltorito
