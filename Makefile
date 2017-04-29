@@ -9,12 +9,13 @@ HOST_MEMORY  = 512  # Memory that bochs should use to emulate our OS
 # Folders and paths
 SRC_DIR   = src
 BUILD_DIR = build
-ISO_DIR   = iso
-BOCHS_DIR = bochs
+BOOT_DIR   = iso/boot
+EMU_DIR = emu
 
 DISK_DIR  = disk
 LOOP_DEVICE = /dev/loop0
 MNT_DIR = /mnt/$(OS_NAME)_tmp
+DISK_REF = $(DISK_DIR)/disk_ref.img
 DISK_IMG = $(DISK_DIR)/disk.img
 
 # File names
@@ -22,13 +23,13 @@ LINKER = $(SRC_DIR)/link.ld
 OBJECTS = loader.o kmain.o shell.o malloc.o paging.o kheap.o memory.o ata_pio.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o list.o utils.o
 OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
 OS_ISO = $(BUILD_DIR)/os.iso
-KERNEL_ELF = $(ISO_DIR)/boot/kernel.elf
+KERNEL_ELF = $(BOOT_DIR)/kernel.elf
 
 BOCHS_CONFIG_CD = config_cd.txt
 BOCHS_CONFIG_DISK = config_disk.txt
-BOCHS_LOG = log.txt
-GRUB_CONFIG = $(ISO_DIR)/boot/grub/menu.lst
-GRUB2_CONFIG = $(ISO_DIR)/boot/grub/grub.cfg
+BOCHS_LOG = $(EMU_DIR)/log.txt
+GRUB_CONFIG = $(BOOT_DIR)/grub/menu.lst
+GRUB2_CONFIG = $(BOOT_DIR)/grub/grub.cfg
 ELTORITO = boot/grub/stage2_eltorito
 
 # Configuration files
@@ -38,11 +39,11 @@ megs:             32
 display_library:  $(GUI)
 romimage:         file=/usr/share/bochs/BIOS-bochs-latest
 vgaromimage:      file=/usr/share/bochs/VGABIOS-lgpl-latest
-log:              bochs/$(BOCHS_LOG)
+log:              $(BOCHS_LOG)
 clock:            sync=none, time0=local
 cpu:              count=1, ips=1000000
 memory:           guest=$(GUEST_MEMORY), host=$(HOST_MEMORY)
-com1:             enabled=1, mode=file, dev=$(BOCHS_DIR)/com1.out
+com1:             enabled=1, mode=file, dev=$(EMU_DIR)/com1.out
 keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=$(SRC_DIR)/x11-pc-fr.map
 endef
 
@@ -100,26 +101,27 @@ ASFLAGS = -f elf
 
 
 
-all: run
+all: runq
+
+disk: diskq
+
+.PHONY: all runb runq syncdisk disk diskb diskq clean cleandisk mount rsync umount log
 
 
-.PHONY: all run rundisk syncdisk disk clean cleandisk
+log: bochs
+	cat $(BOCHS_LOG)
 
 
-log: run
-	cat $(BOCHS_DIR)/$(BOCHS_LOG)
-
-
-$(BUILD_DIR) $(BOCHS_DIR): # Ensures folders exist
+$(BUILD_DIR) $(EMU_DIR): # Ensures folders exist
 	mkdir -p $@
 
 # Configuration files writing
 ECHO_CONFIG = @echo '$(subst $(NEWLINE),\n,$(1))' > $(2)
 
-$(BOCHS_CONFIG_CD): $(BOCHS_DIR)
-	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_CD),$(BOCHS_DIR)/$(BOCHS_CONFIG_CD))
-$(BOCHS_CONFIG_DISK): $(BOCHS_DIR)
-	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_DISK),$(BOCHS_DIR)/$(BOCHS_CONFIG_DISK))
+$(BOCHS_CONFIG_CD): $(EMU_DIR)
+	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_CD),$(EMU_DIR)/$(BOCHS_CONFIG_CD))
+$(BOCHS_CONFIG_DISK): $(EMU_DIR)
+	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_DISK),$(EMU_DIR)/$(BOCHS_CONFIG_DISK))
 
 $(GRUB_CONFIG):
 	$(call ECHO_CONFIG,$(GRUB_CONFIG_CONTENT),$(GRUB_CONFIG))
@@ -129,17 +131,17 @@ $(GRUB2_CONFIG):
 
 
 
-run: $(OS_ISO) $(BOCHS_CONFIG_CD)
-	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_CD)
+runb: $(OS_ISO) $(BOCHS_CONFIG_CD)
+	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_CD)
 
-disk: syncdisk
-	bochs -q -f $(BOCHS_DIR)/$(BOCHS_CONFIG_DISK)
+diskb: syncdisk #bochs
+	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_DISK)
 
-qemu: $(OS_ISO) $(BOCHS_CONFIG_CD)
+runq: $(OS_ISO)
 	qemu-system-i386 -cdrom build/os.iso
 
-diskqemu: syncdisk
-	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m 512 -s
+diskq: syncdisk #qemu
+	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m 512 -s -serial file:$(EMU_DIR)/logq.txt
 
 $(BUILD_DIR)/%.o: src/%.c $(BUILD_DIR)
 	@$(CC) $< -c -o $@  $(CFLAGS) $(CPPFLAGS)
@@ -179,20 +181,26 @@ $(DISK_IMG):
 	@sudo rm -rf $(MNT_DIR)
 	@sudo losetup -d $(LOOP_DEVICE)
 
-syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF)
+rsync:
+	sudo rsync -r $(BOOT_DIR) $(MNT_DIR)
+
+mount:
 	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
 	@sudo partprobe $(LOOP_DEVICE)
 	@sudo mkdir -p $(MNT_DIR)
 	@sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
-	sudo rsync -r $(ISO_DIR)/boot $(MNT_DIR)
+
+umount:
 	@sudo umount -d $(MNT_DIR)
 	@sudo rm -rf $(MNT_DIR)
 	@sudo losetup -d $(LOOP_DEVICE)
 
+syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF) mount rsync umount
+
 clean:
 	rm -rf $(BUILD_DIR)
-	rm -rf $(BOCHS_DIR)
-	rm -f $(ISO_DIR)/boot/kernel.elf
+	rm -rf $(EMU_DIR)
+	rm -f $(BOOT_DIR)/kernel.elf
 	rm -f $(GRUB_CONFIG)
 	rm -f $(GRUB2_CONFIG)
 
