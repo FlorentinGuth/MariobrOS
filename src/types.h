@@ -20,6 +20,8 @@ typedef unsigned char bool;
 #define FALSE (bool)0
 #define TRUE  (bool)1
 
+#define NULL  0
+
 
 /* Constants defining the memory layout */
 /* The memory  is laid out as follows:
