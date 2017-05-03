@@ -33,27 +33,25 @@ int kmain(multiboot_info_t* mbd)
   __asm__ __volatile__ ("sti");
   
   clear(); /* Empties the framebuffer */
-  check_disk();
+  set_disk(FALSE);
   
-  u_int16 buffer[256];
-  readPIO(1,0, buffer);
-  for(int i=0; i<20; i++) {
-    writef("%x, ", buffer[i]);
-  }
-  readPIO(1,0, buffer);
-  writef("\n\n");
-  for(int i=0; i<20; i++) {
-    writef("%x, ", buffer[i]);
-    buffer[i] = i;
-  }
-  writePIO(100,0,buffer);
-  writef("\n\n");
-  readPIO(100,0,buffer);
-  for(int i=0; i<20; i++) {
-    writef("%x, ", buffer[i]);
-    buffer[i] = 0;
-  }
-  
+  /* u_int16 buffer[512]; */
+  /* u_int16 original[512]; */
+  /* int pos = 2; */
+  /* readPIO(pos,2, original); */
+  /* for(int i=150; i<300; i++) { */
+  /*   writef("%x,", original[i]); */
+  /*   buffer[i] = i; */
+  /* } */
+  /* writePIO(pos,2,buffer); */
+  /* writef("\n\n"); */
+  /* readPIO(pos,2,buffer); */
+  /* for(int i=150; i<300; i++) { */
+  /*   writef("%x,", buffer[i]); */
+  /*   buffer[i] = 0; */
+  /* } */
+
+  analyze_superblock();
 
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts

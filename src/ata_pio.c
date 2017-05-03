@@ -26,18 +26,20 @@ char poll()
   return 0;
 }
 
-void flush_cache()
-{
-  outb(ATA_COMMAND, 0xE7);
-  while(inb(ATA_COMMAND) & ATA_BSY);
-}
-
-unsigned char identify()
+/**
+ *  @name identify - IDENTIFY command for ATA PIO mode
+ *  @return        - Error code
+ */
+unsigned char identify(bool debug)
 {
   u_int8 status1 = inb(ATA_COMMAND);
   if(status1==0xFF) {
     return 1; // Floating bus
   }
+  outb(ATA_DCR, ATA_SRST); // Software reset
+  ATA_DELAY;
+  outb(ATA_DCR, 0);
+  ATA_DELAY;
   u_int8 status2;
   outb(ATA_DRIVE_SELECT,ATA_DRIVE_MASTER);
   ATA_DELAY; // Necessary delay after the initial choice
@@ -46,8 +48,7 @@ unsigned char identify()
   outb(ATA_ADDRESS2,0);
   outb(ATA_ADDRESS3,0);
   outb(ATA_COMMAND,0xEC); // Identify command
-  status1 = inb(ATA_COMMAND);
-  if(!status1) {
+  if(!inb(ATA_COMMAND)) {
     return 2; // The required drive does not exist
   }
   while(inb(ATA_COMMAND) & ATA_BSY); // poll
@@ -66,23 +67,29 @@ unsigned char identify()
   if(poll()) {
     return 7; // Detected drive error
   }
-  u_int16 to_read[256];
-  for(int i=0; i<256; i++) {
-    to_read[i] = inw(ATA_DATA);
-  }
-  if(to_read[83] & (1<<10)) {
-    writef("Support LBA48\n");
-    u_int32 lba48_high = (to_read[100]<<16)+to_read[101];
-    u_int32 lba48_low  = (to_read[102]<<16)+to_read[103];
-    writef("48 bit LBA sectors : (%u<<32) + %u\n", lba48_high, lba48_low);
-  }
-  writef("UDMA mode : supported=%x, chosen=%x\n", to_read[88]&0xF, (to_read[88]>>4)&0xF);
-  if(to_read[93] & (1<<11)) {
-    writef("Detected 80 conductor table\n");
-  }
-  u_int32 lba28 = (to_read[60]<<16) + to_read[61];
-  if(lba28) {
-    writef("28 bit LBA sectors : %u\n", lba28);
+  if(debug) {
+    u_int16 to_read[256];
+    for(int i=0; i<256; i++) {
+      to_read[i] = inw(ATA_DATA);
+    }
+    if(to_read[83] & (1<<10)) {
+      writef("Support LBA48\n");
+      u_int32 lba48_high = (to_read[100]<<16)+to_read[101];
+      u_int32 lba48_low  = (to_read[102]<<16)+to_read[103];
+      writef("48 bit LBA sectors : (%u<<32) + %u\n", lba48_high, lba48_low);
+    }
+    writef("UDMA mode : supported=%x, chosen=%x\n", to_read[88]&0xF, (to_read[88]>>4)&0xF);
+    if(to_read[93] & (1<<11)) {
+      writef("Detected 80 conductor table\n");
+    }
+    u_int32 lba28 = (to_read[61]<<16) | to_read[60];
+    if(lba28) {
+      writef("28 bit LBA sectors : %x\n", lba28);
+    }
+  } else {
+    for(short i=0; i<256; i++) {
+      inw(ATA_DATA);
+    }
   }
   outb(ATA_DCR,0);
   ATA_DELAY;
@@ -107,9 +114,9 @@ void identify_throw(unsigned char flag)
   }
 }
 
-void check_disk()
+void set_disk(bool debug)
 {
-  disk_id = identify();
+  disk_id = identify(debug);
 }
 
 void software_reset()
@@ -121,27 +128,29 @@ void software_reset()
   ATA_DELAY;
 }
 
-void readPIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[256])
+void readPIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[])
 {
   if(disk_id) { identify_throw(disk_id); }
   outb(ATA_DRIVE_SELECT, 0xE0 | ((lba >> 24) & 0x0F));
   ATA_DELAY;
-  /* outb(0x1F1, 0x00) // Supposedly useless */
+  /* outb(ATA_FEATURES, 0x00) // Supposedly useless */
   outb(ATA_SECTOR_COUNT, sector_count);
   outb(ATA_ADDRESS1, (u_int8) lba);
   outb(ATA_ADDRESS2, (u_int8) (lba>>8));
   outb(ATA_ADDRESS3, (u_int8) (lba>>16));
   outb(ATA_COMMAND, 0x20); // READ SECTORS command
-  if(poll()) {
-    throw("Error while reading");
+  // The next trick is used to transform 0 into 256
+  for(short i = 0; i<(unsigned char)(sector_count-1)+1; i++) {
+    if(poll()) {
+      throw("Error while reading"); // TODO Deal with this properly. Soft reset?
+    }
+    for(short j=0; j<256; j++) {
+      buffer[i*256+j] = inw(ATA_DATA);
+    }
   }
-  for(int i=0; i<256; i++) {
-    buffer[i] = inw(ATA_DATA);
-  }
-  ATA_DELAY;
 }
 
-void writePIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[256])
+void writePIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[])
 {
   if(disk_id) { identify_throw(disk_id); }
   outb(ATA_DRIVE_SELECT, 0xE0 | ((lba >> 24) & 0x0F));
@@ -152,11 +161,15 @@ void writePIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[256])
   outb(ATA_ADDRESS2, (u_int8) (lba>>8));
   outb(ATA_ADDRESS3, (u_int8) (lba>>16));
   outb(ATA_COMMAND, 0x30); // WRITE SECTORS command
-  if(poll()) {
-    throw("Error while writing");
+  for(short i = 0; i<(unsigned char)(sector_count-1)+1; i++) {
+    if(poll()) {
+      throw("Error while writing"); // TODO Deal with this properly. Soft reset?
+    }
+    for(short j=0; j<256; j++) {
+      outw(ATA_DATA,buffer[i*256+j]);
+    }
+    ATA_DELAY;
+    outb(ATA_COMMAND, 0xE7); // Cache flush
+    while(inb(ATA_COMMAND) & ATA_BSY);
   }
-  for(int i=0; i<256; i++) {
-    outw(ATA_DATA,buffer[i]);
-  }
-  ATA_DELAY;
 }

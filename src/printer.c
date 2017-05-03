@@ -194,6 +194,9 @@ void writef(char s[], ...)
       case 'x': { // Hexadecimal
         u_int_to_string(buffer, va_arg(param,int), 16);
         write_string("0x"); write_string(buffer); break; }
+      case 'h': { // Hexadecimal (without "0x")
+        u_int_to_string(buffer, va_arg(param,int), 16);
+        write_string(buffer); break; }
       case 'c': { // Character
         write_char(va_arg(param,int)); break; }
       case 's': { // String

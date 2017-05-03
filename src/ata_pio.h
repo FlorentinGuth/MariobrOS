@@ -63,16 +63,12 @@
                       * sent to the IO port */
 
 
-/**
- *  @name identify - IDENTIFY command for ATA PIO mode
- *  @return        - Error code
- */
-unsigned char identify();
 
 /**
  *  @name check_disk - Sets the disk_present variable accordingly
+ *  @param debug     - If set, prints debug info
  */
-void check_disk();
+void set_disk(bool debug);
 
 /**
  *  @name readPIO - Reads the hard drive using PIO with LBA 28 bits
@@ -81,7 +77,7 @@ void check_disk();
  *  @param sector_count -
  *  @param buffer       - The buffer that will contain the read words
  */
-void readPIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[256]);
+void readPIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[]);
 
 /**
  *  @name writePIO - Writes to the hard drive using PIO with LBA 28 bits
@@ -90,6 +86,6 @@ void readPIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[256]);
  *  @param sector_count -
  *  @param buffer       - The buffer that contains the words to write
  */
-void writePIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[256]);
+void writePIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[]);
 
 #endif
