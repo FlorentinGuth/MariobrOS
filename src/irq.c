@@ -20,7 +20,7 @@ void irq_uninstall_handler(int irq)
   irq_routines[irq] = 0;
 }
 
-/* Normally, IRQs 0 to 7 are mapped to entries 8 to 15. 
+/* Normally, IRQs 0 to 7 are mapped to entries 8 to 15.
  * We send commands to the Programmable Interrupt Controller in
  * order to make IRQ0 to 15 be remapped to IDT entries 32 to 47 */
 

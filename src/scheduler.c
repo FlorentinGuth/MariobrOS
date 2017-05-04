@@ -1,10 +1,21 @@
 #include "scheduler.h"
 #include "malloc.h"
+#include "queue.h"
+#include "timer.h"
+#include "irq.h"
+#include "syscall.h"  /* Ugly */
 
 
-scheduler_state_t *init()
+scheduler_state_t *state = NULL;
+
+
+/* Timer handler */
+void timer_handler(regs_t *regs);
+
+
+void init()
 {
-  scheduler_state_t *state = mem_alloc(sizeof(scheduler_state_t));
+  state = mem_alloc(sizeof(scheduler_state_t));
 
   /* Creating idle process */
   pid idle_pid = 0;
@@ -13,6 +24,7 @@ scheduler_state_t *init()
   idle->parent_id = idle_pid;    /* Idle is its own parent */
   idle->prio = 0;
   /* TODO: context and paging directory */
+  /* Idle code: for (;;) { asm("hlt"; )}; */
 
   /* Creating init process */
   pid init_pid = 1;
@@ -21,6 +33,7 @@ scheduler_state_t *init()
   init->parent_id = init_pid;    /* Init is its own parent */
   init->prio = MAX_PRIORITY;
   /* TODO: context and paging directory */
+  /* Init code: for (;;) { syscall_wait() }; */
 
   /* Initialization of the state */
   state->curr_pid = init_pid;  /* We start with the init process */
@@ -31,16 +44,16 @@ scheduler_state_t *init()
   enqueue(state->runqueues[0],            idle_pid);
   enqueue(state->runqueues[MAX_PRIORITY], init_pid);
 
-  return state;
+  /* Adds handlers for timer and syscall interruptions */
+  extern void *timer_phase(int hz);  /* Defined in timer.c */
+  timer_phase(SWITCH_FREQ);
+  irq_install_handler(0, timer_handler);
+  isr_install_handler(SYSCALL_ISR, syscall_handler);
 }
 
 
-void select_new_process(scheduler_state_t *state)
+void select_new_process()
 {
-  /* Save context */
-  /* process_t *proc = &state->processes[state->curr_pid]; */
-  /* TODO */
-
   /* Search for a runnable process */
   bool found = FALSE;
   queue_t *temp = empty_queue();  /* The queue to temporary save processes into */
@@ -56,12 +69,6 @@ void select_new_process(scheduler_state_t *state)
         /* We found a runnable process */
         found = TRUE;
         state->curr_pid = pid;
-        state->time_slices_left = MAX_TIME_SLICES;
-
-
-        /* Restore context */
-        /* process_t *new_proc = &state->processes[state->curr_pid]; */
-        /* TODO: switch_process() */
       }
     }
 
@@ -69,16 +76,18 @@ void select_new_process(scheduler_state_t *state)
     while (!is_empty_queue(temp)) {
       enqueue(q, dequeue(temp));
     }
+    /* The selected process is at the end of his runqueue now */
   }
 
   mem_free(temp);
 }
 
-void send_timer_event(scheduler_state_t *state)
+void timer_handler(regs_t *regs)
 {
-  if (state->time_slices_left == 0) {
-    select_new_process(state);
-  } else {
-    state->time_slices_left -= 1;
-  }
+  /* Save context */
+  state->processes[state->curr_pid].context = *regs;
+
+  select_new_process();
+
+  transfer_control(&state->processes[state->curr_pid]);
 }

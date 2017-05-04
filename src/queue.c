@@ -35,7 +35,7 @@ void enqueue(queue_t *q, u_int32 v)
   }
 }
 
-u_int32 dequeue_t(queue_t *q)
+u_int32 dequeue(queue_t *q)
 {
   queue_t elt = *q;        /* We assume *q != 0 */
   u_int32 v = elt->value;

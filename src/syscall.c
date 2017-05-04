@@ -1,12 +1,20 @@
 #include "syscall.h"
+#include "error.h"
+#include "scheduler.h"
+#include "queue.h"
+
 
 /* Possible speed enhancements:
  * - List of child processes for each process
  * - Stack of free processes
  */
 
-void syscall_fork(scheduler_state_t *state, priority child_prio)
+extern scheduler_state_t *state;  /* Defined in scheduler.c */
+
+void syscall_fork()
 {
+  priority child_prio = state->processes[state->curr_pid].context.ebx;
+
   /* Research of a free process */
   pid id = 0;
   while (id < NUM_PROCESSES && state->processes[id].state != Free) {
@@ -15,7 +23,7 @@ void syscall_fork(scheduler_state_t *state, priority child_prio)
 
   /* One cannot create a child process with a higher priority than its own */
   if (id == NUM_PROCESSES || child_prio > state->processes[state->curr_pid].prio) {
-    asm volatile ("mov %%eax, $0");
+    state->processes[state->curr_pid].context.eax = 0;
     return;
   }
 
@@ -31,19 +39,17 @@ void syscall_fork(scheduler_state_t *state, priority child_prio)
   enqueue(state->runqueues[child_prio], id);
 
   /* Setting the values of the parent process */
-  asm volatile ("mov %%eax, $1");
-  asm volatile ("mov %%ebx, %0" : : "r" (id));
+  state->processes[state->curr_pid].context.eax = 1;
+  state->processes[state->curr_pid].context.ebx = id;
 }
 
 /**
  * @name resolve_exit_wait - Resolves an exit or wait syscall
- * @param state            - The scheduler state
  * @param parent           - The parent process, in waiting mode
  * @param child            - The child process, in zombie mode
- * @param return_value     - The return value of the child process
  * @return void
  */
-void resolve_exit_wait(scheduler_state_t *state, pid parent, pid child, u_int32 return_value)
+void resolve_exit_wait(pid parent, pid child)
 {
   /* Freeing the child from zombie state */
   state->processes[child].state= Free;
@@ -65,10 +71,10 @@ void resolve_exit_wait(scheduler_state_t *state, pid parent, pid child, u_int32 
   parent_proc->state= Runnable;
   parent_proc->context.eax = 1;
   parent_proc->context.ebx = child;
-  parent_proc->context.ecx = return_value;
+  parent_proc->context.ecx = state->processes[child].context.ebx;  /* Return value */
 }
 
-void syscall_exit(scheduler_state_t *state, u_int32 return_value)
+void syscall_exit()
 {
   pid id = state->curr_pid;
   state->processes[id].state= Zombie;
@@ -83,11 +89,11 @@ void syscall_exit(scheduler_state_t *state, u_int32 return_value)
   /* Checks whether the parent was waiting for us to die (how cruel!) */
   pid parent_id = state->processes[id].parent_id;
   if (state->processes[parent_id].state == Waiting) {
-    resolve_exit_wait(state, parent_id, id, return_value);
+    resolve_exit_wait(parent_id, id);
   }
 }
 
-void syscall_wait(scheduler_state_t *state)
+void syscall_wait()
 {
   state->processes[state->curr_pid].state = Waiting;
   pid parent_id = state->curr_pid;
@@ -98,8 +104,7 @@ void syscall_wait(scheduler_state_t *state)
     if (proc.parent_id == parent_id) {
       has_children = TRUE;
       if (proc.state== Zombie) {
-        u_int32 return_value = proc.context.ebx;  /* TODO: be sure of this */
-        resolve_exit_wait(state, parent_id, id, return_value);
+        resolve_exit_wait(parent_id, id);
         return;
       }
     }
@@ -107,7 +112,47 @@ void syscall_wait(scheduler_state_t *state)
 
   if (!has_children) {
     /* The process has no children, the call terminates instantly */
-    asm volatile ("mov %%eax, $0");
+    state->processes[state->curr_pid].context.eax = 0;
     state->processes[state->curr_pid].state = Runnable;
   }
+}
+
+
+void syscall_invalid()
+{
+  throw("Invalid syscall!");
+}
+
+
+void syscall_handler(regs_t *regs)
+{
+  process_t *proc = &state->processes[state->curr_pid];
+
+  /* Save context */
+  proc->context = *regs;
+
+  switch (regs->eax) { /* Syscall number */
+
+  case Exit:
+    syscall_exit();
+    break;
+
+  case Fork:
+    syscall_fork();
+    break;
+
+  case Wait:
+    syscall_wait();
+    break;
+
+  default:
+    syscall_invalid();
+  }
+
+  /* Check if the syscall has not ended, and if it is the case select a new process */
+  if (proc->state != Runnable) {
+      select_new_process();
+    }
+
+  transfer_control(&state->processes[state->curr_pid]);  /* Beware, not proc! */
 }
