@@ -4,13 +4,116 @@
 #include "timer.h"
 #include "irq.h"
 #include "syscall.h"  /* Ugly */
+#include "paging.h"
 
 
 scheduler_state_t *state = NULL;
 
 
-/* Timer handler */
-void timer_handler(regs_t *regs);
+void select_new_process()
+{
+  /* Search for a runnable process */
+  bool found = FALSE;
+  queue_t *temp = empty_queue();  /* The queue to temporary save processes into */
+
+  for (priority prio = MAX_PRIORITY; prio >= 0 && !found; prio--) {
+    queue_t *q = state->runqueues[prio];
+
+    while (!is_empty_queue(q) && !found) {
+      pid pid = dequeue(q);
+      enqueue(temp, pid);
+
+      if (state->processes[pid].state == Runnable) {
+        /* We found a runnable process */
+        found = TRUE;
+        state->curr_pid = pid;
+      }
+    }
+
+    /* Restoring the runqueue */
+    while (!is_empty_queue(temp)) {
+      enqueue(q, dequeue(temp));
+    }
+    /* The selected process is at the end of his runqueue now */
+  }
+
+  mem_free(temp);
+}
+
+
+/* Context-switching defines, not functions, to avoid stack using */
+#define SWITCH_BEFORE() {                                               \
+    switch_page_directory(kernel_directory);                            \
+                                                                        \
+    /* Saves process context */                                         \
+    context_t *ctx = &state->processes[state->curr_pid].context;        \
+    asm volatile ("mov %%esp, %0" : "=r" (ctx->esp));                   \
+    ctx->regs = regs;                                                   \
+    ctx->first_free_block = first_free_block;                           \
+    ctx->unallocated_mem  = unallocated_mem;                            \
+                                                                        \
+    /* Restores kernel context */                                       \
+    unallocated_mem  = kernel_context.unallocated_mem;                  \
+    first_free_block = kernel_context.unallocated_mem;                  \
+  }
+
+#define SWITCH_AFTER() {                                                \
+    /* Saves kernel context */                                          \
+    kernel_context.unallocated_mem  = unallocated_mem;                  \
+    kernel_context.first_free_block = first_free_block;                 \
+                                                                        \
+    /* Restores process context */                                      \
+    context_t *ctx = &state->processes[state->curr_pid].context;        \
+    first_free_block = ctx->first_free_block;                           \
+    unallocated_mem  = ctx->unallocated_mem;                            \
+    /* No need to touch at the regs structure because of pointers */    \
+    asm volatile ("mov %0, %%esp" : : "r" (ctx->esp));                  \
+                                                                        \
+    switch_page_directory(ctx->page_dir);                               \
+  }
+
+void timer_handler(regs_t *regs)
+{
+  SWITCH_BEFORE();       /* Save context + kernel paging */
+  select_new_process();
+  SWITCH_AFTER();        /* Paging set-up + restore the stack and the context */
+}
+
+/**
+ * @name syscall_handler - Handler for the syscall interruption
+ * Decodes the syscall (in eax) and performs it on the current state.
+ * @param regs           - Context of the current process
+ * @return void
+ */
+void syscall_handler(regs_t *regs)
+{
+  SWITCH_BEFORE();  /* Save context + kernel paging */
+
+  switch (regs->eax) { /* Syscall number */
+
+  case Exit:
+    syscall_exit();
+    break;
+
+  case Fork:
+    syscall_fork();
+    break;
+
+  case Wait:
+    syscall_wait();
+    break;
+
+  default:
+    syscall_invalid();
+  }
+
+  /* Check if the syscall has not ended, and if it is the case select a new process */
+  if (state->processes[state->curr_pid].state != Runnable) {
+    select_new_process();
+  }
+
+  SWITCH_AFTER();  /* Paging set-up + restore the stack and the context */
+}
 
 
 void init()
@@ -49,45 +152,4 @@ void init()
   timer_phase(SWITCH_FREQ);
   irq_install_handler(0, timer_handler);
   isr_install_handler(SYSCALL_ISR, syscall_handler);
-}
-
-
-void select_new_process()
-{
-  /* Search for a runnable process */
-  bool found = FALSE;
-  queue_t *temp = empty_queue();  /* The queue to temporary save processes into */
-
-  for (priority prio = MAX_PRIORITY; prio >= 0 && !found; prio--) {
-    queue_t *q = state->runqueues[prio];
-
-    while (!is_empty_queue(q) && !found) {
-      pid pid = dequeue(q);
-      enqueue(temp, pid);
-
-      if (state->processes[pid].state == Runnable) {
-        /* We found a runnable process */
-        found = TRUE;
-        state->curr_pid = pid;
-      }
-    }
-
-    /* Restoring the runqueue */
-    while (!is_empty_queue(temp)) {
-      enqueue(q, dequeue(temp));
-    }
-    /* The selected process is at the end of his runqueue now */
-  }
-
-  mem_free(temp);
-}
-
-void timer_handler(regs_t *regs)
-{
-  /* Save context */
-  state->processes[state->curr_pid].context = *regs;
-
-  select_new_process();
-
-  transfer_control(&state->processes[state->curr_pid]);
 }

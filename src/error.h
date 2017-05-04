@@ -9,15 +9,15 @@
  *  the error, and loop forever.
  */
 #define throw(string) {                                                 \
-  write_string("\nFile ");                                              \
-  write_string(__FILE__);                                               \
-  write_string(", line ");                                              \
-  write_int(__LINE__);                                                  \
-  write_string(": ERROR ");                                             \
-  write_string(string);                                                 \
+    write_string("\nFile ");                                            \
+    write_string(__FILE__);                                             \
+    write_string(", line ");                                            \
+    write_int(__LINE__);                                                \
+    write_string(": ERROR ");                                           \
+    write_string(string);                                               \
                                                                         \
-  for(;;) {                                                             \
-    __asm__ __volatile__("hlt");}                                       \
-}
+    for(;;) {                                                           \
+      __asm__ __volatile__("hlt");}                                     \
+  }
 
 #endif

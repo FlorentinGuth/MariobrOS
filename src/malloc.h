@@ -5,6 +5,9 @@
 #include "paging.h"
 
 
+void *first_free_block;
+void *unallocated_mem;
+
 /**
  *  @name malloc_install - Initializes the block structure
  *  @return void

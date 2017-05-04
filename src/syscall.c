@@ -7,13 +7,15 @@
 /* Possible speed enhancements:
  * - List of child processes for each process
  * - Stack of free processes
+ * - Syscall table, like idts
  */
 
 extern scheduler_state_t *state;  /* Defined in scheduler.c */
 
+
 void syscall_fork()
 {
-  priority child_prio = state->processes[state->curr_pid].context.ebx;
+  priority child_prio = state->processes[state->curr_pid].context.regs->ebx;
 
   /* Research of a free process */
   pid id = 0;
@@ -23,7 +25,7 @@ void syscall_fork()
 
   /* One cannot create a child process with a higher priority than its own */
   if (id == NUM_PROCESSES || child_prio > state->processes[state->curr_pid].prio) {
-    state->processes[state->curr_pid].context.eax = 0;
+    state->processes[state->curr_pid].context.regs->eax = 0;
     return;
   }
 
@@ -31,16 +33,16 @@ void syscall_fork()
   process_t *proc = &state->processes[id];
   proc->parent_id = state->curr_pid;
   proc->state = Runnable;
-  proc->context.eax = 2;
-  proc->context.ebx = state->curr_pid;
+  proc->context.regs->eax = 2;
+  proc->context.regs->ebx = state->curr_pid;
   /* TODO: copy context */
 
   /* Adding the process in the runqueue */
   enqueue(state->runqueues[child_prio], id);
 
   /* Setting the values of the parent process */
-  state->processes[state->curr_pid].context.eax = 1;
-  state->processes[state->curr_pid].context.ebx = id;
+  state->processes[state->curr_pid].context.regs->eax = 1;
+  state->processes[state->curr_pid].context.regs->ebx = id;
 }
 
 /**
@@ -69,9 +71,9 @@ void resolve_exit_wait(pid parent, pid child)
   /* Notifies the parent */
   process_t* parent_proc = &state->processes[parent];
   parent_proc->state= Runnable;
-  parent_proc->context.eax = 1;
-  parent_proc->context.ebx = child;
-  parent_proc->context.ecx = state->processes[child].context.ebx;  /* Return value */
+  parent_proc->context.regs->eax = 1;
+  parent_proc->context.regs->ebx = child;
+  parent_proc->context.regs->ecx = state->processes[child].context.regs->ebx;  /* Return value */
 }
 
 void syscall_exit()
@@ -112,7 +114,7 @@ void syscall_wait()
 
   if (!has_children) {
     /* The process has no children, the call terminates instantly */
-    state->processes[state->curr_pid].context.eax = 0;
+    state->processes[state->curr_pid].context.regs->eax = 0;
     state->processes[state->curr_pid].state = Runnable;
   }
 }
@@ -121,38 +123,4 @@ void syscall_wait()
 void syscall_invalid()
 {
   throw("Invalid syscall!");
-}
-
-
-void syscall_handler(regs_t *regs)
-{
-  process_t *proc = &state->processes[state->curr_pid];
-
-  /* Save context */
-  proc->context = *regs;
-
-  switch (regs->eax) { /* Syscall number */
-
-  case Exit:
-    syscall_exit();
-    break;
-
-  case Fork:
-    syscall_fork();
-    break;
-
-  case Wait:
-    syscall_wait();
-    break;
-
-  default:
-    syscall_invalid();
-  }
-
-  /* Check if the syscall has not ended, and if it is the case select a new process */
-  if (proc->state != Runnable) {
-      select_new_process();
-    }
-
-  transfer_control(&state->processes[state->curr_pid]);  /* Beware, not proc! */
 }

@@ -8,11 +8,8 @@
 
 typedef enum syscall {
   Exit,    /* The process is finished and returns a value */
-
   Fork,    /* Creates a new child process, with the same context at first */
   Wait,    /* Waits for a child to return a value */
-
-  Invalid, /* Invalid syscall value */
 } syscall_t;
 
 /**
@@ -43,13 +40,5 @@ void syscall_exit();
  */
 void syscall_wait();
 
-/**
- * @name syscall_handler - Handler for the syscall interruption
- * Decodes the syscall (in eax) and performs it on the current state.
- * @param regs           - Context of the current process
- * @return void
- */
-void syscall_handler(regs_t *regs);
-
-
+void syscall_invalid();
 #endif

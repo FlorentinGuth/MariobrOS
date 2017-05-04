@@ -43,39 +43,40 @@ page_directory_t* current_directory;
 page_directory_t* kernel_directory;
 
 
-/** paging_install:
- *  Enables paging.
+
+/**
+ * @name paging_install - Enables paging
  */
 void paging_install();
 
 
-/** switch_page_directory:
- *  Loads the new page directory into the CR3 register.
+/**
+ * @name switch_page_directory - Loads the new page directory into the CR3 register
  */
 void switch_page_directory(page_directory_t *new);
 
-/** get_page:
- *  Retrieves a pointer to the page required.
- *
- *  @param address the address whose we should search in which page it is
- *  @param make    if true, create the page if needed
- *  @param dir     a pointer to the page directory
- *  @return        the page of the given page directory which contains the given address
+/**
+ * @name  get_page - Retrieves a pointer to the page required
+ * @param address - The address whose we should search in which page it is
+ * @param make    - If true, create the page if needed
+ * @param dir     - A pointer to the page directory
+ * @return          The page of the given page directory which contains the given address
  */
 page_t * get_page(u_int32 address, bool make, page_directory_t *dir);
 
 /**
- * @name alloc_frame - Allocates and initializes a page
- * @param page - The page
- * @param is_kernel - Whether the page is reserved by the kernel
+ * @name  alloc_frame  - Allocates and initializes a page
+ * @param page        - The page
+ * @param is_kernel   - Whether the page is reserved by the kernel
  * @param is_writable - Whether the page is writable
- * @return void
+ * @return              void
  */
 void alloc_frame(page_t *page, bool is_kernel, bool is_writable);
 
-/** page_fault:
- *  Handler for page faults.
+/**
+ * @name   page_fault - Handler for page faults.
+ * @return void
  */
-void page_fault(regs_t *regs);
+void page_fault_handler(regs_t *regs);
 
 #endif
