@@ -24,11 +24,17 @@ typedef enum process_state {
 
 /* The context of the process: all the variables he need */
 typedef struct context {
+  /* Registers */
   regs_t *regs;  /* The registers of the process */
   u_int32 esp;   /* The esp of the handler call, to restore the stack after switching */
 
-  void *first_free_block, *unallocated_mem;  /* Malloc state */
+  /* Malloc state */
+  void *first_free_block;
+  void *unallocated_mem;
+
+  /* Paging state */
   page_directory_t *page_dir;
+  u_int32 *frames;
 } context_t;
 
 context_t kernel_context;

@@ -4,7 +4,7 @@
 #include "logging.h"
 
 
-/* TODO: deal with buffer end better + bug when last line */
+/* TODO: memory leaks when dealing with arg lists (free list elements + strings) */
 
 #define buffer_size 128
 char blank_command[buffer_size] = {' '};

@@ -8,6 +8,10 @@
 #include "types.h"
 
 
+/* A bitset of frames - used or free. */
+u_int32 *frames;
+u_int32 nb_frames;
+
 typedef struct page
 {
   bool    present    :  1;  /* Page present in memory */

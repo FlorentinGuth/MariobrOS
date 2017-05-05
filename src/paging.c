@@ -13,10 +13,6 @@
 /** Frame allocation */
 /*  TODO: Replace this implementation with a stack of free frames (alloc and free in O(1)) */
 
-/* A bitset of frames - used or free. */
-u_int32 *frames;
-u_int32 nb_frames;
-
 /* Macros used in the bitset algorithms. */
 #define INDEX_FROM_BIT(a)  (a/(8*4))
 #define OFFSET_FROM_BIT(a) (a%(8*4))

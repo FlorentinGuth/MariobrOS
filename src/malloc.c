@@ -147,7 +147,7 @@ void set_size(void *block, size_t size)
 
 void set_block(void* block, size_t size, bool used)
 {
-  kloug(100, "Setting block at %x with size %x, used %u\n", block, size, used);
+  /* kloug(100, "Setting block at %x with size %x, used %u\n", block, size, used); */
   set_size(block, size);
   ((header_used_t *)block)->used = used;
 
@@ -159,7 +159,7 @@ void set_block(void* block, size_t size, bool used)
 
 void insert_after(header_free_t *to_insert, header_free_t *block)
 {
-  kloug(100, "Inserting block at %x after block at %x\n", to_insert, block);
+  /* kloug(100, "Inserting block at %x after block at %x\n", to_insert, block); */
   if (block) {
     /* a->b becomes a->c->b */
     header_free_t *a = block;
@@ -173,8 +173,8 @@ void insert_after(header_free_t *to_insert, header_free_t *block)
       b->prev = c;
     }
   } else {
-    kloug(100, "Inserting at the start of the queue (ffb at %x)\n", first_free_block);
-    log_block(get_next_block(to_insert));
+    /* kloug(100, "Inserting at the start of the queue (ffb at %x)\n", first_free_block); */
+    /* log_block(get_next_block(to_insert)); */
     to_insert->next = first_free_block;
     to_insert->prev = 0;
     if (first_free_block)
@@ -185,8 +185,9 @@ void insert_after(header_free_t *to_insert, header_free_t *block)
 
 void remove(header_free_t *block)
 {
-  kloug(100, "Removing block at %x from free list\n", block);
-  log_memory();
+  /* kloug(100, "Removing block at %x from free list\n", block); */
+  /* log_memory(); */
+
   /* a->c->b becomes a->b */
   header_free_t *c = block;
   header_free_t *a = c->prev;
@@ -203,13 +204,14 @@ void remove(header_free_t *block)
 
 void merge_with_next(header_free_t *block)
 {
-  kloug(100, "Merging block at %x with the next one\n", block);
+  /* kloug(100, "Merging block at %x with the next one\n", block); */
   header_free_t *a = block, *b = get_next_block(block);
 
-  log_block(a); log_block(b);
+  /* log_block(a); log_block(b); */
 
   if (b && !b->used) {
-    kloug(100, "Actively merging with block at %x\n", b);
+    /* kloug(100, "Actively merging with block at %x\n", b); */
+
     /* c->a->d and e->b->f becomes c->a+b->d and e->f */
     /* It is possible that c = f or e = d, but it does not change anything */
     header_free_t *e = b->prev, *f = b->next;
@@ -256,7 +258,7 @@ void malloc_install()
  */
 header_free_t *alloc_pages(size_t size)
 {
-  kloug(100, "Let's try to allocate a page\n");
+  /* kloug(100, "Let's try to allocate a page\n"); */
 
   void *last_block = get_prev_block(unallocated_mem);
   size_t last_size = get_size(last_block);
@@ -271,7 +273,7 @@ header_free_t *alloc_pages(size_t size)
   }
   header_free_t *block = unallocated_mem;
 
-  kloug(100, "Allocating %u page(s)\n", nb_pages);
+  /* kloug(100, "Allocating %u page(s)\n", nb_pages); */
   for (int i = 0; i < nb_pages; i++) {
     alloc_frame(get_page((u_int32)unallocated_mem, TRUE, current_directory), FALSE, TRUE);
     unallocated_mem += 0x1000;
@@ -284,8 +286,9 @@ header_free_t *alloc_pages(size_t size)
 
 void *mem_alloc_aligned(size_t size, unsigned int alignment)
 {
-  kloug(100, "Allocating a block of size %x\n", size);
-  log_memory();
+  /* kloug(100, "Allocating a block of size %x\n", size); */
+  /* log_memory(); */
+
   /* We need:
    * - a block big enough to contain the asked size, including the header_used and end_header
    * - the returned address (address of block + sizeof(header_used_t)) should be aligned
@@ -340,7 +343,7 @@ void *mem_alloc_aligned(size_t size, unsigned int alignment)
 
   remove(block);
   size_t size_block = get_size(block);
-  kloug(100, "Block of size %x inside block of size %x\n", size, size_block);
+  /* kloug(100, "Block of size %x inside block of size %x\n", size, size_block); */
 
   if (size_block - size >= sizeof(header_free_t) + sizeof(end_header_t)) {
     /* We create a new block after the one we give */
@@ -379,8 +382,8 @@ void mem_free(void *ptr)
   maybe_header++;
   header_free_t *block = (header_free_t *)(maybe_header - sizeof(header_used_t));
 
-  kloug(100, "Freeing block at %x (supplied %x, maybe %x)\n", block, ptr, maybe_header);
-  log_memory();
+  /* kloug(100, "Freeing block at %x (supplied %x, maybe %x)\n", block, ptr, maybe_header); */
+  /* log_memory(); */
 
   block->used = FALSE;
   insert_after(block, 0);

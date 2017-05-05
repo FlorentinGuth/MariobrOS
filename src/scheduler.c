@@ -43,10 +43,13 @@ void select_new_process()
 
 /* Context-switching defines, not functions, to avoid stack using */
 #define SWITCH_BEFORE() {                                               \
+    /* Restores kernel paging */                                        \
     switch_page_directory(kernel_directory);                            \
+    context_t *ctx = &state->processes[state->curr_pid].context;        \
+    ctx->frames = frames;                                               \
+    frames = kernel_context.frames;                                     \
                                                                         \
     /* Saves process context */                                         \
-    context_t *ctx = &state->processes[state->curr_pid].context;        \
     asm volatile ("mov %%esp, %0" : "=r" (ctx->esp));                   \
     ctx->regs = regs;                                                   \
     ctx->first_free_block = first_free_block;                           \
@@ -69,6 +72,9 @@ void select_new_process()
     /* No need to touch at the regs structure because of pointers */    \
     asm volatile ("mov %0, %%esp" : : "r" (ctx->esp));                  \
                                                                         \
+    /* Restores process paging */                                       \
+    kernel_context.frames = frames;                                     \
+    frames = ctx->frames;                                               \
     switch_page_directory(ctx->page_dir);                               \
   }
 
