@@ -13,9 +13,9 @@
  *  @param port - The I/O port to send the data to
  *  @param data - The data to send to the I/O port
  */
-void outb (unsigned short port, unsigned char data);
+void outb (u_int16 port, u_int8 data);
 
-void outw (unsigned short port, unsigned int data);
+void outw (u_int16 port, u_int16 data);
 
 /**
  *  @name inb   - Receives data (a byte) from an I/O port.
@@ -23,9 +23,9 @@ void outw (unsigned short port, unsigned int data);
  *  @param port - The port to listen to
  *  @return       The data
  */
-unsigned char inb (unsigned short port);
+u_int8 inb (u_int16 port);
 
-unsigned char inw (unsigned short port);
+u_int16 inw (u_int16 port);
 
 void io_wait();
 

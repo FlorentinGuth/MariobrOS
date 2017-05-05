@@ -4,29 +4,29 @@
  * I don't know why those work better, but, alas, they do! */
 
 
-unsigned char inb (unsigned short port)
+u_int8 inb (u_int16 port)
 {
-    unsigned char rv;
+    u_int8 rv;
     __asm__ __volatile__ ("inb %1, %0" : "=a" (rv) : "dN" (port));
     return rv;
 }
 
-unsigned char inw (unsigned short port)
+u_int16 inw (u_int16 port)
 {
-    unsigned int rv;
-    __asm__ __volatile__ ("inw %1, %w0" : "=a" (rv) : "dN" (port));
+    u_int16 rv;
+    __asm__ __volatile__ ("inw %1, %0" : "=a" (rv) : "dN" (port));
     return rv;
 }
 
 
-void outb (unsigned short port, unsigned char data)
+void outb (u_int16 port, u_int8 data)
 {
     __asm__ __volatile__ ("outb %1, %0" : : "dN" (port), "a" (data));
 }
 
-void outw (unsigned short port, unsigned int data)
+void outw (u_int16 port, u_int16 data)
 {
-    __asm__ __volatile__ ("outw %w1, %0" : : "dN" (port), "a" (data));
+    __asm__ __volatile__ ("outw %1, %0" : : "dN" (port), "a" (data));
 }
 
 void io_wait()
