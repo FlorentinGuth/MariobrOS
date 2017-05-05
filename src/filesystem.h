@@ -59,14 +59,17 @@ typedef struct superblock superblock_t;
 #define ERROR_REMOUNT 0X0002
 #define ERROR_PANIC   0X0003
 
-struct block_groupe_descriptor {
+struct block_group_descriptor {
   u_int32 block_address_bitmap;
   u_int32 inode_address_bitmap;
   u_int32 inode_table_address;
   u_int16 unalloc_block;
   u_int16 unalloc_inode;
   u_int16 dir_num;
+  u_int16 unused[7];
 }__attribute__((packed));
+
+typedef struct block_group_descriptor bgp_t;
 
 struct inode_t {
   u_int16 type;
@@ -90,6 +93,8 @@ struct inode_t {
   u_int32 fragment_block_address;
   u_int32 OS_spec2[3];
 }__attribute__((packed));
+
+typedef struct inode_t inode_t;
 
 
 /* Masks for the type field */

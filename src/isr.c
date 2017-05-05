@@ -99,6 +99,12 @@ void isr_uninstall_handler(int isr)
   isr_routines[isr] = 0;
 }
 
+void illegal_opcode_handler(struct regs *r)
+{
+  writef("Illegal Opcode Exception. EIP at %x",r->eip);
+  throw("Exception. System Halted");
+}
+
 /* All of our Exception handling Interrupt Service Routines will
  * point to this function. This will tell us what exception has
  * happened! Right now, we simply halt the system by hitting an

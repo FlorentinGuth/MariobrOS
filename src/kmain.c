@@ -25,6 +25,8 @@ int kmain(multiboot_info_t* mbd)
 
   paging_install();
   malloc_install();
+
+  isr_install_handler(6,illegal_opcode_handler);
   
   idt_install();
   isrs_install();
@@ -34,25 +36,9 @@ int kmain(multiboot_info_t* mbd)
   
   clear(); /* Empties the framebuffer */
   set_disk(FALSE);
-  
-  /* u_int16 buffer[512]; */
-  /* u_int16 original[512]; */
-  /* int pos = 2; */
-  /* readPIO(pos,2, original); */
-  /* for(int i=150; i<300; i++) { */
-  /*   writef("%x,", original[i]); */
-  /*   buffer[i] = i; */
-  /* } */
-  /* writePIO(pos,2,buffer); */
-  /* writef("\n\n"); */
-  /* readPIO(pos,2,buffer); */
-  /* for(int i=150; i<300; i++) { */
-  /*   writef("%x,", buffer[i]); */
-  /*   buffer[i] = 0; */
-  /* } */
 
   analyze_superblock();
-
+  
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;

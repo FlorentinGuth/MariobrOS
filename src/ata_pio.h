@@ -71,21 +71,31 @@
 void set_disk(bool debug);
 
 /**
- *  @name readPIO - Reads the hard drive using PIO with LBA 28 bits
+ *  @name readLBA - Reads the hard drive using PIO with LBA 28 bits
  *
  *  @param lba          - The LBA 28 bits address
- *  @param sector_count -
+ *  @param sector_count - The number of sectors read
  *  @param buffer       - The buffer that will contain the read words
  */
-void readPIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[]);
+void readLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[]);
 
 /**
- *  @name writePIO - Writes to the hard drive using PIO with LBA 28 bits
+ *  @name writeLBA - Writes to the hard drive using PIO with LBA 28 bits
  *
  *  @param lba          - The LBA 28 bits address
- *  @param sector_count -
+ *  @param sector_count - The number of sectors written
  *  @param buffer       - The buffer that contains the words to write
  */
-void writePIO(u_int32 lba, unsigned char sector_count, u_int16 buffer[]);
+void writeLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[]);
+
+/**
+ *  @name readPIO - Reads the hard drive in a specific area
+ *
+ *  @param lba          - The LBA 28 bits address
+ *  @param offset       - The starting offset
+ *  @param length       - The length of the read data
+ *  @param buffer       - The buffer that will contain the read words
+ */
+void readPIO(u_int32 lba, u_int32 offset, s_int32 length, u_int16 buffer[]);
 
 #endif

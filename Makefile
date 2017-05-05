@@ -105,7 +105,7 @@ all: runq
 
 disk: diskq
 
-.PHONY: all runb runq syncdisk disk diskb diskq clean cleandisk mount rsync umount log
+.PHONY: all runb runq syncdisk disk diskb diskq clean cleandisk mount rsync umount log redisk
 
 
 log: bochs
