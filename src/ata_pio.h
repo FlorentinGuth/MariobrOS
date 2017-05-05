@@ -96,6 +96,6 @@ void writeLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[]);
  *  @param length       - The length of the read data
  *  @param buffer       - The buffer that will contain the read words
  */
-void readPIO(u_int32 lba, u_int32 offset, s_int32 length, u_int16 buffer[]);
+void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int16 buffer[]);
 
 #endif

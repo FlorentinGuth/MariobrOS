@@ -285,7 +285,7 @@ header_free_t *alloc_pages(size_t size)
 void *mem_alloc_aligned(size_t size, unsigned int alignment)
 {
   kloug(100, "Allocating a block of size %x\n", size);
-
+  log_memory();
   /* We need:
    * - a block big enough to contain the asked size, including the header_used and end_header
    * - the returned address (address of block + sizeof(header_used_t)) should be aligned

@@ -151,7 +151,7 @@ void readLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[])
   }
 }
 
-void readPIO(u_int32 lba, u_int32 offset, s_int32 length, u_int16 buffer[])
+void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int16 buffer[])
 {
   lba = lba+0x800; // 0x800 : beginning of volume
   if(disk_id) { identify_throw(disk_id); }
@@ -167,7 +167,8 @@ void readPIO(u_int32 lba, u_int32 offset, s_int32 length, u_int16 buffer[])
   outb(ATA_ADDRESS3, (u_int8) (lba>>16));
   outb(ATA_COMMAND, 0x20); // READ SECTORS command
   int i = -offset;
-  while(i<length) {
+  length /= 2;
+  while(i < (s_int32) length) {
     if(!((i+offset) % 256)) {
       if(poll()) {
         throw("Error while reading"); // TODO Deal with this properly. Soft reset?
@@ -179,7 +180,8 @@ void readPIO(u_int32 lba, u_int32 offset, s_int32 length, u_int16 buffer[])
     }
     i++;
   }
-  while((i+offset)%256) {
+  i+=offset;
+  while(i%256) {
     inw(ATA_DATA);
     i++;
   }

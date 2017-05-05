@@ -44,6 +44,7 @@ void analyze_superblock()
   u_int32 bgpt_size = block_group_num * sizeof(bgp_t);
   writef("bgpt_size: %u\n", bgpt_size);
   bgpt = (void*) mem_alloc(bgpt_size);
+  writef("Done.");
   // 4 if block_size = 1024, 3 else:
   readPIO(BLOCK(1), 0, bgpt_size, (u_int16*) bgpt);
   for(int i=0; i<2; i++) {
