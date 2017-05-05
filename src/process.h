@@ -34,7 +34,6 @@ typedef struct context {
 
   /* Paging state */
   page_directory_t *page_dir;
-  u_int32 *frames;
 } context_t;
 
 context_t kernel_context;

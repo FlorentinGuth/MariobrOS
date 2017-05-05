@@ -6,6 +6,7 @@
 #include "memory.h"
 #include "irq.h"
 #include "malloc.h"
+#include "process.h"
 
 /* Source of everything: http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html */
 
@@ -18,7 +19,7 @@
 #define OFFSET_FROM_BIT(a) (a%(8*4))
 
 /* Static function to set a bit in the frames bitset. */
-static void set_frame(u_int32 frame_addr)
+static void set_frame(u_int32* frames, u_int32 frame_addr)
 {
   u_int32 frame = frame_addr/0x1000;
   u_int32 idx = INDEX_FROM_BIT(frame);
@@ -27,7 +28,7 @@ static void set_frame(u_int32 frame_addr)
 }
 
 /* Static function to clear a bit in the frames bitset. */
-static void clear_frame(u_int32 frame_addr)
+static void clear_frame(u_int32* frames, u_int32 frame_addr)
 {
   u_int32 frame = frame_addr/0x1000;
   u_int32 idx = INDEX_FROM_BIT(frame);
@@ -36,7 +37,7 @@ static void clear_frame(u_int32 frame_addr)
 }
 
 /* /\* Static function to test if a bit is set. *\/ */
-/* static u_int32 test_frame(u_int32 frame_addr) */
+/* static u_int32 test_frame(u_int32* frames, u_int32 frame_addr) */
 /* { */
 /*   u_int32 frame = frame_addr/0x1000; */
 /*   u_int32 idx = INDEX_FROM_BIT(frame); */
@@ -45,7 +46,7 @@ static void clear_frame(u_int32 frame_addr)
 /* } */
 
 /* Static function to find the first free frame. */
-static u_int32 first_frame()
+static u_int32 first_frame(u_int32* frames)
 {
   u_int32 i, j;
   for (i = 0; i < INDEX_FROM_BIT(nb_frames); i++) {
@@ -65,34 +66,34 @@ static u_int32 first_frame()
 
 
 /* Function to allocate a frame. */
-void alloc_frame(page_t *page, bool is_kernel, bool is_writable)
+void alloc_frame(u_int32* frames, page_t *page, bool is_kernel, bool is_writable)
 {
   if (page->frame != 0) {
     return;  /* Frame was already allocated, return straight away. */
   } else {
-    u_int32 idx = first_frame();    /* idx is now the index of the first free frame. */
+    u_int32 idx = first_frame(frames);    /* idx is now the index of the first free frame. */
 
     if (idx == (u_int32) (-1)) {
       throw("No free frames!");
     }
 
-    set_frame(idx * 0x1000);        /* This frame is now ours! */
-    page->present = TRUE;           /* Mark it as present. */
-    page->rw      = is_writable;    /* Should the page be writable? */
-    page->user    = is_kernel;      /* Should the page be user-mode? */
+    set_frame(frames, idx * 0x1000);  /* This frame is now ours! */
+    page->present = TRUE;             /* Mark it as present. */
+    page->rw      = is_writable;      /* Should the page be writable? */
+    page->user    = is_kernel;        /* Should the page be user-mode? */
     page->frame   = idx;
   }
 }
 
 /* Function to deallocate a frame. */
-void free_frame(page_t *page)
+void free_frame(u_int32* frames, page_t *page)
 {
   u_int32 frame;
   if (!(frame = page->frame)) {
-    return;              /* The given page didn't actually have an allocated frame! */
+    return;                      /* The given page didn't actually have an allocated frame! */
   } else {
-    clear_frame(frame);  /* Frame is now free again. */
-    page->frame = 0x0;   /* Page now doesn't have a frame. */
+    clear_frame(frames, frame);  /* Frame is now free again. */
+    page->frame = 0x0;           /* Page now doesn't have a frame. */
   }
 }
 
@@ -108,8 +109,8 @@ void paging_install()
 
   /* The frames */
   nb_frames = mem_end_page / 0x1000;
-  frames = (u_int32*)kmalloc(INDEX_FROM_BIT(nb_frames));
-  mem_set(frames, 0, INDEX_FROM_BIT(nb_frames));
+  kernel_frames = (u_int32*)kmalloc(INDEX_FROM_BIT(nb_frames));
+  mem_set(kernel_frames, 0, INDEX_FROM_BIT(nb_frames));
 
   /* Let's make a page directory. */
   kernel_directory = (page_directory_t*)kmalloc_aligned(sizeof(page_directory_t));
@@ -122,7 +123,7 @@ void paging_install()
   u_int32 i = 0;
   while (i < END_OF_KERNEL_HEAP) {
     /* Kernel code and data is readable but not writable from user-space. */
-    alloc_frame(get_page(i, TRUE, kernel_directory), TRUE, FALSE);
+    alloc_frame(kernel_frames, get_page(i, TRUE, kernel_directory), TRUE, FALSE);
     i += 0x1000;
   }
 
@@ -131,6 +132,26 @@ void paging_install()
 
   /* Now, enable paging! */
   switch_page_directory(kernel_directory);
+}
+
+
+void new_page_directory(process_t *proc)
+{
+  /* Let's make a page directory. */
+  page_directory_t *page_dir = (page_directory_t*)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
+  mem_set(page_dir, 0, sizeof(page_directory_t));
+
+  /* We need to identity map (phys addr = virt addr) from
+   * 0x0 to the end of the kernel heap, so we can access this
+   * transparently, as if paging wasn't enabled. */
+  u_int32 i = 0;
+  while (i < END_OF_KERNEL_HEAP) {
+    /* Kernel code and data is readable but not writable from user-space. */
+    alloc_frame(kernel_frames, get_page(i, TRUE, page_dir), TRUE, FALSE);
+    i += 0x1000;
+  }
+
+  proc->context.page_dir = page_dir;
 }
 
 

@@ -242,7 +242,8 @@ header_free_t *merge(header_free_t *block)
 void malloc_install()
 {
   /* Allocates a page */
-  alloc_frame(get_page(END_OF_KERNEL_HEAP, TRUE, current_directory), FALSE, TRUE);
+  alloc_frame(kernel_frames, get_page(END_OF_KERNEL_HEAP, TRUE, current_directory), \
+              (current_directory == kernel_directory), TRUE);
   unallocated_mem = (void *)(END_OF_KERNEL_HEAP + 0x1000);
 
   first_free_block = (header_free_t *)END_OF_KERNEL_HEAP;
@@ -275,7 +276,8 @@ header_free_t *alloc_pages(size_t size)
 
   /* kloug(100, "Allocating %u page(s)\n", nb_pages); */
   for (int i = 0; i < nb_pages; i++) {
-    alloc_frame(get_page((u_int32)unallocated_mem, TRUE, current_directory), FALSE, TRUE);
+    alloc_frame(kernel_frames, get_page((u_int32)unallocated_mem, TRUE, current_directory), \
+                (current_directory == kernel_directory), TRUE);
     unallocated_mem += 0x1000;
   }
 

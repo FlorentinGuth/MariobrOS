@@ -46,8 +46,6 @@ void select_new_process()
     /* Restores kernel paging */                                        \
     switch_page_directory(kernel_directory);                            \
     context_t *ctx = &state->processes[state->curr_pid].context;        \
-    ctx->frames = frames;                                               \
-    frames = kernel_context.frames;                                     \
                                                                         \
     /* Saves process context */                                         \
     asm volatile ("mov %%esp, %0" : "=r" (ctx->esp));                   \
@@ -73,8 +71,6 @@ void select_new_process()
     asm volatile ("mov %0, %%esp" : : "r" (ctx->esp));                  \
                                                                         \
     /* Restores process paging */                                       \
-    kernel_context.frames = frames;                                     \
-    frames = ctx->frames;                                               \
     switch_page_directory(ctx->page_dir);                               \
   }
 

@@ -9,8 +9,8 @@
 
 
 /* A bitset of frames - used or free. */
-u_int32 *frames;
 u_int32 nb_frames;
+u_int32 *kernel_frames;
 
 typedef struct page
 {
@@ -61,21 +61,22 @@ void switch_page_directory(page_directory_t *new);
 
 /**
  * @name  get_page - Retrieves a pointer to the page required
- * @param address - The address whose we should search in which page it is
- * @param make    - If true, create the page if needed
- * @param dir     - A pointer to the page directory
- * @return          The page of the given page directory which contains the given address
+ * @param address  - The address whose we should search in which page it is
+ * @param make     - If true, create the page if needed
+ * @param dir      - A pointer to the page directory
+ * @return           The page of the given page directory which contains the given address
  */
 page_t * get_page(u_int32 address, bool make, page_directory_t *dir);
 
 /**
- * @name  alloc_frame  - Allocates and initializes a page
- * @param page        - The page
+ * @name  alloc_frame - Allocates and initializes a page
+ * @param frames      - The frames bitset
+ * @param page        - The page to allocate
  * @param is_kernel   - Whether the page is reserved by the kernel
  * @param is_writable - Whether the page is writable
  * @return              void
  */
-void alloc_frame(page_t *page, bool is_kernel, bool is_writable);
+void alloc_frame(u_int32 *frames, page_t *page, bool is_kernel, bool is_writable);
 
 /**
  * @name   page_fault - Handler for page faults.
