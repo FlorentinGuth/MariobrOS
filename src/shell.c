@@ -223,18 +223,18 @@ void shell_write_char(char c)
     break;
 
   default:  /* write real char */
-    /* First, we move the text */
-    for (int i = length - 1; i > pos; i--) {
-      history[history_pos][i] = history[history_pos][i-1];
-    }
     if (length < buffer_size - 1) {  /* Account for '\0' at the end */
+      /* First, we move the text */
+      for (int i = length; i > pos; i--) {
+        history[history_pos][i] = history[history_pos][i-1];
+      }
       history[history_pos][pos] = c;
       pos++;
       length++;
       update_max_length();
 
       /* Take care of the scrolling */
-      if (start_of_command + pos >= SCREEN_HEIGHT * SCREEN_WIDTH) {
+      if (start_of_command + length >= SCREEN_HEIGHT * SCREEN_WIDTH) {
         scroll();
         start_of_command -= SCREEN_WIDTH;
       }
@@ -270,6 +270,11 @@ void shell_up()
     history_pos--;
     pos = length = str_length(history[history_pos]);
     update_max_length();
+    /* Take care of the scrolling */
+    if (start_of_command + length >= SCREEN_HEIGHT * SCREEN_WIDTH) {
+      scroll();
+      start_of_command -= SCREEN_WIDTH;
+    }
     echo_command();
   }
 }
@@ -280,6 +285,11 @@ void shell_down()
     history_pos++;
     pos = length = str_length(history[history_pos]);
     update_max_length();
+    /* Take care of the scrolling */
+    if (start_of_command + length >= SCREEN_HEIGHT * SCREEN_WIDTH) {
+      scroll();
+      start_of_command -= SCREEN_WIDTH;
+    }
     echo_command();
   }
 }
