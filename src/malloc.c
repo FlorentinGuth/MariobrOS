@@ -186,6 +186,7 @@ void insert_after(header_free_t *to_insert, header_free_t *block)
 void remove(header_free_t *block)
 {
   kloug(100, "Removing block at %x from free list\n", block);
+  log_memory();
   /* a->c->b becomes a->b */
   header_free_t *c = block;
   header_free_t *a = c->prev;
