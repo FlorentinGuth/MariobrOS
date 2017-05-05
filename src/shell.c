@@ -11,7 +11,7 @@ char blank_command[buffer_size] = {' '};
 int  pos = 0, length = 0, max_length = 0;
 pos_t start_of_command;
 
-#define history_size 5
+#define history_size 100
 string history[history_size] = {0};
 int history_length = 0, history_pos = 0;
 bool modified_since_history = FALSE;
@@ -145,7 +145,7 @@ void send_command()
 {
   /* Parsing of the command */
   list_t words = str_split(history[history_pos], ' ', FALSE);
-  kloug(200, "Executing command %s %x\n", history[history_pos], words);
+  kloug(100 + buffer_size, "Executing command %s %x\n", history[history_pos], words);
 
   if (words) {
     string command_name = (string)words->head;
@@ -232,6 +232,12 @@ void shell_write_char(char c)
       pos++;
       length++;
       update_max_length();
+
+      /* Take care of the scrolling */
+      if (start_of_command + pos >= SCREEN_HEIGHT * SCREEN_WIDTH) {
+        scroll();
+        start_of_command -= SCREEN_WIDTH;
+      }
     }
   }
 
