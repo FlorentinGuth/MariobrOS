@@ -164,9 +164,9 @@ void write_int(int n)
 
 void write_hex(int n)
 {
-  int len = int_to_string(0, n, 16);
+  int len = u_int_to_string(0, n, 16);
   char buf[len];
-  int_to_string(buf, n, 16);
+  u_int_to_string(buf, n, 16);
   write_string("0x");
   write_string(buf);
 }
