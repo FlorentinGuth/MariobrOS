@@ -7,11 +7,10 @@
 
 
 #define NUM_PROCESSES   128  /* Maximum number of concurrent processes */
-#define MAX_TIME_SLICES   5  /* Number of timer events before switching processes */
+#define SWITCH_FREQ    1000  /* Frequence (in Hz) of the switching */
 
 typedef struct scheduler_state {
   pid      curr_pid;
-  int      time_slices_left;
 
   process_t processes[NUM_PROCESSES];
   queue_t  *runqueues[MAX_PRIORITY + 1];  /* Set of process ids ordered by priority */
@@ -19,17 +18,12 @@ typedef struct scheduler_state {
 
 
 /**
- * @name scheduler_install - Initializes and return a new scheduler
- * @return scheduler_state_t*
- */
-scheduler_state_t *scheduler_install();
-
-/**
- * @name send_timer_event - Sends a timer event to the current process, switching it if needed
- * @param state           - The scheduler state
+ * @name scheduler_install - Initializes a new scheduler
  * @return void
  */
-void send_timer_event(scheduler_state_t *state);
+void scheduler_install();
+
+void select_new_process();
 
 
 #endif /* SCHEDULER_H */

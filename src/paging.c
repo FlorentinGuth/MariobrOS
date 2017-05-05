@@ -5,6 +5,7 @@
 #include "error.h"
 #include "memory.h"
 #include "irq.h"
+#include "malloc.h"
 
 /* Source of everything: http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html */
 
@@ -104,14 +105,12 @@ void free_frame(page_t *page)
 
 extern u_int32 brk;  /* Defined in kheap.c */
 
-page_directory_t *kernel_directory;
-page_directory_t *current_directory;
-
 void paging_install()
 {
   /* The size of physical memory */
   u_int32 mem_end_page = UPPER_MEMORY;
 
+  /* The frames */
   nb_frames = mem_end_page / 0x1000;
   frames = (u_int32*)kmalloc(INDEX_FROM_BIT(nb_frames));
   mem_set(frames, 0, INDEX_FROM_BIT(nb_frames));
@@ -126,31 +125,32 @@ void paging_install()
    * transparently, as if paging wasn't enabled. */
   u_int32 i = 0;
   while (i < END_OF_KERNEL_HEAP) {
-    /* Kernel code is readable but not writable from user-space. */
+    /* Kernel code and data is readable but not writable from user-space. */
     alloc_frame(get_page(i, TRUE, kernel_directory), TRUE, FALSE);
     i += 0x1000;
   }
 
   /* Before we enable paging, we must register our page fault handler. */
-  isr_install_handler(14, page_fault);
+  isr_install_handler(14, page_fault_handler);
 
   /* Now, enable paging! */
   switch_page_directory(kernel_directory);
 }
 
+
 void switch_page_directory(page_directory_t *dir)
 {
   /* Loads address of the current directory into cr3 */
   current_directory = dir;
-  __asm__ __volatile__("mov %0, %%cr3":: "r"(&dir->tables_physical_address));
+  asm volatile ("mov %0, %%cr3" : : "r"(&dir->tables_physical_address));
 
   /* Reads current cr0 */
   u_int32 cr0;
-  __asm__ __volatile__("mov %%cr0, %0": "=r"(cr0));
+  asm volatile ("mov %%cr0, %0" : "=r"(cr0));
 
   /* Enables paging! */
   cr0 |= 0x80000000;
-  __asm__ __volatile__("mov %0, %%cr0":: "r"(cr0));
+  asm volatile ("mov %0, %%cr0" : : "r"(cr0));
 }
 
 page_t *get_page(u_int32 address, bool make, page_directory_t *dir)
@@ -179,12 +179,12 @@ page_t *get_page(u_int32 address, bool make, page_directory_t *dir)
 }
 
 
-void page_fault(regs_t *regs)
+void page_fault_handler(regs_t *regs)
 {
   /* A page fault has occurred. */
   /* The faulting address is stored in the CR2 register. */
   u_int32 faulting_address;
-  __asm__ __volatile__("mov %%cr2, %0" : "=r" (faulting_address));
+  asm volatile ("mov %%cr2, %0" : "=r" (faulting_address));
 
   /* The error code gives us details of what happened. */
   bool present  = !(regs->err_code       & 0x1);  /* Page not present */

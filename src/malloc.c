@@ -46,11 +46,6 @@ struct header_free
  */
 
 
-
-header_free_t *first_free_block;
-void *unallocated_mem;
-
-
 size_t get_size(void *block)
 {
   return ((end_header_t *)block)->size << 1;
@@ -183,7 +178,7 @@ void insert_after(header_free_t *to_insert, header_free_t *block)
     to_insert->next = first_free_block;
     to_insert->prev = 0;
     if (first_free_block)
-      first_free_block->prev = to_insert;
+      ((header_free_t *)first_free_block)->prev = to_insert;
     first_free_block = to_insert;
   }
 }

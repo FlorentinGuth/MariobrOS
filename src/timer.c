@@ -23,7 +23,7 @@ unsigned int timer_ticks = 0;
  * per second. */
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-void timer_handler(struct regs *r)
+void timer_handler_dummy(struct regs *r)
 {
   /* Increment our 'tick count' */
   timer_ticks++;
@@ -36,7 +36,7 @@ void timer_install()
 {
   timer_phase(1000);
   /* Installs 'timer_handler' to IRQ0 */
-  irq_install_handler(0, timer_handler);
+  irq_install_handler(0, timer_handler_dummy);
 }
 
 void timer_wait(unsigned int amount)

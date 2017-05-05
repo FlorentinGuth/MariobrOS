@@ -20,7 +20,7 @@ int kmain(multiboot_info_t* mbd)
   gdt_install();
   init_pic();
 
-  timer_install();
+  /* timer_install(); */
   keyboard_install(TRUE);
 
   paging_install();
@@ -31,12 +31,14 @@ int kmain(multiboot_info_t* mbd)
   idt_install();
   isrs_install();
   irq_install();
-  
-  __asm__ __volatile__ ("sti");
-  
-  clear(); /* Empties the framebuffer */
-  set_disk(FALSE);
 
+  __asm__ __volatile__ ("sti");
+
+  clear(); /* Empties the framebuffer */
+  
+  // shell_install();
+
+  set_disk(FALSE);
   analyze_superblock();
   
   for(;;)
