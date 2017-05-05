@@ -15,8 +15,8 @@
 /* Unique end header for all blocks */
 typedef struct end_header
 {
-  bool used   :  1;  /* 0 for free, 1 for used */
   size_t size : 31;  /* Shifted right one bit */
+  bool used   :  1;  /* 0 for free, 1 for used, strongest bit because of little-endianness */
 } __attribute__((packed)) end_header_t;
 
 /* Used block have a first header identical to the end one */
@@ -26,8 +26,8 @@ typedef end_header_t header_used_t;
 typedef struct header_free header_free_t;
 struct header_free
 {
-  bool used   :  1;
   size_t size : 31;
+  bool used   :  1;
   header_free_t *prev;        /* Pointer to the previous free block in the doubly chained list */
   header_free_t *next;        /* Pointer to the next free block in the doubly chained list */
 } __attribute__((packed));
@@ -48,7 +48,7 @@ struct header_free
 
 size_t get_size(void *block)
 {
-  return ((end_header_t *)block)->size << 1;
+  return 2*(((end_header_t *)block)->size);
 }
 
 bool get_used(void *block)
@@ -371,13 +371,15 @@ void mem_free(void *ptr)
 {
   /* TODO: free pages when not used anymore? */
   /* Passing padding bytes to find back the header */
+  /* Beware! Little-endian, i.e. a 4-bytes int 0xABCDEF00 is stored as 00 EF CD AB... */
   u_int8 *maybe_header = (u_int8 *)ptr - 1;
   while (*maybe_header == 0) {
     maybe_header--;
   }
-  header_free_t *block = (header_free_t *)(maybe_header + 1) - 1;
+  maybe_header++;
+  header_free_t *block = (header_free_t *)(maybe_header - sizeof(header_used_t));
 
-  kloug(100, "Freeing block at %x\n", block);
+  kloug(100, "Freeing block at %x (supplied %x, maybe %x)\n", block, ptr, maybe_header);
   log_memory();
 
   block->used = FALSE;
