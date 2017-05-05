@@ -378,6 +378,8 @@ void mem_free(void *ptr)
   header_free_t *block = (header_free_t *)(maybe_header + 1) - 1;
 
   kloug(100, "Freeing block at %x\n", block);
+  log_memory();
+
   block->used = FALSE;
   insert_after(block, 0);
   merge(block);

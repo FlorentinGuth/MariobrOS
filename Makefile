@@ -27,6 +27,7 @@ KERNEL_ELF = $(BOOT_DIR)/kernel.elf
 
 BOCHS_CONFIG_CD = config_cd.txt
 BOCHS_CONFIG_DISK = config_disk.txt
+BOCHS_CONFIG_DEBUGGER = config_db.txt
 BOCHS_LOG = $(EMU_DIR)/logb.txt
 GRUB_CONFIG = $(BOOT_DIR)/grub/menu.lst
 GRUB2_CONFIG = $(BOOT_DIR)/grub/grub.cfg
@@ -55,6 +56,10 @@ define BOCHS_CONFIG_BOOT_DISK
 ata0:             enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata0-master:      type=disk, path=$(DISK_IMG), mode=flat, translation=auto
 boot:             disk
+endef
+
+define BOCHS_CONFIG_DB_CONTENT
+continue
 endef
 
 define GRUB_CONFIG_CONTENT
@@ -118,6 +123,8 @@ $(BOCHS_CONFIG_CD): $(EMU_DIR)
 	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_CD),$(EMU_DIR)/$(BOCHS_CONFIG_CD))
 $(BOCHS_CONFIG_DISK): $(EMU_DIR)
 	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_DISK),$(EMU_DIR)/$(BOCHS_CONFIG_DISK))
+$(BOCHS_CONFIG_DEBUGGER): $(EMU_DIR)
+	$(call ECHO_CONFIG,$(BOCHS_CONFIG_DB_CONTENT),$(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER))
 
 $(GRUB_CONFIG):
 	$(call ECHO_CONFIG,$(GRUB_CONFIG_CONTENT),$(GRUB_CONFIG))
@@ -127,11 +134,11 @@ $(GRUB2_CONFIG):
 
 
 
-runb: $(OS_ISO) $(BOCHS_CONFIG_CD)
-	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_CD)
+runb: $(OS_ISO) $(BOCHS_CONFIG_CD) $(BOCHS_CONFIG_DEBUGGER)
+	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_CD) -rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
 
-diskb: syncdisk #bochs
-	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_DISK)
+diskb: syncdisk $(BOCHS_CONFIG_DEBUGGER) #bochs
+	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_DISK) -rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
 
 runq: $(OS_ISO)
 	qemu-system-i386 -cdrom build/os.iso

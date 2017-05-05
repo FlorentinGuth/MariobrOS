@@ -27,7 +27,7 @@ int kmain(multiboot_info_t* mbd)
   malloc_install();
 
   isr_install_handler(6,illegal_opcode_handler);
-  
+
   idt_install();
   isrs_install();
   irq_install();
@@ -35,12 +35,12 @@ int kmain(multiboot_info_t* mbd)
   __asm__ __volatile__ ("sti");
 
   clear(); /* Empties the framebuffer */
-  
-  // shell_install();
 
-  set_disk(FALSE);
-  analyze_superblock();
-  
+  shell_install();
+
+  /* set_disk(FALSE); */
+  /* analyze_superblock(); */
+
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;

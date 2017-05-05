@@ -11,11 +11,12 @@ char blank_command[buffer_size] = {' '};
 int  pos = 0, length = 0, max_length = 0;
 pos_t start_of_command;
 
-#define history_size 100
+#define history_size 5
 string history[history_size] = {0};
-int history_length = 1, history_pos = 0;
+int history_length = 0, history_pos = 0;
 bool modified_since_history = FALSE;
 
+/* String and cursor handling */
 void set_pos()
 {
   set_cursor_pos(start_of_command + pos);
@@ -29,6 +30,7 @@ void update_max_length()
 }
 
 
+/* Prompt */
 char user[] = "lazoub";
 char machine[] = "MariobrOS";
 char path[] = "~/Porn/OSDev";
@@ -38,6 +40,7 @@ void echo_thingy()
 }
 
 
+/* Commands */
 list_t commands = 0;
 void register_command(command_t c)
 {
@@ -58,6 +61,7 @@ command_t *find_command(string command_name)
 }
 
 
+/* The help command */
 void help_handler(list_t args)
 {
   void print_command(command_t *c)
@@ -87,10 +91,13 @@ void help_handler(list_t args)
     }
   }
 }
-command_t help_cmd = {.name = "help",
-                      .help = "Prints help of available functions, or of its arguments",
-                      .handler = *help_handler};
+command_t help_cmd = {
+  .name = "help",
+  .help = "Prints help of available functions, or of its arguments",
+  .handler = *help_handler,
+};
 
+/* The echo command */
 void echo_handler(list_t args)
 {
   list_t curr_arg = args;
@@ -100,9 +107,13 @@ void echo_handler(list_t args)
   }
   writef("\b\n");
 }
-command_t echo_cmd = {.name = "echo",
-                      .help = "Prints its arguments, separated by spaces",
-                      .handler = *echo_handler};
+command_t echo_cmd = {
+  .name = "echo",
+  .help = "Prints its arguments, separated by spaces",
+  .handler = *echo_handler,
+};
+
+
 
 void shell_install()
 {
@@ -134,7 +145,7 @@ void send_command()
 {
   /* Parsing of the command */
   list_t words = str_split(history[history_pos], ' ', FALSE);
-  kloug(100, "Executing command %s %x\n", history[history_pos], words);
+  kloug(200, "Executing command %s %x\n", history[history_pos], words);
 
   if (words) {
     string command_name = (string)words->head;
@@ -165,22 +176,25 @@ void shell_write_char(char c)
     send_command();
     echo_thingy();
 
-    /* Save in history */
-    str_copy(history[history_pos], history[history_length-1]);
-
-    history_pos = history_length;
-    if (history_length == history_size) {
+    if (history_length == history_size - 1) {
+      /* Full history */
+      kloug(100, "Full history %d %d\n", history_length, history_pos);
       mem_free(history[0]);
       for (int i = 1; i < history_size; i++) {
         history[i-1] = history[i];
       }
-      history_pos--;
+      history_pos = history_length;
     } else {
-      history_length += 1;
+      /* Save in history */
+      kloug(100, "Non-full history %d %d\n", history_length, history_pos);
+      str_copy(history[history_pos], history[history_length]);
+
+      history_length++;
+      history_pos = history_length;
     }
+
     history[history_pos] = mem_alloc(buffer_size);
     str_fill(history[history_pos], '\0', buffer_size);
-
 
     pos = 0;
     start_of_command = get_cursor_pos();
@@ -208,13 +222,13 @@ void shell_write_char(char c)
       length--;
     break;
 
-  default:
+  default:  /* write real char */
     /* First, we move the text */
     for (int i = length - 1; i > pos; i--) {
       history[history_pos][i] = history[history_pos][i-1];
     }
-    history[history_pos][pos] = c;
-    if (length < buffer_size) {
+    if (length < buffer_size - 1) {  /* Account for '\0' at the end */
+      history[history_pos][pos] = c;
       pos++;
       length++;
       update_max_length();
@@ -256,7 +270,7 @@ void shell_up()
 
 void shell_down()
 {
-  if (history_pos < history_length - 1) {
+  if (history_pos < history_length) {
     history_pos++;
     pos = length = str_length(history[history_pos]);
     update_max_length();
