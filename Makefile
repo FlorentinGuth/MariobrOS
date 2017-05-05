@@ -108,10 +108,6 @@ disk: diskq
 .PHONY: all runb runq syncdisk disk diskb diskq clean cleandisk mount rsync umount log redisk
 
 
-log: bochs
-	cat $(BOCHS_LOG)
-
-
 $(BUILD_DIR) $(EMU_DIR): # Ensures folders exist
 	mkdir -p $@
 

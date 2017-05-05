@@ -1,5 +1,6 @@
 #include "filesystem.h"
 #include "malloc.h"
+#include "kheap.h"
 
 superblock_t *spb = 0; // Superblock address
 bgp_t *bgpt = 0; // Block group descriptor table
@@ -48,13 +49,13 @@ void analyze_superblock()
   for(int i=0; i<2; i++) {
     writef("block bitmap: %x,inode bitmap: %x,inode table: %x,\nunalloc block: %x, unalloc inode: %x, dir_num: %x\n", bgpt[i].block_address_bitmap, bgpt[i].inode_address_bitmap, bgpt[i].inode_table_address, bgpt[i].unalloc_block, bgpt[i].unalloc_inode, bgpt[i].dir_num);
   }
-  
+
   inode_t inode_table[6];
-  readLBA(4*((u_int32)bgpt[1].inode_table_address),3,(u_int16*)inode_table);
-  
+  readPIO(4*((u_int32)bgpt[1].inode_table_address),0,sizeof(inode_table),(u_int16*)inode_table);
+
   writef("\n\n");
   for(int i=0; i<6; i++) {
     writef("type: %x, size: %u, group_id: %u, hard links: %u\n", inode_table[i].type,inode_table[i].size_low,inode_table[i].group_id,inode_table[i].hard_links);
   }
-  
+
 }
