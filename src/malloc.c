@@ -334,7 +334,7 @@ header_free_t *alloc_pages(size_t size)
 
 void malloc_install()
 {
-  unallocated_mem = (void *)START_OF_HEAP;
+  unallocated_mem = (void *)ceil_multiple(START_OF_HEAP, 0x1000);  /* Best */
   first_free_block = 0;
 
   extend_heap(1);

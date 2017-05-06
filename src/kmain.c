@@ -15,6 +15,7 @@ int kmain(multiboot_info_t* mbd)
   /* Setting the memory limits (which are given in number of 1024 bytes) */
   LOWER_MEMORY = 1024 * mbd->mem_lower;
   UPPER_MEMORY = 1024 * mbd->mem_upper;
+  kloug(100, "Lower memory: %x, upper memory: %x\n", LOWER_MEMORY, UPPER_MEMORY);
 
   /* Installing everything */
   gdt_install();
