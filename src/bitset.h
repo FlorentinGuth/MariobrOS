@@ -10,9 +10,11 @@
  */
 
 typedef struct bitset {
-  u_int32 length;
+  u_int32 length;  /* Number of bits in the structure */
   u_int32 *bits;
 } bitset_t;
+
+bitset_t empty_bitset(u_int32 lenght);
 
 void set_bit(bitset_t b, u_int32 bit, bool value);
 bool get_bit(bitset_t b, u_int32 bit);

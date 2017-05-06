@@ -38,9 +38,9 @@ void mem_free(void* ptr);
 
 
 /**
- *  @name write_memory - Prints the memory structure to the framebuffer
+ *  @name log_memory - Logs the heap structure
  *  @return void
  */
-void write_memory();
+void log_memory();
 
 #endif

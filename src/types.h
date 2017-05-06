@@ -37,7 +37,6 @@ typedef unsigned char bool;
 extern unsigned int ld_end;
 #define END_OF_KERNEL_LOCATION  &ld_end
 
-#define END_OF_KERNEL_HEAP      0x00800000
 
 /* Two variables set by kmain function right at the beginning of the call */
 extern u_int32 LOWER_MEMORY;  /* The memory from 0x0 to LOWER_MEMORY is free */

@@ -28,5 +28,4 @@ SECTIONS {
   }
 
   ld_end = .;               /* Declares a variable whose ADDRESS is the end of the kernel-reserved space */
-  . = 0x00400000;           /* The memory should be free after this point (4MB) */
 }

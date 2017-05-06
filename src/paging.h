@@ -8,81 +8,102 @@
 #include "types.h"
 #include "bitset.h"
 
+/* Reference for paging directory structure: http://valhalla.bofh.pl/~l4mer/WDM/secureread/pde-pte.htm */
 
-/* A bitset of frames (physical pages) - used or free. */
+
+/* Whether the paging is enabled */
+bool paging_enabled;  /* This must be set to FALSE by kmain before anything */
+
+
+/* A bitset of frames (physical pages) - used or free */
 bitset_t frames;
 
 
-typedef struct page
-{
-  bool    present    :  1;  /* Page present in memory */
-  bool    rw         :  1;  /* Read-only if clear, readwrite if set */
-  bool    user       :  1;  /* Supervisor level only if clear */
-  bool    accessed   :  1;  /* Has the page been accessed since last refresh? */
-  bool    dirty      :  1;  /* Has the page been written to since last refresh? */
-  u_int16 unused     :  7;  /* Amalgamation of unused and reserved bits */
-  u_int32 frame      : 20;  /* Frame address (shifted right 12 bits) */
-} __attribute__((packed)) page_t;
+typedef struct page_table_entry {
+  /* All those refer to the page pointed by the address in the page table entry */
+  bool    present        :  1;  /* 1 if page present in memory */
+  bool    rw             :  1;  /* 0 if read-only (only in user-mode), 1 if read/write */
+  bool    user           :  1;  /* 0 if supervisor level (kernel) */
+  bool    write_through  :  1;  /* I have no idea what this is */
+  bool    cache_disabled :  1;  /* I have no idea what this is */
+  bool    accessed       :  1;  /* 1 if the page has been accessed since last refresh */
+  bool    dirty          :  1;  /* 1 if the page been written to since last refresh? */
+  bool    pta_index      :  1;  /* Page Table Attribute index, I have no idea what this is */
+  bool    global_page    :  1;  /* I have no idea what this is */
+  u_int8  available      :  3;  /* Available for us! */
+  u_int32 address        : 20;  /* Page address (physical address, shifted right 12 bits) */
+} __attribute__((packed)) page_table_entry_t;
 
-typedef struct page_table
-{
-  page_t pages[1024];
+typedef struct page_table {
+  page_table_entry_t pages[1024];
 } __attribute__((packed)) page_table_t;
+
+
+typedef struct page_directory_entry {
+  /* All those bits refer to the page containing the page table */
+  bool    present        :  1;  /* 1 if page present in memory */
+  bool    rw             :  1;  /* 0 if read-only (only in user-mode), 1 if read/write */
+  bool    user           :  1;  /* 0 if supervisor level (kernel) */
+  bool    write_through  :  1;  /* I have no idea what this is */
+  bool    cache_disabled :  1;  /* I have no idea what this is */
+  bool    accessed       :  1;  /* 1 if the page has been accessed since last refresh */
+  bool    reserved       :  1;  /* Reserved by the processor, set to 0 */
+  bool    page_size      :  1;  /* 0 if 4KB, I don't know what size if 1 */
+  bool    global_page    :  1;  /* Ignored */
+  u_int8  available      :  3;  /* Available for us! */
+  u_int32 address        : 20;  /* Page table address (physical address, shifted right 12 bits) */
+} __attribute__((packed)) page_directory_entry_t;
 
 typedef struct page_directory
 {
-  /* Array of pointers to page tables. */
+  /* Array of pointers to page tables, i.e. contains their virtual addresses */
   page_table_t *tables[1024];
 
   /* Array of pointers to the page tables above, but gives their *physical*
-   * location, for loading into the CR3 register. */
-  u_int32 tables_physical_address[1024];
+   * address, for loading into the CR3 register. */
+  page_directory_entry_t entries[1024];
 
   /* The physical address of tables_physical_address. This comes into play
    * when we get our kernel heap allocated and the directory
    * may be in a different location in virtual memory. */
-  u_int32 physical_address;
+  u_int32 physical_address;  /* Unused for now */
 } __attribute__((packed)) page_directory_t;
+
 
 page_directory_t* current_directory;
 page_directory_t* kernel_directory;
 
 
-
 /**
  * @name paging_install - Enables paging
+ * @return void
  */
 void paging_install();
 
 
 /**
- * @name switch_page_directory - Loads the new page directory into the CR3 register
+ * @name request_virtual_space - Asks for access to a virtual page
+ * @param virtual_address      - An address in the requested page
+ * @param is_kernel            - Whether the page should be in kernel mode
+ * @param is_writable          - Whether the page should be writable (only applies in user-mode)
+ * @return bool                - Whether the request was successful
  */
-void switch_page_directory(page_directory_t *new);
+bool request_virtual_space(u_int32 virtual_address, bool is_kernel, bool is_writable);
+
 
 /**
- * @name  get_page - Retrieves a pointer to the page required
- * @param address  - The address whose we should search in which page it is
- * @param make     - If true, create the page if needed
- * @param dir      - A pointer to the page directory
- * @return           The page of the given page directory which contains the given address
- */
-page_t * get_page(u_int32 address, bool make, page_directory_t *dir);
-
-/**
- * @name  alloc_frame - Allocates and initializes a page
- * @param frames      - The frames bitset
- * @param page        - The page to allocate
- * @param is_kernel   - Whether the page is reserved by the kernel
- * @param is_writable - Whether the page is writable
- * @return              void
- */
-void alloc_frame(u_int32 *frames, page_t *page, bool is_kernel, bool is_writable);
-
-/**
- * @name   page_fault - Handler for page faults.
+ * @name free_virtual_space - Frees up the virtual space, so someone else can access it
+ * @param virtual_address   - An address in the freed page
  * @return void
  */
-void page_fault_handler(regs_t *regs);
+void free_virtual_space(u_int32 virtual_address);
+
+
+/**
+ * @name switch_page_directory - Loads the new page directory into the CR3 register
+ * @param new                  -
+ * @return void
+ */
+void switch_page_directory(page_directory_t *new);
 
 #endif

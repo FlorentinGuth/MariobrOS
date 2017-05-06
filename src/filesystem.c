@@ -1,6 +1,5 @@
 #include "filesystem.h"
 #include "malloc.h"
-#include "kheap.h"
 
 superblock_t *spb = 0; // Superblock address
 bgp_t *bgpt = 0; // Block group descriptor table
