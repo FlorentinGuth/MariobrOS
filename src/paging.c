@@ -11,105 +11,62 @@
 /* Source of everything: http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html */
 
 
-/** Frame allocation */
-/*  TODO: Replace this implementation with a stack of free frames (alloc and free in O(1)) */
+#define INDEX_FROM_FRAME(frame) (frame / 0x1000)
+#define FRAME_FROM_INDEX(index) (index * 0x1000)
 
-/* Macros used in the bitset algorithms. */
-#define INDEX_FROM_BIT(a)  (a/(8*4))
-#define OFFSET_FROM_BIT(a) (a%(8*4))
 
-/* Static function to set a bit in the frames bitset. */
-static void set_frame(u_int32* frames, u_int32 frame_addr)
+/**
+ * @name map_page_to_frame - Maps the given page to the given frame (physical page)
+ * @param page             - The page (virtual address)
+ * @param frame            - The frame (physical address / 0x1000)
+ * @param is_kernel        - Whether the page is in kernel mode
+ * @param is_writable      - Whether the page is writable (or read-only)
+ * @return void
+ */
+void map_page_to_frame(page_t *page, u_int32 frame, bool is_kernel, bool is_writable)
 {
-  u_int32 frame = frame_addr/0x1000;
-  u_int32 idx = INDEX_FROM_BIT(frame);
-  u_int32 off = OFFSET_FROM_BIT(frame);
-  frames[idx] |= (0x1 << off);
+  /* Marks the physical frame as used, if not already */
+  set_bit(frames, frame, TRUE);
+
+  page->present = TRUE;
+  page->rw      = is_writable;
+  page->user    = is_kernel;
+  page->frame   = frame;
 }
 
-/* Static function to clear a bit in the frames bitset. */
-static void clear_frame(u_int32* frames, u_int32 frame_addr)
+/**
+ * @name map_page     - Maps the given page (virtual address) to a free frame (physical page)
+ * @param page        - The page one wants access to
+ * @param is_kernel   - Whether the page is in kernel mode
+ * @param is_writable - Whether the page is writable (or read-only)
+ * @return void
+ */
+void map_page(page_t *page, bool is_kernel, bool is_writable)
 {
-  u_int32 frame = frame_addr/0x1000;
-  u_int32 idx = INDEX_FROM_BIT(frame);
-  u_int32 off = OFFSET_FROM_BIT(frame);
-  frames[idx] &= ~(0x1 << off);
+  map_page_to_frame(page, first_false_bit(frames), is_kernel, is_writable);
 }
 
-/* /\* Static function to test if a bit is set. *\/ */
-/* static u_int32 test_frame(u_int32* frames, u_int32 frame_addr) */
-/* { */
-/*   u_int32 frame = frame_addr/0x1000; */
-/*   u_int32 idx = INDEX_FROM_BIT(frame); */
-/*   u_int32 off = OFFSET_FROM_BIT(frame); */
-/*   return (frames[idx] & (0x1 << off)); */
-/* } */
 
-/* Static function to find the first free frame. */
-static u_int32 first_frame(u_int32* frames)
+/**
+ * @name free_page       - Marks the page (virtual space) as non-present anymore
+ * @param page           - The page one wants no more access to
+ * @param set_frame_free - Whether to mark the assoiated frame (physical space) as free
+ * @return void
+ */
+void free_page(page_t *page, bool set_frame_free)
 {
-  u_int32 i, j;
-  for (i = 0; i < INDEX_FROM_BIT(nb_frames); i++) {
-    if (frames[i] != 0xFFFFFFFF) { /* Nothing free, exit early. */
-      /* At least one bit is free here. */
-      for (j = 0; j < 32; j++) {
-        u_int32 toTest = 0x1 << j;
-        if ( !(frames[i]&toTest) )
-          return i*4*8+j;
-      }
-    }
+  if (set_frame_free) {
+    set_bit(frames, page->frame, FALSE);
   }
-
-  return (u_int32)-1;  /* No free frames */
+  page->frame = 0x0;
 }
 
-
-
-/* Function to allocate a frame. */
-void alloc_frame(u_int32* frames, page_t *page, bool is_kernel, bool is_writable)
-{
-  if (page->frame != 0) {
-    return;  /* Frame was already allocated, return straight away. */
-  } else {
-    u_int32 idx = first_frame(frames);    /* idx is now the index of the first free frame. */
-
-    if (idx == (u_int32) (-1)) {
-      throw("No free frames!");
-    }
-
-    set_frame(frames, idx * 0x1000);  /* This frame is now ours! */
-    page->present = TRUE;             /* Mark it as present. */
-    page->rw      = is_writable;      /* Should the page be writable? */
-    page->user    = is_kernel;        /* Should the page be user-mode? */
-    page->frame   = idx;
-  }
-}
-
-/* Function to deallocate a frame. */
-void free_frame(u_int32* frames, page_t *page)
-{
-  u_int32 frame;
-  if (!(frame = page->frame)) {
-    return;                      /* The given page didn't actually have an allocated frame! */
-  } else {
-    clear_frame(frames, frame);  /* Frame is now free again. */
-    page->frame = 0x0;           /* Page now doesn't have a frame. */
-  }
-}
-
-
-/** Paging code */
-
-extern u_int32 brk;  /* Defined in kheap.c */
 
 void paging_install()
 {
-  /* The size of physical memory */
-  u_int32 mem_end_page = UPPER_MEMORY;
-
-  /* The frames */
-  nb_frames = mem_end_page / 0x1000;
-  kernel_frames = (u_int32*)kmalloc(INDEX_FROM_BIT(nb_frames));
+  /* Set up the frames bitset */
+  frames.length = INDEX_FROM_FRAME(UPPER_MEMORY);
+  frames.bits = (u_int32 *)kmalloc(frames.length);
   mem_set(kernel_frames, 0, INDEX_FROM_BIT(nb_frames));
 
   /* Let's make a page directory. */

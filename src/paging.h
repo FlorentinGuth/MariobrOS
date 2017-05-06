@@ -6,11 +6,12 @@
  */
 
 #include "types.h"
+#include "bitset.h"
 
 
-/* A bitset of frames - used or free. */
-u_int32 nb_frames;
-u_int32 *kernel_frames;
+/* A bitset of frames (physical pages) - used or free. */
+bitset_t frames;
+
 
 typedef struct page
 {
