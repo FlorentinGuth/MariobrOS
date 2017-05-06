@@ -51,7 +51,7 @@ unsigned int str_length(string s);
  *  @param s -  s
  *  @param c - Character c
  *  @param empty - If FALSE, do not add empty strings in the result
- *  @return A list of strings, which do not contain the character c
+ *  @return A list of strings that do not contain the character c
  */
 list_t str_split(string s, char c, bool empty);
 

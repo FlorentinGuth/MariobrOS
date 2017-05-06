@@ -36,12 +36,12 @@ int kmain(multiboot_info_t* mbd)
   /* Enables interruptions */
   __asm__ __volatile__ ("sti");
 
-  /* Clears screen and installs the shell */
+
   clear();
   shell_install();
 
-  /* set_disk(FALSE); */
-  /* parse_superblock(); */
+  set_disk(FALSE);
+  filesystem_install();
 
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
