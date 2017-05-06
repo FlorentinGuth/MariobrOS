@@ -1,5 +1,6 @@
 #include "string.h"
 #include "malloc.h"
+#include "printer.h"
 
 
 int str_copy(string source, string dest)
@@ -15,8 +16,7 @@ int str_copy(string source, string dest)
 bool str_cmp(string a, string b)
 {
   int pos;
-  for (pos = 0; a[pos] != '\0' && b[pos] != '\0' && a[pos] == b[pos]; pos++) {
-  }
+  for (pos = 0; a[pos] != '\0' && b[pos] != '\0' && a[pos] == b[pos]; pos++);
   return a[pos] == b[pos];
 }
 

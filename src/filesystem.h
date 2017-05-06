@@ -2,6 +2,8 @@
 #define FILESYSTEM_H
 
 #include "ata_pio.h"
+#include "malloc.h"
+#include "string.h"
 
 struct superblock {      // Starting byte
   u_int32 inode_num;             // 0
@@ -120,6 +122,69 @@ typedef struct inode_t inode_t;
 #define PERM_USER_ID  0x800;
 /* inode_t->type is TYPE | PERM */
 
-void parse_superblock();
-  
+struct dir_entry {
+  u_int32 inode;
+  u_int16 size;
+  u_int8  name_length;
+  u_int8  file_type;
+  u_int8  name; // Not actually 8 bits long, this is just an entry point
+}__attribute__((packed));
+
+typedef struct dir_entry dir_entry;
+
+
+/**
+ *  @name find_inode - Finds the inode corresponding to an inode number
+ *  @param inode     - The inode number
+ *  @param buffer    - The output buffer of the inode, must be at least 128B wide
+ */
+void find_inode(u_int32 inode, inode_t *buffer);
+
+/**
+ *  @name allocate_inode - Allocates a new inode
+ *  @return ret          - The inode number of the new used inode. 
+ *                         0 if there is no free inode available
+ */
+u_int32 allocate_inode();
+
+/**
+ *  @name unallocate_inode - Unallocates an inode
+ *  @param inode - The inode to free
+ *  @return      - 0: No error
+ *                 1: The inode was not allocated before. No change was made
+ */
+u_int8 unallocate_inode(u_int32 inode);
+
+/**
+ *  @name read_inode_data - Copies a certain amount of data from the disk to 
+ *  a given buffer
+ *
+ *  @param inode  - The inode number of the file to read
+ *  @param buffer - The output buffer
+ *  @param offset - Offset within the file, in words (NOT in bytes)
+ *  @param length - The length of the data to copy, in words (NOT in bytes)
+ *
+ *  @return       - The actually read length of data
+ */
+u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
+                        u_int32 length);
+
+/**
+ *  @name open_file - Opens a file
+ *  @param str_path - The path to the file
+ *  @return inode   - The inode number of the file
+ */
+u_int32 open_file(string str_path);
+
+/**
+ *  @name  ls_dir - Prints to the screen the contents of a directory
+ *  @param inode  - The inode number of the directory
+ */
+void ls_dir(u_int32 inode);
+
+/**
+ *  @name filesystem_install - initializes all the necessary constants of the fs
+ */
+void filesystem_install();
+
 #endif

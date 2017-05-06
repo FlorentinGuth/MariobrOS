@@ -36,10 +36,10 @@ int kmain(multiboot_info_t* mbd)
 
   clear(); /* Empties the framebuffer */
 
-  /* shell_install(); */
+  shell_install();
 
   set_disk(FALSE);
-  parse_superblock();
+  filesystem_install();
 
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
