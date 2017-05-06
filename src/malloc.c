@@ -12,7 +12,7 @@
  */
 
 /* Limits of the heap */
-#define START_OF_HEAP ceil_multiple((u_int32)END_OF_KERNEL_LOCATION, 2)  /* 2 byte-aligned */
+#define START_OF_HEAP ceil_multiple((u_int32)END_OF_KERNEL_LOCATION, 0x1000)  /* page-aligned */
 #define END_OF_HEAP   (u_int32)unallocated_mem
 
 
@@ -334,7 +334,7 @@ header_free_t *alloc_pages(size_t size)
 
 void malloc_install()
 {
-  unallocated_mem = (void *)ceil_multiple(START_OF_HEAP, 0x1000);  /* Best */
+  unallocated_mem = (void *)START_OF_HEAP;
   first_free_block = 0;
 
   extend_heap(1);
