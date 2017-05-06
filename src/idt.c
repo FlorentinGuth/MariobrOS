@@ -1,4 +1,5 @@
 #include "idt.h"
+#include "logging.h"
 
 /* Source : http://www.osdever.net/bkerndev/Docs/idt.htm */
 
@@ -36,4 +37,6 @@ void idt_install()
 
   /* Points the processor's internal register to the new IDT */
   idt_load();
+
+  kloug(100, "IDT installed\n");
 }

@@ -20,7 +20,7 @@ DISK_IMG = $(DISK_DIR)/disk.img
 
 # File names
 LINKER = $(SRC_DIR)/link.ld
-OBJECTS = loader.o kmain.o shell.o process.o scheduler.o syscall.o malloc.o paging.o kheap.o memory.o filesystem.o ata_pio.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o queue.o list.o utils.o
+OBJECTS = loader.o kmain.o shell.o process.o scheduler.o syscall.o bitset.o malloc.o paging.o memory.o filesystem.o ata_pio.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o queue.o list.o utils.o
 OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
 OS_ISO = $(BUILD_DIR)/os.iso
 KERNEL_ELF = $(BOOT_DIR)/kernel.elf
@@ -135,10 +135,10 @@ $(GRUB2_CONFIG):
 
 
 runb: $(OS_ISO) $(BOCHS_CONFIG_CD) $(BOCHS_CONFIG_DEBUGGER)
-	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_CD)
+	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_CD) #-rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
 
 diskb: syncdisk $(BOCHS_CONFIG_DEBUGGER) #bochs
-	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_DISK)
+	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_DISK) #-rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
 
 runq: $(OS_ISO)
 	qemu-system-i386 -cdrom build/os.iso

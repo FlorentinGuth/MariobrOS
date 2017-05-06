@@ -412,4 +412,6 @@ void keyboard_install(bool shell)
     irq_install_handler(1, keyboard_shell_handler);
   else
     irq_install_handler(1, keyboard_handler);
+
+  kloug(100, "Keyboard installed\n");
 }

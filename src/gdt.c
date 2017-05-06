@@ -1,5 +1,6 @@
 #include "gdt.h"
 #include "io.h"
+#include "logging.h"
 
 /* Source : http://www.osdever.net/bkerndev/Docs/gdt.htm */
 
@@ -60,9 +61,11 @@ void gdt_install()
   gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);
 
   gdt_set_gate(3, (u_int32) &tss, 0x67, 0xE9, 0x00);
-  
+
   /* Flush out the old GDT and install the new changes! */
   gdt_flush();
+
+  kloug(100, "GTD installed\n");
 }
 
 void init_pic()
@@ -87,4 +90,6 @@ void init_pic()
     /* mask interrupts */
     outb(0x21, 0x0);
     outb(0xA1, 0x0);
+
+    kloug(100, "PIC installed\n");
 }

@@ -1,6 +1,6 @@
 #include "types.h"
 #include "paging.h"
-#include "kheap.h"
+#include "math.h"
 #include "logging.h"
 #include "error.h"
 #include "memory.h"
@@ -8,158 +8,211 @@
 #include "malloc.h"
 #include "process.h"
 
-/* Source of everything: http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html */
+/* Source material: http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html */
+
+/* Vocabulary precisions:
+ * - a frame is the physical address of a page, divided by 0x1000 (so takes 20 bits)
+ *   By extension, it designates the whole range frame - frame + 0x1000
+ * - a page is an entry in a page table, it refers to virtual memory
+ */
 
 
-/** Frame allocation */
-/*  TODO: Replace this implementation with a stack of free frames (alloc and free in O(1)) */
-
-/* Macros used in the bitset algorithms. */
-#define INDEX_FROM_BIT(a)  (a/(8*4))
-#define OFFSET_FROM_BIT(a) (a%(8*4))
-
-/* Static function to set a bit in the frames bitset. */
-static void set_frame(u_int32* frames, u_int32 frame_addr)
+/**
+ * @name get_physical_address - Returns the physical address corresponding to the given virtual one
+ * @param dir                 - The paging directory
+ * @param virtual_address     - The virtual address
+ * @return u_int32            - The physical address
+ */
+u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
 {
-  u_int32 frame = frame_addr/0x1000;
-  u_int32 idx = INDEX_FROM_BIT(frame);
-  u_int32 off = OFFSET_FROM_BIT(frame);
-  frames[idx] |= (0x1 << off);
-}
+  /**
+   * Bits  | 31 - 22 (10 bits, i.e. 1024) | 21 - 12 (10 bits, i.e. 1024) | 11 - 0 (12 bits, i.e. 4KB = 0x1000)
+   * Usage | offset in the page directory | offset in the page table     | offset in the page
+   */
+  u_int32 frame_address = virtual_address / 0x1000;
+  u_int32 page_index    = frame_address % 1024;
+  u_int32 table_index   = frame_address / 1024;
 
-/* Static function to clear a bit in the frames bitset. */
-static void clear_frame(u_int32* frames, u_int32 frame_addr)
-{
-  u_int32 frame = frame_addr/0x1000;
-  u_int32 idx = INDEX_FROM_BIT(frame);
-  u_int32 off = OFFSET_FROM_BIT(frame);
-  frames[idx] &= ~(0x1 << off);
-}
-
-/* /\* Static function to test if a bit is set. *\/ */
-/* static u_int32 test_frame(u_int32* frames, u_int32 frame_addr) */
-/* { */
-/*   u_int32 frame = frame_addr/0x1000; */
-/*   u_int32 idx = INDEX_FROM_BIT(frame); */
-/*   u_int32 off = OFFSET_FROM_BIT(frame); */
-/*   return (frames[idx] & (0x1 << off)); */
-/* } */
-
-/* Static function to find the first free frame. */
-static u_int32 first_frame(u_int32* frames)
-{
-  u_int32 i, j;
-  for (i = 0; i < INDEX_FROM_BIT(nb_frames); i++) {
-    if (frames[i] != 0xFFFFFFFF) { /* Nothing free, exit early. */
-      /* At least one bit is free here. */
-      for (j = 0; j < 32; j++) {
-        u_int32 toTest = 0x1 << j;
-        if ( !(frames[i]&toTest) )
-          return i*4*8+j;
-      }
+  page_table_t *page_table = dir->tables[table_index];
+  if (page_table) {
+    /* The page table exists - it implies its flag present is set in the corresponding page dir entry */
+    page_table_entry_t page = page_table->pages[page_index];
+    if (page.present) {
+      /* The page is present, everything is alright */
+      u_int32 physical_address = 0x1000 * page.address + virtual_address % 0x1000;
+      /* kloug(100, "Physical address of %x is %x\n", virtual_address, physical_address); */
+      return physical_address;
     }
   }
 
-  return (u_int32)-1;  /* No free frames */
+  /* Either the page table or the page is not present, reading at the
+   * supplied address would page_fault
+   */
+  kloug(100, "get_physical_address returned NULL\n");
+  return NULL;
 }
 
 
-
-/* Function to allocate a frame. */
-void alloc_frame(u_int32* frames, page_t *page, bool is_kernel, bool is_writable)
+/**
+ * @name map_page_to_frame - Maps the given page to the given frame (physical page)
+ * @param page             - The page (virtual address)
+ * @param frame            - The frame (physical address / 0x1000)
+ * @param is_kernel        - Whether the page is in kernel mode
+ * @param is_writable      - Whether the page is writable (or read-only)
+ * @return void
+ */
+void map_page_to_frame(page_table_entry_t *page, u_int32 frame, bool is_kernel, bool is_writable)
 {
-  if (page->frame != 0) {
-    return;  /* Frame was already allocated, return straight away. */
+  /* kloug(100, "Maps page %x to frame %x\n", page, frame); */
+
+  if (frame >= 0x100000) {
+    /* We're referencing physical space beyond 0x1000 * 0x100000 = 0xFFFFFFFF + 1 = 4GB */
+    writef("Invalid frame: %x", frame);
+    throw("Invalid frame");
+  }
+
+  /* Marks the physical frame as used, if not already */
+  set_bit(frames, frame, TRUE);  /* TODO: reference counting? */
+
+  page->present = TRUE;
+  page->rw      = is_writable;
+  page->user    = !is_kernel;
+  page->address = frame;
+}
+
+/**
+ * @name map_page     - Maps the given page (virtual address) to a free frame (physical page)
+ * @param page        - The page one wants access to
+ * @param is_kernel   - Whether the page is in kernel mode
+ * @param is_writable - Whether the page is writable (only in user-mode)
+ * @return bool       - Whether the mapping was successful
+ */
+bool map_page(page_table_entry_t *page, bool is_kernel, bool is_writable)
+{
+  u_int32 frame = first_false_bit(frames);
+  if (frame == (u_int32)(-1)) {
+    /* No more free frames! */
+    kloug(100, "No more free frames\n");
+    return FALSE;
   } else {
-    u_int32 idx = first_frame(frames);    /* idx is now the index of the first free frame. */
-
-    if (idx == (u_int32) (-1)) {
-      throw("No free frames!");
-    }
-
-    set_frame(frames, idx * 0x1000);  /* This frame is now ours! */
-    page->present = TRUE;             /* Mark it as present. */
-    page->rw      = is_writable;      /* Should the page be writable? */
-    page->user    = is_kernel;        /* Should the page be user-mode? */
-    page->frame   = idx;
+    map_page_to_frame(page, frame, is_kernel, is_writable);
+    return TRUE;
   }
 }
 
-/* Function to deallocate a frame. */
-void free_frame(u_int32* frames, page_t *page)
+
+/**
+ * @name free_page       - Marks the page (virtual space) as non-present anymore
+ * @param page           - The page one wants no more access to
+ * @param set_frame_free - Whether to mark the associated frame (physical space) as free
+ * @return void
+ */
+void free_page(page_table_entry_t *page, bool set_frame_free)
 {
-  u_int32 frame;
-  if (!(frame = page->frame)) {
-    return;                      /* The given page didn't actually have an allocated frame! */
+  if (set_frame_free) {
+    set_bit(frames, page->address, FALSE);
+  }
+  page->present = FALSE;
+}
+
+
+/**
+ * @name make_page_table - Allocates and creates a page table
+ * @param dir            - Paging directory
+ * @param table_index    - Index of the associated entry in the page directory
+ * @param is_kernel      - Whether the page which will contain the page table should be in kernel mode
+ * @param is_writable    - Whether the page which will contain the page table should be writable
+ * @return void
+ */
+void make_page_table(page_directory_t *dir, u_int32 table_index, bool is_kernel, bool is_writable)
+{
+  /* kloug(100, "Making page table %x\n", table_index); */
+
+  if (dir->tables[table_index]) {
+    /* Page table already made */
+    throw("Page table already made");
+  }
+
+  /* Allocates space for the page table, which must be page-aligned */
+  u_int32 page_table_address = (u_int32)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
+  u_int32 physical_address;
+  if (paging_enabled) {
+    physical_address = get_physical_address(dir, page_table_address);
   } else {
-    clear_frame(frames, frame);  /* Frame is now free again. */
-    page->frame = 0x0;           /* Page now doesn't have a frame. */
+    physical_address = page_table_address;  /* Will be identity mapped anyway */
   }
+
+  /* Set-up the table by setting the whole page to 0 */
+  mem_set((void *)page_table_address, 0, 0x1000);
+  dir->tables[table_index] = (page_table_t *)page_table_address;
+
+  /* Set-up the page directory entry */
+  page_directory_entry_t *entry = &dir->entries[table_index];
+  entry->present   = TRUE;
+  entry->rw        = is_writable;
+  entry->user      = !is_kernel;
+  entry->page_size = FALSE;        /* Should already be 0, but ensures 4KB size */
+  entry->address   = physical_address / 0x1000;
 }
 
 
-/** Paging code */
-
-extern u_int32 brk;  /* Defined in kheap.c */
-
-void paging_install()
+/**
+ * @name  get_page - Retrieves a pointer to the page entry corresponding to the given address
+ * @param dir      - A pointer to the page directory
+ * @param address  - The (virtual) address whose we should search in which page it is
+ * @return           The page of the given page directory which contains the given address
+ */
+page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
 {
-  /* The size of physical memory */
-  u_int32 mem_end_page = UPPER_MEMORY;
+  /**
+   * Bits  | 31 - 22 (10 bits, i.e. 1024) | 21 - 12 (10 bits, i.e. 1024) | 11 - 0 (12 bits, i.e. 0x1000)
+   * Usage | offset in the page directory |   offset in the page table   |      offset in the page
+   */
+  u_int32 frame_address = address / 0x1000;
+  u_int32 page_index    = frame_address % 1024;
+  u_int32 table_index   = frame_address / 1024;
 
-  /* The frames */
-  nb_frames = mem_end_page / 0x1000;
-  kernel_frames = (u_int32*)kmalloc(INDEX_FROM_BIT(nb_frames));
-  mem_set(kernel_frames, 0, INDEX_FROM_BIT(nb_frames));
+  page_table_t *page_table = dir->tables[table_index];
 
-  /* Let's make a page directory. */
-  kernel_directory = (page_directory_t*)kmalloc_aligned(sizeof(page_directory_t));
-  mem_set(kernel_directory, 0, sizeof(page_directory_t));
-  current_directory = kernel_directory;
-
-  /* We need to identity map (phys addr = virt addr) from
-   * 0x0 to the end of the kernel heap, so we can access this
-   * transparently, as if paging wasn't enabled. */
-  u_int32 i = 0;
-  while (i < END_OF_KERNEL_HEAP) {
-    /* Kernel code and data is readable but not writable from user-space. */
-    alloc_frame(kernel_frames, get_page(i, TRUE, kernel_directory), TRUE, FALSE);
-    i += 0x1000;
+  if (!page_table) {
+    make_page_table(dir, table_index, TRUE, FALSE);  /* A page table is kernel-only */
+    page_table = dir->tables[table_index];
   }
 
-  /* Before we enable paging, we must register our page fault handler. */
-  isr_install_handler(14, page_fault_handler);
-
-  /* Now, enable paging! */
-  switch_page_directory(kernel_directory);
+  return &page_table->pages[page_index];
 }
 
 
-void new_page_directory(process_t *proc)
-{
-  /* Let's make a page directory. */
-  page_directory_t *page_dir = (page_directory_t*)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
-  mem_set(page_dir, 0, sizeof(page_directory_t));
 
-  /* We need to identity map (phys addr = virt addr) from
-   * 0x0 to the end of the kernel heap, so we can access this
-   * transparently, as if paging wasn't enabled. */
-  u_int32 i = 0;
-  while (i < END_OF_KERNEL_HEAP) {
-    /* Kernel code and data is readable but not writable from user-space. */
-    alloc_frame(kernel_frames, get_page(i, TRUE, page_dir), TRUE, FALSE);
-    i += 0x1000;
+bool request_virtual_space(u_int32 virtual_address, bool is_kernel, bool is_writable)
+{
+  kloug(100, "Virtual space at %x requested\n", virtual_address);
+
+  page_table_entry_t *page = get_page(current_directory, virtual_address);
+
+  if (page->present) {
+    /* Virtual space is already used by someone else */
+    return FALSE;
   }
 
-  proc->context.page_dir = page_dir;
+  return map_page(page, is_kernel, is_writable);
+}
+
+void free_virtual_space(u_int32 virtual_address)
+{
+  page_table_entry_t *page = get_page(current_directory, virtual_address);
+
+  free_page(page, FALSE);  /* TODO: check when we can free the frame as well as the page */
 }
 
 
 void switch_page_directory(page_directory_t *dir)
 {
+  kloug(100, "Switching page directory\n");
+
   /* Loads address of the current directory into cr3 */
   current_directory = dir;
-  asm volatile ("mov %0, %%cr3" : : "r"(&dir->tables_physical_address));
+  asm volatile ("mov %0, %%cr3" : : "r"(&dir->entries));
 
   /* Reads current cr0 */
   u_int32 cr0;
@@ -170,35 +223,9 @@ void switch_page_directory(page_directory_t *dir)
   asm volatile ("mov %0, %%cr0" : : "r"(cr0));
 }
 
-page_t *get_page(u_int32 address, bool make, page_directory_t *dir)
-{
-  /* Turn the address into an index. */
-  address /= 0x1000;
-
-  /* Find the page table containing this address. */
-  u_int32 table_idx = address / 1024;
-
-  if (dir->tables[table_idx]) { /* If this table is already assigned */
-    return &dir->tables[table_idx]->pages[address%1024];
-  }
-  else if(make) {
-    u_int32 tmp;  /* To hold the physical address of the page */
-    dir->tables[table_idx] = (page_table_t*)kmalloc_physical_aligned(sizeof(page_table_t), &tmp);
-
-    mem_set(dir->tables[table_idx], 0, 0x1000);
-    dir->tables_physical_address[table_idx] = tmp | 0x7; // PRESENT, RW, US.
-
-    return &dir->tables[table_idx]->pages[address%1024];
-  }
-  else {
-    return 0;
-  }
-}
-
 
 void page_fault_handler(regs_t *regs)
 {
-  /* A page fault has occurred. */
   /* The faulting address is stored in the CR2 register. */
   u_int32 faulting_address;
   asm volatile ("mov %%cr2, %0" : "=r" (faulting_address));
@@ -208,17 +235,66 @@ void page_fault_handler(regs_t *regs)
   bool rw       =  (regs->err_code >> 1) & 0x1;   /* Write operation? */
   bool us       =  (regs->err_code >> 2) & 0x1;   /* Processor was in user-mode? */
   bool reserved =  (regs->err_code >> 3) & 0x1;   /* Overwritten CPU-reserved bits of page entry? */
-  /* bool id       = (regs.err_code >> 4) & 0x1;   /\* Caused by an instruction fetch? *\/ */
+  bool id       =  (regs->err_code >> 4) & 0x1;   /* Caused by an instruction fetch? */
 
-  /* Output an error message. */
-  write_string("Page fault! ( ");
-  if (present)  {write_string("present ");}
-  if (rw)       {write_string("read-only ");}
-  if (us)       {write_string("user-mode ");}
-  if (reserved) {write_string("reserved ");}
-  write_string(") at ");
-  write_hex(faulting_address);
-  write_string("\n");
+  /* Temporary, TODO remove */
+  writef("Page fault at %x, present %u rw %u user-mode %u reserved %u instruction fetch %u", \
+         faulting_address, present, rw, us, reserved, id);
+  throw("PAGE_FAULT");
 
-  throw("Page fault");
+  if (!present) {
+    /* The page was not present, let's try to make it! */
+    /* TODO: apply this only if is the next page of the stack, because malloc should
+     * handle paging himself */
+
+    /* TODO detect if kernel mode, but the kernel should not page-fault anyway */
+    if (request_virtual_space(faulting_address, FALSE, TRUE)) {
+      /* Let's return to the faulting code */
+      return;
+    }
+
+    /* The request failed, there's no more memory or the space is used by someone else */
+  } else {
+    /* There's nothing we can do for you */
+    writef("Page fault at %x, present %u rw %u user-mode %u reserved %u instruction fetch %u", \
+           faulting_address, present, rw, us, reserved, id);
+    throw("PAGE_FAULT");
+  }
+}
+
+
+void paging_install()
+{
+  /* Before we enable paging, we must register our page fault handler
+   * We do this early for debugging purposes...
+   */
+  isr_install_handler(14, page_fault_handler);
+
+  /* Set up the frames bitset */
+  frames = empty_bitset(floor_ratio(UPPER_MEMORY, 0x1000));
+  /* We use floor_ratio instead of ceil_ratio to be sure to have only full pages,
+   * rather than an incomplete one at the upper end of memory.
+   */
+
+  /* Let's make a page directory */
+  kernel_directory = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
+  mem_set(kernel_directory, 0, sizeof(page_directory_t));
+  current_directory = kernel_directory;
+
+  /* We need to identity map (phys addr = virt addr) from 0x0 to the end of the
+   * kernel heap (given by mem_alloc), so we can access this transparently, as
+   * if paging wasn't enabled. Note that the heap can grow during the loop turns,
+   * as we will allocate place for the page tables.
+   */
+  for(u_int32 frame = 0; frame < (u_int32)unallocated_mem; frame += 0x1000) {
+    /* Kernel code and data is readable but not writable from user-space */
+    /* kloug(100, "Identity-mapping frame %x\n", frame); */
+    map_page_to_frame(get_page(kernel_directory, frame), frame / 0x1000, TRUE, FALSE);
+  }
+
+  /* Now, enable paging! */
+  switch_page_directory(kernel_directory);
+
+  paging_enabled = TRUE;
+  kloug(100, "Paging installed\n");
 }

@@ -11,6 +11,11 @@
  * To deal with bytes, use void* (or functions like get_next_block...).
  */
 
+/* Limits of the heap */
+#define START_OF_HEAP ceil_multiple((u_int32)END_OF_KERNEL_LOCATION, 0x1000)  /* page-aligned */
+#define END_OF_HEAP   (u_int32)unallocated_mem
+
+
 
 /* Unique end header for all blocks */
 typedef struct end_header
@@ -45,59 +50,67 @@ struct header_free
  * - end_header_t
  */
 
-
+/**
+ * @name get_size - Returns the size of the block (comprises headers and padding)
+ * @param block   -
+ * @return size_t - The size, in bytes
+ */
 size_t get_size(void *block)
 {
   return 2*(((end_header_t *)block)->size);
 }
-
+/**
+ * @name get_used - Whether the given block is used
+ * @param block   -
+ * @return bool   - TRUE if the block is used, FALSE otherwise
+ */
 bool get_used(void *block)
 {
   return ((end_header_t *)block)->used;
 }
 
-
+/**
+ * @name get_first_header - Returns the first header corresponding to the given end header
+ * @param end_header      -
+ * @return header_used_t* - The head header
+ */
 header_used_t *get_first_header(void *end_header)
 {
   return end_header + sizeof(end_header_t) - get_size(end_header);
 }
-
+/**
+ * @name get_end_header  - Returns the end header corresponding to the given first header
+ * @param first_header   -
+ * @return end_header_t* - The end header
+ */
 end_header_t *get_end_header(void *first_header)
 {
   return first_header + get_size(first_header) - sizeof(end_header_t);
 }
-
+/**
+ * @name get_prev_block - Returns the left adjacent block in memory
+ * @param block         -
+ * @return void*        - NULL if there's no such block
+ */
 void *get_prev_block(void *block)
 {
-  if (block - sizeof(end_header_t) < (void *)END_OF_KERNEL_HEAP)
-    return 0;  /* In case we pass the boundary */
+  if ((u_int32)block - sizeof(end_header_t) < START_OF_HEAP)
+    return NULL;  /* In case we pass the boundary */
   return block - get_size(block - sizeof(end_header_t));
 }
-
+/**
+ * @name get_next_block - Returns the right adjacent block in memory
+ * @param block         -
+ * @return void*        - NULL if there's no such block
+ */
 void *get_next_block(void *block)
 {
   void *next = block + get_size(block);
-  if (next < unallocated_mem)
-    return next;
-  return 0;  /* In case we pass the boundary */
+  if ((u_int32)next >= END_OF_HEAP)
+    return NULL;  /* In case we pass the boundary */
+  return next;
 }
 
-
-void write_block(void *block)
-{
-  if (!block) {
-    writef("Nonexistent block\n");
-    return;
-  }
-
-  if (!get_used(block)) {
-    header_free_t *a = (header_free_t *)block;
-    writef("Free block at %x, size %x, prev %x, next %x\n", a, get_size(a), a->prev, a->next);
-  } else {
-    header_used_t *a = (header_used_t *)block;
-    writef("Used block at %x, size %x\n", a, get_size(a));
-  }
-}
 
 void log_block(void *block)
 {
@@ -115,36 +128,34 @@ void log_block(void *block)
   }
 }
 
-void write_memory()
-{
-  writef("First free block at %x\n", first_free_block);
-  void* block = (void *)END_OF_KERNEL_HEAP;
-  while (block) {
-    write_block(block);
-    if (get_size(block) == 0) {
-      writef("Block with size 0!\n");
-      return;
-    }
-    block = get_next_block(block);
-  }
-}
-
 void log_memory()
 {
+  kloug(100, "Malloc heap from %x to %x\n", START_OF_HEAP, END_OF_HEAP);
   kloug(100, "First free block at %x\n", first_free_block);
-  void* block = (void *)END_OF_KERNEL_HEAP;
+  void* block = (void *)START_OF_HEAP;
   while (block) {
     log_block(block);
     block = get_next_block(block);
   }
 }
 
-
+/**
+ * @name set_size - Sets the size of the given block
+ * @param block   -
+ * @param size    - The new size, in bytes (which must be a multiple of 2 and >= empty free block)
+ * @return void
+ */
 void set_size(void *block, size_t size)
 {
   ((end_header_t *)block)->size = size / 2;  /* Shift one bit right (unsigned) */
 }
-
+/**
+ * @name set_block - Fills both headers with the given information
+ * @param block    -
+ * @param size     -
+ * @param used     -
+ * @return void
+ */
 void set_block(void* block, size_t size, bool used)
 {
   /* kloug(100, "Setting block at %x with size %x, used %u\n", block, size, used); */
@@ -156,7 +167,12 @@ void set_block(void* block, size_t size, bool used)
   /* kloug(100, "Verification: %x %x %u\n", end_header, get_size(block), get_used(block)); */
 }
 
-
+/**
+ * @name insert_after - Inserts a block in the free list
+ * @param to_insert   - The new free block
+ * @param block       - The previous block in the free list, which can be NULL if insertion at the start
+ * @return void
+ */
 void insert_after(header_free_t *to_insert, header_free_t *block)
 {
   /* kloug(100, "Inserting block at %x after block at %x\n", to_insert, block); */
@@ -182,7 +198,11 @@ void insert_after(header_free_t *to_insert, header_free_t *block)
     first_free_block = to_insert;
   }
 }
-
+/**
+ * @name remove - Removes a block from the free list
+ * @param block -
+ * @return void
+ */
 void remove(header_free_t *block)
 {
   /* kloug(100, "Removing block at %x from free list\n", block); */
@@ -197,15 +217,21 @@ void remove(header_free_t *block)
     a->next = b;
   else
     first_free_block = b;
+
   if (b)
     b->prev = a;
 }
 
-
+/**
+ * @name merge_with_next - Merges the given free block with the adjacent right one, if possible
+ * @param block          - A free block
+ * @return void
+ */
 void merge_with_next(header_free_t *block)
 {
   /* kloug(100, "Merging block at %x with the next one\n", block); */
-  header_free_t *a = block, *b = get_next_block(block);
+  header_free_t *a = block;
+  header_free_t *b = get_next_block(block);
 
   /* log_block(a); log_block(b); */
 
@@ -225,7 +251,11 @@ void merge_with_next(header_free_t *block)
     set_size(a, get_size(a) + get_size(b));  /* Actual merging */
   }
 }
-
+/**
+ * @name merge  - Merges a free block with the two adjacent ones if needed
+ * @param block - A free block
+ * @return      - The resulting block
+ */
 header_free_t *merge(header_free_t *block)
 {
   merge_with_next(block);
@@ -239,23 +269,42 @@ header_free_t *merge(header_free_t *block)
 }
 
 
-void malloc_install()
+/**
+ * @name extend_heap - Extends the heap with a big free block
+ * @param nb_pages   - Number of pages to add to the heap
+ * @return           - Whether the extension was successful
+ */
+bool extend_heap(int nb_pages)
 {
-  /* Allocates a page */
-  alloc_frame(kernel_frames, get_page(END_OF_KERNEL_HEAP, TRUE, current_directory), \
-              (current_directory == kernel_directory), TRUE);
-  unallocated_mem = (void *)(END_OF_KERNEL_HEAP + 0x1000);
+  bool is_kernel = current_directory == kernel_directory;
+  void *block = unallocated_mem;  /* The block we will obtain */
 
-  first_free_block = (header_free_t *)END_OF_KERNEL_HEAP;
-  set_block(first_free_block, 0x00001000, FALSE);  /* Setting size of 4KB: the whole page */
-  kloug(100, "Malloc installed\n");
+  for (int i = 0; i < nb_pages; i++) {
+    if (paging_enabled) {
+      if (!request_virtual_space(END_OF_HEAP, is_kernel, !is_kernel)) {
+        /* The allocation failed, we need to free everything we requested */
+        for (i = i - 1; i >= 0; i--) {
+          unallocated_mem -= 0x1000;
+          free_virtual_space(END_OF_HEAP);
+        }
+        kloug(100, "Heap extension aborted\n");
+        return FALSE;
+      }
+    }
+    /* TODO: can fail if paging is disabled and we get past UPPER_MEMORY */
+    unallocated_mem += 0x1000;
+  }
+
+  /* Creates a block with the free space obtained */
+  set_block(block, 0x1000 * nb_pages, FALSE);
+  insert_after(block, 0);
+
+  return TRUE;
 }
-
-
 /**
  * @name alloc_pages - Allocates pages to have a free block big enough to fit the given size
- * @param size -  size of the block
- * @return The new free block
+ * @param size       - Size of the block
+ * @return           - The new free block
  */
 header_free_t *alloc_pages(size_t size)
 {
@@ -272,23 +321,31 @@ header_free_t *alloc_pages(size_t size)
   } else {
     nb_pages = ceil_ratio(size, 0x1000);
   }
+
   header_free_t *block = unallocated_mem;
 
-  /* kloug(100, "Allocating %u page(s)\n", nb_pages); */
-  for (int i = 0; i < nb_pages; i++) {
-    alloc_frame(kernel_frames, get_page((u_int32)unallocated_mem, TRUE, current_directory), \
-                (current_directory == kernel_directory), TRUE);
-    unallocated_mem += 0x1000;
+  if (extend_heap(nb_pages)) {
+    return merge(block);  /* Merge with previous block if needed */
+  } else {
+    return NULL;  /* Not enough space */
   }
-
-  set_block(block, nb_pages * 0x1000, FALSE);
-  insert_after(block, 0);  /* Inserts at the start of the list */
-  return merge(block);     /* Merge with previous block if needed */
 }
+
+
+void malloc_install()
+{
+  unallocated_mem = (void *)START_OF_HEAP;
+  first_free_block = 0;
+
+  extend_heap(1);
+
+  kloug(100, "Malloc installed\n");
+}
+
 
 void *mem_alloc_aligned(size_t size, unsigned int alignment)
 {
-  /* kloug(100, "Allocating a block of size %x\n", size); */
+  /* kloug(100, "Allocating a block of size %x, alignment %x\n", size, alignment); */
   /* log_memory(); */
 
   /* We need:
@@ -341,6 +398,11 @@ void *mem_alloc_aligned(size_t size, unsigned int alignment)
   }
   if (!block) {
     block = alloc_pages(size);
+
+    if (!block) {  /* #Unlucky */
+      kloug(100, "Malloc returned NULL\n");
+      return NULL;
+    }
   }
 
   remove(block);
@@ -363,6 +425,8 @@ void *mem_alloc_aligned(size_t size, unsigned int alignment)
   u_int32 after_header = start + sizeof(header_used_t);
   u_int32 after_padding = ceil_multiple(after_header, alignment);
   mem_set((void *)after_header, 0, after_padding - after_header);
+
+  /* kloug(100, "Malloc returned %x\n", after_padding); */
   return (void *)after_padding;
 }
 

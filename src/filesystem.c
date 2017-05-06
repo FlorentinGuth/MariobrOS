@@ -1,6 +1,5 @@
 #include "filesystem.h"
 
-
 /* lba n means sector n, with sector_size = 0x200 = 512 bytes. The volume starts
  * at 1M = 0x10000 in memory. Thus, lba n is the address 512 * n from the 
  * beginning  of the volume, that is at the physical address 0x10000 + n * 0x200.

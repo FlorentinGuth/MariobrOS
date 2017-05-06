@@ -37,6 +37,8 @@ void timer_install()
   timer_phase(1000);
   /* Installs 'timer_handler' to IRQ0 */
   irq_install_handler(0, timer_handler_dummy);
+
+  kloug(100, "Timer installed\n");
 }
 
 void timer_wait(unsigned int amount)
