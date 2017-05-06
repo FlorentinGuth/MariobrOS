@@ -31,9 +31,9 @@ void update_max_length()
 
 
 /* Prompt */
-char user[] = "lazoub";
+char user[] = "yugi";
 char machine[] = "MariobrOS";
-char path[] = "~/Porn/OSDev";
+char path[] = "~/draul/null/";
 void echo_thingy()
 {
   writef("%f%s@%s:%f%s%f$ ", Green, user, machine, LightBlue, path, White);
