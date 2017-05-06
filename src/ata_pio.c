@@ -143,7 +143,7 @@ void readLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[])
   // The next trick is used to transform 0 into 256
   for(short i = 0; i<(unsigned char)(sector_count-1)+1; i++) {
     if(poll()) {
-      throw("Error while reading"); // TODO Deal with this properly. Soft reset?
+      throw("Error while reading");
     }
     for(short j=0; j<256; j++) {
       buffer[i*256+j] = inw(ATA_DATA);
@@ -153,9 +153,10 @@ void readLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[])
 
 void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int16 buffer[])
 {
-  lba = lba+0x800; // 0x800 : beginning of volume
+  lba += 0x800 + (offset>>8); // 0x800 : beginning of volume
+  offset %= 256;
   if(disk_id) { identify_throw(disk_id); }
-  u_int16 sector_count = (offset + length + 255) / 256;
+  u_int16 sector_count = 1 + ((offset + length - 1)>>8);
   if(sector_count>256)  { throw("Too much data to read"); }
   if(sector_count==256) { sector_count = 0; }
   outb(ATA_DRIVE_SELECT, 0xE0 | ((lba >> 24) & 0x0F));
@@ -167,15 +168,15 @@ void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int16 buffer[])
   outb(ATA_ADDRESS3, (u_int8) (lba>>16));
   outb(ATA_COMMAND, 0x20); // READ SECTORS command
   int i = -offset;
-  length /= 2;
   while(i < (s_int32) length) {
     if(!((i+offset) % 256)) {
       if(poll()) {
         throw("Error while reading"); // TODO Deal with this properly. Soft reset?
       }
     }
-    if(i<0) { inw(ATA_DATA); }
-    else {
+    if(i<0) {
+      inw(ATA_DATA);
+    } else {
       buffer[i] = inw(ATA_DATA);
     }
     i++;
@@ -201,7 +202,7 @@ void writeLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[])
   outb(ATA_COMMAND, 0x30); // WRITE SECTORS command
   for(short i = 0; i<(unsigned char)(sector_count-1)+1; i++) {
     if(poll()) {
-      throw("Error while writing"); // TODO Deal with this properly. Soft reset?
+      throw("Error while writing");
     }
     for(short j=0; j<256; j++) {
       outw(ATA_DATA,buffer[i*256+j]);

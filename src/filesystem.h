@@ -81,7 +81,7 @@ struct inode_t {
   u_int32 deletion_time;
   u_int16 group_id;
   u_int16 hard_links;
-  u_int32 disk_sectors_used;
+  u_int32 blocks;
   u_int32 flags;
   u_int32 OS_spec1;
   u_int32 dbp[12]; // Direct Block Pointer
@@ -120,6 +120,6 @@ typedef struct inode_t inode_t;
 #define PERM_USER_ID  0x800;
 /* inode_t->type is TYPE | PERM */
 
-void analyze_superblock();
+void parse_superblock();
   
 #endif

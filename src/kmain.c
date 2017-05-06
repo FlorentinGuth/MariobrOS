@@ -40,7 +40,7 @@ int kmain(multiboot_info_t* mbd)
   shell_install();
 
   /* set_disk(FALSE); */
-  /* analyze_superblock(); */
+  /* parse_superblock(); */
 
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts

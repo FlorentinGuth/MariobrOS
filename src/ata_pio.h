@@ -92,8 +92,8 @@ void writeLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[]);
  *  @name readPIO - Reads the hard drive in a specific area
  *
  *  @param lba          - The LBA 28 bits address
- *  @param offset       - The starting offset
- *  @param length       - The length of the read data
+ *  @param offset       - The starting offset in words (NOT in bytes)
+ *  @param length       - The length of the read data in words (NOT in bytes)
  *  @param buffer       - The buffer that will contain the read words
  */
 void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int16 buffer[]);
