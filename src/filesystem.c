@@ -107,52 +107,53 @@ u_int8 unallocate_inode(u_int32 inode)
   return 0;
 }
 
-void buf_element_block(u_int32 block, u_int16* buffer, u_int32* copied, \
-                       u_int32 length)
-{
-  if(length - *copied >= block_size) {
-    readPIO(BLOCK(block), 0, block_size, &buffer[*copied]);
-    *copied += block_size;
-  } else {
-    readPIO(BLOCK(block), 0, length - *copied, &buffer[*copied]);
-    *copied = length;
-  }
-}
-
-/* The following function does not use std_buf */
+/* The following function does not use std_buf for length < 12*block_size */
 u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
                         u_int32 length)
 {
+  u_int32 width; // Length read, in words (NOT in bytes)
+  u_int32 to_read = offset / block_size;
   find_inode(inode, std_inode);
-  u_int32 copied = 0;
-  u_int8 position = offset / block_size; // The data block to read
-  if(position<12) {
-    if(length + offset >= block_size) {
-      readPIO(BLOCK(std_inode->dbp[position]), offset, block_size - offset, \
-              buffer);
+  u_int32 ofs = offset % block_size;
+
+  if(length > block_size - ofs) {
+    width = block_size - ofs;
+  } else {
+    width = length;
+  }
+  
+  if(to_read < 12) {
+    readPIO(BLOCK(std_inode->dbp[to_read]), ofs, width, buffer);
+  } else {
+    to_read -= 12;
+    if(to_read < block_size / 2) {
+      readPIO(BLOCK(std_inode->sibp), 0, block_size, std_buf);
+      readPIO(BLOCK(((u_int32*)std_buf)[to_read]), ofs, width, buffer);
     } else {
-      readPIO(BLOCK(std_inode->dbp[position]), offset, length, buffer);
+      to_read -= block_size / 2;
+      u_int32 dbsize = block_size*block_size;
+      if(to_read < dbsize / 4) {
+        readPIO(BLOCK(std_inode->dibp), 0, block_size, std_buf);
+        readPIO(BLOCK(((u_int32*)std_buf)[to_read/block_size]), 0,  \
+                block_size, std_buf);
+        readPIO(BLOCK(((u_int32*)std_buf)[to_read % block_size]), \
+                ofs, width, buffer);
+      } else {
+        to_read -= dbsize / 4;
+        if(to_read >= dbsize*block_size / 8) {
+          throw("Invalid offset");
+        }
+        readPIO(BLOCK(std_inode->tibp), 0, block_size, std_buf);
+        readPIO(BLOCK(((u_int32*)std_buf)[to_read/dbsize]), 0, block_size, \
+                std_buf);
+        readPIO(BLOCK(((u_int32*)std_buf)[(to_read%dbsize)/block_size]), 0, \
+                block_size, std_buf);
+        readPIO(BLOCK(((u_int32*)std_buf)[to_read % block_size]), \
+                ofs, width, buffer);
+      }
     }
   }
-  // TODO ibp
-  length -= offset;
-  for(; copied < length && position < 12; position++) {
-    buf_element_block(std_inode->dbp[position], buffer, &copied, length);
-    position++;
-  }
-  if(length == copied) {
-    return copied + block_size - offset;
-  }
-  u_int32 cop_1 = copied + block_size - offset;
-  length -= copied;
-  copied = 0;
-  readPIO(BLOCK(std_inode->sibp), 0, block_size, std_buf);
-  position = 0;
-  for(position = 0; copied < length && position < block_size/2; position++) {
-    buf_element_block(((u_int32*)std_buf)[position], buffer, &copied, length);
-    position++;
-  }
-  return copied + cop_1;
+  return width;
 }
 
 u_int32 open_file(string str_path)
@@ -196,7 +197,7 @@ u_int32 open_file(string str_path)
 
 void ls_dir(u_int32 inode)
 {
-  read_inode_data(inode, std_buf, 0, 256);
+  read_inode_data(inode, std_buf, 0, block_size);
   dir_entry *entry = (void*) std_buf;
   u_int32 endpos = (u_int32)std_buf + (block_size<<1);
   
@@ -205,10 +206,10 @@ void ls_dir(u_int32 inode)
     for(u_int8 i = 0 ; i < entry->name_length ; i++) {
       writef("%c", ((u_int8*) &(entry->name))[i]);
     }
-    writef("  <-- inode = %u", entry->inode);
+    writef(" \t <-- inode = %u", entry->inode);
     entry = (dir_entry*) (((u_int32)entry) + entry->size);
   }
-  writef("\n  _____\n\n");
+  writef("\n  _____\n");
 }
 
 
