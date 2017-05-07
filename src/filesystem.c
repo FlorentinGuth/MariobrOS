@@ -119,8 +119,8 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
     position = copied / block_size;
     if(position<12) { // Direct Blocks
       if(length - copied >= block_size) {
-        readPIO(BLOCK(std_inode->dbp[position]), 0, block_size/2, \
-                &buffer[copied]);
+        readPIO(BLOCK(std_inode->dbp[position]), 0, block_size, \
+                &buffer[copied]); // TODO offset
         copied += block_size;
       } else {
         readPIO(BLOCK(std_inode->dbp[position]), 0, length-copied, \
@@ -137,17 +137,18 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
 
 u_int32 open_file(string str_path)
 {
-  list_t path = str_split(str_path, '/', TRUE);
+  list_t path = str_split(str_path, '/', TRUE)->tail;
   u_int32 inode = 2; // root directory
   dir_entry *entry = 0;
   int i; char* a; char* b;
-
+  u_int32 endpos = (u_int32)std_buf + (1024<<(spb->block_size));
   while(path->head) {
-    read_inode_data(inode, std_buf, 0, 256); // TODO the entire block
+    read_inode_data(inode, std_buf, 0, 512<<(spb->block_size));
     entry = (void*) std_buf;
-    while(entry->size) {
+    while(entry->inode && (u_int32)entry < endpos) {
       a = (char*) path->head;
       b = (char*) &(entry->name);
+
       for(i=0; a[i] != '\0' && b[i] != '\0' && a[i]==b[i]; i++);
       // The difference with str_cmp is that b may not end with '\0'
       if(a[i] == b[i] || (a[i] == '\0' && i == entry->name_length)) {
@@ -156,6 +157,8 @@ u_int32 open_file(string str_path)
       }
       entry = (dir_entry*) (((u_int32)entry) + entry->size);
     }
+    if((u_int32)entry == endpos)
+      return 0; // Not found
     if(!path->tail)
       return inode;
     path = path->tail;
@@ -168,8 +171,9 @@ void ls_dir(u_int32 inode)
 {
   read_inode_data(inode, std_buf, 0, 256);
   dir_entry *entry = (void*) std_buf;
-
-  while(entry->size) {
+  u_int32 endpos = (u_int32)std_buf + (1024<<(spb->block_size));
+  
+  while(entry->size && (u_int32)entry < endpos) {
     writef("\n-->  ");
     for(u_int8 i = 0 ; i < entry->name_length ; i++) {
       writef("%c", ((u_int8*) &(entry->name))[i]);
@@ -184,20 +188,18 @@ void ls_dir(u_int32 inode)
 void filesystem_install()
 {
   set_disk(FALSE);
-
-  /* u_int32 block_size = 1024<<(spb->block_size); */
-  std_buf = mem_alloc(512);
-
+  
   spb = (void*) mem_alloc(sizeof(superblock_t));
   readPIO(2, 0, sizeof(superblock_t)/2, (u_int16*) spb);
   if(spb->signature!=0xef53) {
     throw("Wrong superblock signature : is this ext2 ?");
   }
 
-  /* The next definition is a reformulation of:
-   * block_factor = true_block_size / 0x200, where 
-   * true_block_size = 1<<(10 + spb->block_size) */
-  block_factor = 1 << (spb->block_size+1);
+  u_int32 block_size = 1024<<(spb->block_size);
+  /* The next definition means: block_factor = block_size / 0x200*/
+  block_factor = 2<<(spb->block_size);
+
+  std_buf = mem_alloc(block_size);
 
   u_int32 block_group_num = (spb->block_num + spb->block_per_group - 1) / \
     spb->block_per_group;
@@ -215,5 +217,5 @@ void filesystem_install()
   inode_t *root_inode = mem_alloc(sizeof(inode_t));
   find_inode(2, root_inode);
 
-  /* ls_dir(open_file("/../boot/./grub/../../boot/grub/locale/.././fonts/..")); */
+  ls_dir(open_file("/../boot/./grub/../../boot/grub/locale/.././fonts/.."));
 }
