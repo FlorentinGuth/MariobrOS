@@ -40,6 +40,7 @@ int kmain(multiboot_info_t* mbd)
   clear();
   shell_install();
 
+
   /* filesystem_install(); */
 
   for(;;)
