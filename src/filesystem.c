@@ -11,6 +11,7 @@
 superblock_t *spb = 0; // Superblock address
 bgp_t *bgpt = 0; // Block group descriptor table
 u_int32 block_factor = 0; // Only used in the definition of the BLOCK macro
+u_int32 block_size = 0; // block size in words (NOT in bytes)
 u_int16 *std_buf = 0;
 /* The above standard buffer is set up with the size of a block using mem_alloc.
  * Its purpose is to give access to memory within a function, without a call
@@ -96,42 +97,62 @@ u_int8 unallocate_inode(u_int32 inode)
   }
   u_int32 address = bgpt[(inode-1) / spb->inode_per_group].inode_address_bitmap;
   readLBA(BLOCK(address), 1, std_buf);
-  if(! (std_buf[(inode%2048) / 16] & (1<<(inode%16))) ) {
+  if(! (std_buf[((inode-1)%2048) / 16] & (1<<(inode-1%16))) ) {
     return 1; // Not allocated inode
   }
   spb->unalloc_inode_num++;
   bgpt[(inode-1) / spb->inode_per_group].unalloc_inode++;
-  std_buf[(inode%2048) / 16] &= ~(1<<(inode%16));
+  std_buf[((inode-1)%2048) / 16] &= ~(1<<((inode-1)%16));
   writeLBA(BLOCK(address), 1, std_buf);
   return 0;
+}
+
+void buf_element_block(u_int32 block, u_int16* buffer, u_int32* copied, \
+                       u_int32 length)
+{
+  if(length - *copied >= block_size) {
+    readPIO(BLOCK(block), 0, block_size, &buffer[*copied]);
+    *copied += block_size;
+  } else {
+    readPIO(BLOCK(block), 0, length - *copied, &buffer[*copied]);
+    *copied = length;
+  }
 }
 
 /* The following function does not use std_buf */
 u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
                         u_int32 length)
 {
-  u_int32 block_size = 512<<(spb->block_size); // Block size in words
   find_inode(inode, std_inode);
-  u_int32 copied = offset;
-  length += offset;
-  u_int8 position; // The data block to read
-  while(copied < length) {
-    position = copied / block_size;
-    if(position<12) { // Direct Blocks
-      if(length - copied >= block_size) {
-        readPIO(BLOCK(std_inode->dbp[position]), 0, block_size, \
-                &buffer[copied]); // TODO offset
-        copied += block_size;
-      } else {
-        readPIO(BLOCK(std_inode->dbp[position]), 0, length-copied, \
-                &buffer[copied]);
-        copied = length;
-      }
+  u_int32 copied = 0;
+  u_int8 position = offset / block_size; // The data block to read
+  if(position<12) {
+    if(length + offset >= block_size) {
+      readPIO(BLOCK(std_inode->dbp[position]), offset, block_size - offset, \
+              buffer);
     } else {
-      throw("Not yet implemented"); // TODO ibp !
+      readPIO(BLOCK(std_inode->dbp[position]), offset, length, buffer);
     }
   }
-  return copied - offset;
+  // TODO ibp
+  length -= offset;
+  for(; copied < length && position < 12; position++) {
+    buf_element_block(std_inode->dbp[position], buffer, &copied, length);
+    position++;
+  }
+  if(length == copied) {
+    return copied + block_size - offset;
+  }
+  u_int32 cop_1 = copied + block_size - offset;
+  length -= copied;
+  copied = 0;
+  readPIO(BLOCK(std_inode->sibp), 0, block_size, std_buf);
+  position = 0;
+  for(position = 0; copied < length && position < block_size/2; position++) {
+    buf_element_block(((u_int32*)std_buf)[position], buffer, &copied, length);
+    position++;
+  }
+  return copied + cop_1;
 }
 
 
@@ -141,9 +162,9 @@ u_int32 open_file(string str_path)
   u_int32 inode = 2; // root directory
   dir_entry *entry = 0;
   int i; char* a; char* b;
-  u_int32 endpos = (u_int32)std_buf + (1024<<(spb->block_size));
+  u_int32 endpos = (u_int32)std_buf + (block_size<<1);
   while(path->head) {
-    read_inode_data(inode, std_buf, 0, 512<<(spb->block_size));
+    read_inode_data(inode, std_buf, 0, block_size);
     entry = (void*) std_buf;
     while(entry->inode && (u_int32)entry < endpos) {
       a = (char*) path->head;
@@ -171,7 +192,7 @@ void ls_dir(u_int32 inode)
 {
   read_inode_data(inode, std_buf, 0, 256);
   dir_entry *entry = (void*) std_buf;
-  u_int32 endpos = (u_int32)std_buf + (1024<<(spb->block_size));
+  u_int32 endpos = (u_int32)std_buf + (block_size<<1);
   
   while(entry->size && (u_int32)entry < endpos) {
     writef("\n-->  ");
@@ -195,11 +216,11 @@ void filesystem_install()
     throw("Wrong superblock signature : is this ext2 ?");
   }
 
-  u_int32 block_size = 1024<<(spb->block_size);
+  block_size = 512<<(spb->block_size);
   /* The next definition means: block_factor = block_size / 0x200*/
   block_factor = 2<<(spb->block_size);
 
-  std_buf = mem_alloc(block_size);
+  std_buf = mem_alloc(block_size<<1);
 
   u_int32 block_group_num = (spb->block_num + spb->block_per_group - 1) / \
     spb->block_per_group;
