@@ -35,7 +35,6 @@ int kmain(multiboot_info_t* mbd)
   filesystem_install();
 
   /* Last but not least, the shell */
-  clear();
   shell_install();
 
 

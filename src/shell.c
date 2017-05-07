@@ -5,8 +5,6 @@
 #include "filesystem.h"
 
 
-/* TODO: memory leaks when dealing with arg lists (free list elements + strings) */
-
 #define buffer_size 128
 char blank_command[buffer_size] = {' '};
 int  pos = 0, length = 0, max_length = 0;
@@ -179,6 +177,26 @@ command_t cd_cmd = {
 };
 
 
+void splash_screen()
+{
+  writef("%f%b\
+   ____    ____                  _         ______             ___     ______    \
+  |_   \\  /   _|                (_)       |_   _ \\          .'   `. .' ____ \\   \
+    |   \\/   |   ,--.   _ .--.  __   .--.   | |_) | _ .--. /  .-.  \\| (___ \\_|  \
+    | |\\  /| |  `'_\\ : [ `/'`\\][  |/ .'`\\ \\ |  __'.[ `/'`\\]| |   | | _.____`.   \
+   _| |_\\/_| |_ // | |, | |     | || \\__. |_| |__) || |    \\  `-'  /| \\____) |  \
+  |_____||_____|\\'-;__/[___]   [___]'.__.'|_______/[___]    `.___.'  \\______.'  \
+\n%f%b\n", White, Red, White, Black);
+}
+
+void display_ascii()
+{
+  for (int c = 0; c < 256; c++) {
+    writef("%d:%c ", c, c);
+  }
+}
+
+
 void shell_install()
 {
   path = (string)mem_alloc(sizeof("/"));
@@ -190,6 +208,8 @@ void shell_install()
   register_command(cd_cmd);
 
   clear();
+  /* display_ascii(); */
+  splash_screen();
   echo_thingy();
 
   start_of_command = get_cursor_pos();
