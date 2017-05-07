@@ -31,9 +31,9 @@ void update_max_length()
 
 
 /* Prompt */
-char user[] = "yugi";
+char user[] = "MarcPouzet";
 char machine[] = "MariobrOS";
-char path[] = "~/draul/null/";
+char path[] = "~/hell/";
 void echo_thingy()
 {
   writef("%f%s@%s:%f%s%f$ ", Green, user, machine, LightBlue, path, White);
@@ -46,7 +46,7 @@ void register_command(command_t c)
 {
   command_t *copy = mem_alloc(sizeof(command_t));
   *copy = c;
-  append(&commands, (u_int32)copy);
+  push(&commands, (u_int32)copy);
 }
 
 command_t *find_command(string command_name)
@@ -61,27 +61,27 @@ command_t *find_command(string command_name)
 }
 
 
+void print_command(command_t *c)
+{
+  writef("%f%s%f\t%s\n", LightRed, c->name, White, c->help);
+}
+
+
 /* The help command */
 void help_handler(list_t args)
 {
-  void print_command(command_t *c)
-  {
-    writef("%f%s%f\t%s\n", LightRed, c->name, White, c->help);
-  }
-
   if (args) {
     /* Print help for asked functions */
-    list_t curr_arg = args;
-    while (curr_arg) {
-      string func = (string)curr_arg->head;
+    list_t *curr_arg = &args;
+    while (!is_empty_list(curr_arg)) {
+      string func = (string)pop(curr_arg);
       command_t *cmd = find_command(func);
 
-      if (cmd)
+      if (cmd) {
         print_command(cmd);
-      else
+      } else {
         writef("%f%s%f\t%s\n", LightRed, func, White, "Unknown command");
-
-      curr_arg = curr_arg->tail;
+      }
     }
   } else {
     /* By default, print help for all functions */
@@ -100,12 +100,11 @@ command_t help_cmd = {
 /* The echo command */
 void echo_handler(list_t args)
 {
-  list_t curr_arg = args;
-  while (curr_arg) {
-    writef("%s ", curr_arg->head);
-    curr_arg = curr_arg->tail;
+  list_t *curr_arg = &args;
+  while (!is_empty_list(curr_arg)) {
+    writef("%s ", pop(curr_arg));
   }
-  writef("\b\n");
+  writef("\b\n");  /* Deletes last space */
 }
 command_t echo_cmd = {
   .name = "echo",
@@ -200,6 +199,7 @@ void shell_write_char(char c)
     start_of_command = get_cursor_pos();
     length = 0;
     max_length = 0;
+    kloug(100, "Command sent\n");
     return;
 
   case '\t':

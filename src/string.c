@@ -54,7 +54,7 @@ list_t str_split(string s, char c, bool empty)
       buffer[pos] = '\0';
       string word = mem_alloc(pos + 1);
       str_copy(buffer, word);
-      append(&res, (u_int32)word);
+      push(&res, (u_int32)word);
       pos = 0;
     } else {
       if (s[i] != c) {
@@ -69,7 +69,7 @@ list_t str_split(string s, char c, bool empty)
     buffer[pos] = '\0';
     string word = mem_alloc(pos + 1);
     str_copy(buffer, word);
-    append(&res, (u_int32)word);
+    push(&res, (u_int32)word);
     pos = 0;
   }
 

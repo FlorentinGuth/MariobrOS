@@ -5,6 +5,7 @@
 #include "types.h"
 #include "math.h"
 #include "utils.h"
+#include "error.h"
 
 /* Reminder: beware to pointer arithmetic.
  * Adding 1 means getting access to the next element, i.e. adds sizeof(type)...
@@ -276,6 +277,12 @@ header_free_t *merge(header_free_t *block)
  */
 bool extend_heap(int nb_pages)
 {
+  if (nb_pages == 0) {
+    throw("Extension of heap by 0 pages");
+  }
+  kloug(100, "Extension of heap by %d pages\n", nb_pages);
+
+
   bool is_kernel = current_directory == kernel_directory;
   void *block = unallocated_mem;  /* The block we will obtain */
 
@@ -345,7 +352,7 @@ void malloc_install()
 
 void *mem_alloc_aligned(size_t size, unsigned int alignment)
 {
-  /* kloug(100, "Allocating a block of size %x, alignment %x\n", size, alignment); */
+  kloug(100, "Allocating a block of size %x, alignment %x\n", size, alignment);
   /* log_memory(); */
 
   /* We need:
@@ -448,7 +455,7 @@ void mem_free(void *ptr)
   maybe_header++;
   header_free_t *block = (header_free_t *)(maybe_header - sizeof(header_used_t));
 
-  /* kloug(100, "Freeing block at %x (supplied %x, maybe %x)\n", block, ptr, maybe_header); */
+  kloug(100, "Freeing block at %x (supplied %x, maybe %x)\n", block, ptr, maybe_header);
   /* log_memory(); */
 
   block->used = FALSE;

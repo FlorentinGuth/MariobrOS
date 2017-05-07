@@ -188,6 +188,12 @@ bool request_virtual_space(u_int32 virtual_address, bool is_kernel, bool is_writ
 {
   kloug(100, "Virtual space at %x requested\n", virtual_address);
 
+  if (virtual_address % 0x1000 + 0x1000 > UPPER_MEMORY) {
+    /* Virtual address beyond physical memory! */
+    /* TODO: memory swap */
+    return FALSE;
+  }
+
   page_table_entry_t *page = get_page(current_directory, virtual_address);
 
   if (page->present) {
@@ -231,11 +237,23 @@ void page_fault_handler(regs_t *regs)
   asm volatile ("mov %%cr2, %0" : "=r" (faulting_address));
 
   /* The error code gives us details of what happened. */
-  bool present  = !(regs->err_code       & 0x1);  /* Page not present */
-  bool rw       =  (regs->err_code >> 1) & 0x1;   /* Write operation? */
-  bool us       =  (regs->err_code >> 2) & 0x1;   /* Processor was in user-mode? */
-  bool reserved =  (regs->err_code >> 3) & 0x1;   /* Overwritten CPU-reserved bits of page entry? */
-  bool id       =  (regs->err_code >> 4) & 0x1;   /* Caused by an instruction fetch? */
+  bool present  = (regs->err_code       & 0x1);  /* Whether the page is present */
+  bool rw       = (regs->err_code >> 1) & 0x1;   /* Write operation? */
+  bool us       = (regs->err_code >> 2) & 0x1;   /* Processor was in user-mode? */
+  bool reserved = (regs->err_code >> 3) & 0x1;   /* Overwritten CPU-reserved bits of page entry? */
+  bool id       = (regs->err_code >> 4) & 0x1;   /* Caused by an instruction fetch? */
+
+  /** Source: http://wiki.osdev.org/Paging
+   *  US RW  P - Description
+   *   0  0  0 - Supervisory process tried to read a non-present page entry
+   *   0  0  1 - Supervisory process tried to read a page and caused a protection fault
+   *   0  1  0 - Supervisory process tried to write to a non-present page entry
+   *   0  1  1 - Supervisory process tried to write a page and caused a protection fault
+   *   1  0  0 - User process tried to read a non-present page entry
+   *   1  0  1 - User process tried to read a page and caused a protection fault
+   *   1  1  0 - User process tried to write to a non-present page entry
+   *   1  1  1 - User process tried to write a page and caused a protection fault
+   */
 
   /* Temporary, TODO remove */
   writef("Page fault at %x, present %u rw %u user-mode %u reserved %u instruction fetch %u", \

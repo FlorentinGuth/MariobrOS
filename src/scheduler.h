@@ -23,6 +23,10 @@ typedef struct scheduler_state {
  */
 void scheduler_install();
 
+/**
+ * @name select_new_process - Searches the runqueues for a runnable process with highest priority
+ * @return void
+ */
 void select_new_process();
 
 

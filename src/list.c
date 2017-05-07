@@ -3,13 +3,38 @@
 #include "utils.h"
 
 
-void append(list_t *l, u_int32 x)
+list_t *empty_list()
+{
+  list_t *l = mem_alloc(sizeof(list_t));
+  *l = NULL;
+  return l;
+}
+
+bool is_empty_list(list_t *l)
+{
+  return *l == NULL;
+}
+
+
+void push(list_t *l, u_int32 x)
 {
   list_t u = mem_alloc(sizeof(struct list));
   u->head = x;
   u->tail = *l;
   *l = u;
 }
+
+u_int32 pop(list_t *l)
+{
+  u_int32 x = (*l)->head;
+  list_t tail = (*l)->tail;
+
+  mem_free(*l);
+  *l = tail;
+
+  return x;
+}
+
 
 void remove_elt(list_t *l, u_int32 x)
 {
@@ -33,7 +58,7 @@ void remove_elt(list_t *l, u_int32 x)
 }
 
 
-u_int32 max_list(list_t *l) // Assumes *l != NULL, i.e. non-empty list
+u_int32 max_list(list_t *l)
 {
     u_int32 max_elt = (*l)->head;
     list_t curr = (*l)->tail;
@@ -55,10 +80,10 @@ u_int32 extract_max(list_t *l)
 
 void reverse(list_t *l)
 {
-  list_t rev = 0;
+  list_t rev = NULL;
   list_t curr = *l;
   while (curr) {
-    append(&rev, curr->head);
+    push(&rev, curr->head);
     curr = curr->tail;
   }
   *l = rev;
