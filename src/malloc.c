@@ -284,27 +284,42 @@ bool extend_heap(int nb_pages)
 
 
   bool is_kernel = current_directory == kernel_directory;
-  void *block = unallocated_mem;  /* The block we will obtain */
+  /* The moving end of heap, different from unallocated_mem to avoid bad malloc states
+   * during page table allocations
+   */
+  u_int32 current_end_of_heap = (u_int32)unallocated_mem;
 
-  for (int i = 0; i < nb_pages; i++) {
-    if (paging_enabled) {
-      if (!request_virtual_space(END_OF_HEAP, is_kernel, !is_kernel)) {
+  if (paging_enabled) {
+    for (int i = 0; i < nb_pages; i++) {
+
+      if (!request_virtual_space(current_end_of_heap, is_kernel, !is_kernel)) {
         /* The allocation failed, we need to free everything we requested */
         for (i = i - 1; i >= 0; i--) {
-          unallocated_mem -= 0x1000;
-          free_virtual_space(END_OF_HEAP);
+          current_end_of_heap -= 0x1000;
+          free_virtual_space(current_end_of_heap);
         }
+
         kloug(100, "Heap extension aborted\n");
         return FALSE;
       }
-    }
-    /* TODO: can fail if paging is disabled and we get past UPPER_MEMORY */
-    unallocated_mem += 0x1000;
-  }
 
-  /* Creates a block with the free space obtained */
-  set_block(block, 0x1000 * nb_pages, FALSE);
-  insert_after(block, 0);
+      current_end_of_heap += 0x1000;
+    }
+  } else {
+      /* Paging isn't enabled, we just have to increase the end of the heap */
+      if (END_OF_HEAP + 0x1000*nb_pages > UPPER_MEMORY) {
+        /* There's not enough physical memory */
+        kloug(100, "Heap extension aborted\n");
+        return FALSE;
+      }
+
+      current_end_of_heap += 0x1000 * nb_pages;
+    }
+
+  /* Everything was fine: creates a block with the free space obtained */
+  set_block(unallocated_mem, 0x1000 * nb_pages, FALSE);
+  insert_after(unallocated_mem, 0);
+  unallocated_mem = (void *)current_end_of_heap;
 
   return TRUE;
 }

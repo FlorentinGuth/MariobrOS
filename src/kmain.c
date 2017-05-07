@@ -42,6 +42,8 @@ int kmain(multiboot_info_t* mbd)
 
   filesystem_install();
 
+  /* mem_alloc(0x20000000); */
+
   /* mem_alloc(512); mem_alloc(sizeof(superblock_t)); */
   /* mem_alloc(64); mem_alloc(sizeof(inode_t)); */
   /* mem_alloc(sizeof(inode_t)); */

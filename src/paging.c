@@ -304,6 +304,7 @@ void paging_install()
    * if paging wasn't enabled. Note that the heap can grow during the loop turns,
    * as we will allocate place for the page tables.
    */
+  /* TODO: allocate every page tables now? */
   for(u_int32 frame = 0; frame < (u_int32)unallocated_mem; frame += 0x1000) {
     /* Kernel code and data is readable but not writable from user-space */
     /* kloug(100, "Identity-mapping frame %x\n", frame); */
