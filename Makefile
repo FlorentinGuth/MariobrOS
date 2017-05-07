@@ -127,7 +127,7 @@ disk: diskq
 
 
 $(BUILD_DIR) $(EMU_DIR) $(PROGS_BIN_DIR): # Ensures folders exist
-	mkdir -p $@
+	@mkdir -p $@
 
 # Configuration files writing
 ECHO_CONFIG = @echo '$(subst $(NEWLINE),\n,$(1))' > $(2)
@@ -160,17 +160,17 @@ diskq: syncdisk #qemu
 
 # Kernel .c and .s compilation into .o
 $(BUILD_DIR)/%.o: src/%.c $(BUILD_DIR)
-	$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
+	@$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
 
 $(BUILD_DIR)/%.o: src/%.s $(BUILD_DIR)
-	$(AS) $< -o $@ $(ASFLAGS)
+	@$(AS) $< -o $@ $(ASFLAGS)
 
 # Progs compilation into .o and .bin
 $(BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.c $(BUILD_DIR)
-	$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
+	@$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
 
 $(PROGS_BIN_DIR)/%.bin: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_BIN_DIR)
-	$(LD) $(LDFLAGS) -T $(LINKER_PROG) $(LIB_PROG_O) $< -o $@
+	@$(LD) $(LDFLAGS) -T $(LINKER_PROG) $(LIB_PROG_O) $< -o $@
 
 
 $(OS_ISO):	$(KERNEL_ELF) $(GRUB_CONFIG) $(PROGS_BIN)
@@ -195,17 +195,17 @@ $(KERNEL_ELF):	$(OBJS)
 # Disk targets
 
 $(DISK_REF):
-	mkdir -p $(DISK_DIR)
+	@mkdir -p $(DISK_DIR)
 	dd if=/dev/zero of=$(DISK_REF) bs=512 count=131072
 	sudo losetup $(LOOP_DEVICE) $(DISK_REF)
 	sudo echo "," | sfdisk --quiet $(DISK_REF)
-	sudo partprobe $(LOOP_DEVICE)
+	@sudo partprobe $(LOOP_DEVICE)
 	sudo mkfs.ext2 -b 2048 $(LOOP_DEVICE)p1
-	sudo mkdir -p $(MNT_DIR)
-	sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
+	@sudo mkdir -p $(MNT_DIR)
+	@sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
 	sudo grub-install --root-directory=$(MNT_DIR) --no-floppy --modules="normal part_msdos ext2 multiboot" --target=i386-pc $(LOOP_DEVICE)
-	sudo umount -d $(MNT_DIR)
-	sudo rm -rf $(MNT_DIR)
+	@sudo umount -d $(MNT_DIR)
+	@sudo rm -rf $(MNT_DIR)
 	sudo losetup -d $(LOOP_DEVICE)
 
 $(DISK_IMG): $(DISK_REF)
@@ -217,15 +217,15 @@ rsync:
 	sudo rsync -r $(BOOT_DIR) $(MNT_DIR)
 
 mount:
-	sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
-	sudo partprobe $(LOOP_DEVICE)
-	sudo mkdir -p $(MNT_DIR)
-	sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
+	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
+	@sudo partprobe $(LOOP_DEVICE)
+	@sudo mkdir -p $(MNT_DIR)
+	@sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
 
 umount:
-	sudo umount -d $(MNT_DIR)
-	sudo rm -rf $(MNT_DIR)
-	sudo losetup -d $(LOOP_DEVICE)
+	@sudo umount -d $(MNT_DIR)
+	@sudo rm -rf $(MNT_DIR)
+	@sudo losetup -d $(LOOP_DEVICE)
 
 syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF) $(PROGS_BIN) mount rsync umount
 
