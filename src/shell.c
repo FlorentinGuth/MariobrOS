@@ -33,8 +33,8 @@ void update_max_length()
 
 /* Prompt */
 char user[] = "MarcPouzet";
-char machine[] = "MariobrOS";
-char path[] = "/";
+char machine[] = "MarioBrOS";
+string path;
 void echo_thingy()
 {
   writef("%f%s@%s:%f%s%f$ ", Green, user, machine, LightBlue, path, White);
@@ -143,13 +143,51 @@ command_t ls_cmd = {
   .handler = *ls_handler,
 };
 
+/* The cd command */
+void cd_handler(list_t args)
+{
+  if (args) {
+    string new_path = (string)args->head;
+
+    if (args->tail) {
+      writef("Too many arguments for %fcd%f\n", LightRed, White);
+    } else {
+      if (new_path[0] == '/') {
+        /* Absolute path */
+        mem_free(path);
+        path = new_path;
+      } else {
+        /* Relative path */
+        string new_new_path = str_cat(path, new_path);  /* TODO: /? */
+        mem_free(path);
+        mem_free(new_path);
+        path = new_new_path;
+      }
+    }
+  } else {
+    /* New path defaults to root */
+    mem_free(path);
+    string new_path = (string)mem_alloc(sizeof("/"));
+    new_path[0] = '/'; new_path[1] = '\0';
+    path = new_path;
+  }
+}
+command_t cd_cmd = {
+  .name = "cd",
+  .help = "Go to the given absolute or relative path",
+  .handler = *cd_handler,
+};
 
 
 void shell_install()
 {
-  register_command(echo_cmd);
-  register_command(help_cmd);
+  path = (string)mem_alloc(sizeof("/"));
+  path[0] = '/'; path[1] = '\0';
+
   register_command(ls_cmd);
+  register_command(help_cmd);
+  register_command(echo_cmd);
+  register_command(cd_cmd);
 
   clear();
   echo_thingy();

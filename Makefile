@@ -214,9 +214,10 @@ $(DISK_IMG): $(DISK_REF)
 redisk: cleandisk disk
 
 rsync:
-	sudo rsync -r $(BOOT_DIR) $(MNT_DIR)
+	sudo rsync -r $(BOOT_DIR)      $(MNT_DIR)
+	sudo rsync -r $(PROGS_BIN_DIR) $(MNT_DIR)
 
-mount:
+mount: $(DISK_IMG)
 	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
 	@sudo partprobe $(LOOP_DEVICE)
 	@sudo mkdir -p $(MNT_DIR)
