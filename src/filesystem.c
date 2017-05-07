@@ -155,15 +155,15 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
   return copied + cop_1;
 }
 
-
 u_int32 open_file(string str_path)
 {
-  list_t path = str_split(str_path, '/', TRUE)->tail;
+  list_t path = (str_split(str_path, '/', TRUE)->tail);
+  
   u_int32 inode = 2; // root directory
   dir_entry *entry = 0;
   int i; char* a; char* b;
   u_int32 endpos = (u_int32)std_buf + (block_size<<1);
-  while(path->head) {
+  while(path->tail || ! (*((char*) path->head) == '\0') ) {
     read_inode_data(inode, std_buf, 0, block_size);
     entry = (void*) std_buf;
     while(entry->inode && (u_int32)entry < endpos) {
@@ -178,13 +178,19 @@ u_int32 open_file(string str_path)
       }
       entry = (dir_entry*) (((u_int32)entry) + entry->size);
     }
-    if((u_int32)entry == endpos)
+    if((u_int32)entry == endpos) {
+      while(path) {
+        pop(&path);
+      }
       return 0; // Not found
-    if(!path->tail)
+    }
+    if(! path->tail) {
+      pop(&path);
       return inode;
-    path = path->tail;
+    }
+    pop(&path);
   }
-
+  pop(&path);
   return inode;
 }
 
@@ -238,5 +244,6 @@ void filesystem_install()
   inode_t *root_inode = mem_alloc(sizeof(inode_t));
   find_inode(2, root_inode);
 
-  ls_dir(open_file("/../boot/./grub/../../boot/grub/locale/.././fonts/.."));
+  char* s = "/";
+  ls_dir(open_file(s));
 }
