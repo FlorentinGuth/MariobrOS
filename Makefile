@@ -213,7 +213,7 @@ $(DISK_IMG): $(DISK_REF)
 
 redisk: cleandisk disk
 
-rsync:
+rsync: $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF) $(PROGS_BIN)
 	sudo rsync -r $(BOOT_DIR)      $(MNT_DIR)
 	sudo rsync -r $(PROGS_BIN_DIR) $(MNT_DIR)
 
@@ -228,7 +228,7 @@ umount:
 	@sudo rm -rf $(MNT_DIR)
 	@sudo losetup -d $(LOOP_DEVICE)
 
-syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF) $(PROGS_BIN) mount rsync umount
+syncdisk: mount rsync umount
 
 
 # Clean targets
