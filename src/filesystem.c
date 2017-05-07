@@ -183,6 +183,8 @@ void ls_dir(u_int32 inode)
 
 void filesystem_install()
 {
+  set_disk(FALSE);
+
   /* u_int32 block_size = 1024<<(spb->block_size); */
   std_buf = mem_alloc(512);
 
@@ -206,7 +208,7 @@ void filesystem_install()
 
   u_int32 bgpt_size = block_group_num * sizeof(bgp_t);
   bgpt = (void*) mem_alloc(bgpt_size);
-  readPIO(BLOCK(1), 0, bgpt_size, (u_int16*) bgpt);
+  readPIO(BLOCK(1), 0, bgpt_size/2, (u_int16*) bgpt);
 
   std_inode = mem_alloc(sizeof(inode_t));
 
