@@ -2,6 +2,7 @@
 #include "printer.h"
 #include "malloc.h"
 #include "logging.h"
+#include "filesystem.h"
 
 
 /* TODO: memory leaks when dealing with arg lists (free list elements + strings) */
@@ -33,7 +34,7 @@ void update_max_length()
 /* Prompt */
 char user[] = "MarcPouzet";
 char machine[] = "MariobrOS";
-char path[] = "~/hell/";
+char path[] = "/";
 void echo_thingy()
 {
   writef("%f%s@%s:%f%s%f$ ", Green, user, machine, LightBlue, path, White);
@@ -82,6 +83,8 @@ void help_handler(list_t args)
       } else {
         writef("%f%s%f\t%s\n", LightRed, func, White, "Unknown command");
       }
+
+      mem_free(func);
     }
   } else {
     /* By default, print help for all functions */
@@ -102,7 +105,9 @@ void echo_handler(list_t args)
 {
   list_t *curr_arg = &args;
   while (!is_empty_list(curr_arg)) {
-    writef("%s ", pop(curr_arg));
+    string word = (string)pop(curr_arg);
+    writef("%s ", word);
+    mem_free(word);
   }
   writef("\b\n");  /* Deletes last space */
 }
@@ -112,12 +117,39 @@ command_t echo_cmd = {
   .handler = *echo_handler,
 };
 
+/* The ls command */
+void ls_handler(list_t args)
+{
+  if (args) {
+    list_t *curr_arg = &args;
+    while(!is_empty_list(curr_arg)) {
+      string relative_path = (string)pop(curr_arg);
+      string absolute_path = str_cat(path, relative_path);
+
+      writef("%s:\n", relative_path);
+      ls_dir(open_file(absolute_path));
+      writef("\n");
+
+      mem_free(absolute_path);
+      mem_free(relative_path);
+    }
+  } else {
+    ls_dir(open_file(path));
+  }
+}
+command_t ls_cmd = {
+  .name = "ls",
+  .help = "Prints the contents of the current directory, or its arguments",
+  .handler = *ls_handler,
+};
+
 
 
 void shell_install()
 {
   register_command(echo_cmd);
   register_command(help_cmd);
+  register_command(ls_cmd);
 
   clear();
   echo_thingy();

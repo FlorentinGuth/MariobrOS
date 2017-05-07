@@ -77,6 +77,15 @@ list_t str_split(string s, char c, bool empty)
   return res;
 }
 
+string str_cat(string a, string b)
+{
+  unsigned int a_len = str_length(a), b_len = str_length(b);
+  string c = (string)mem_alloc(a_len + b_len + 1);  /* Don't forget '\0' */
+  str_copy(a, c);
+  str_copy(b, c+a_len);
+  return c;
+}
+
 
 
 char digit_to_char(int digit)

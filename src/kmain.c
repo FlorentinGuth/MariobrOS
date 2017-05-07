@@ -17,32 +17,30 @@ int kmain(multiboot_info_t* mbd)
   UPPER_MEMORY = 1024 * mbd->mem_upper;
   kloug(100, "Lower memory: %x, upper memory: %x\n", LOWER_MEMORY, UPPER_MEMORY);
 
-  /* Installing everything */
+  /* First things first: memory */
+  paging_enabled = FALSE;  /* Do not change this line */
+  malloc_install();
+  paging_install();
+
+  /* Segmentation and interruptions */
   gdt_install();
   init_pic();
   /* timer_install(); */
   keyboard_install(TRUE);
-
   /* isr_install_handler(6, illegal_opcode_handler); */
   idt_install();
   isrs_install();
   irq_install();
 
-  /* First things first: memory */
-  paging_enabled = FALSE;
-  malloc_install();
-  paging_install();
+  filesystem_install();
 
-  /* Enables interruptions */
-  __asm__ __volatile__ ("sti");
-
-
+  /* Last but not least, the shell */
   clear();
   shell_install();
 
 
-  /* filesystem_install(); */
-
+  /* Enables interruptions */
+  __asm__ __volatile__ ("sti");
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;

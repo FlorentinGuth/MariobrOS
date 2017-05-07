@@ -7,9 +7,9 @@
 #define SYSCALL_ISR 20
 
 typedef enum syscall {
-  Exit,    /* The process is finished and returns a value */
-  Fork,    /* Creates a new child process, with the same context at first */
-  Wait,    /* Waits for a child to return a value */
+  Exit = 0,    /* The process is finished and returns a value */
+  Fork = 1,    /* Creates a new child process, with the same context at first */
+  Wait = 2,    /* Waits for a child to return a value */
 } syscall_t;
 
 /**

@@ -55,6 +55,14 @@ unsigned int str_length(string s);
  */
 list_t str_split(string s, char c, bool empty);
 
+/**
+ * @name str_cat - Allocates and returns the concatenation of two strings
+ * @param a      - The first string
+ * @param b      - The second string
+ * @return a :: b
+ */
+string str_cat(string a, string b);
+
 
 /**
  *  @name int_to_string - Computes the representation of an integer.

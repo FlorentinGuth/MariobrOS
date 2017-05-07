@@ -8,9 +8,11 @@ HOST_MEMORY  = 512  # Memory that bochs should use to emulate our OS
 
 # Folders and paths
 SRC_DIR   = src
+PROGS_SRC_DIR = progs
+PROGS_BIN_DIR = iso/progs
 BUILD_DIR = build
-BOOT_DIR   = iso/boot
-EMU_DIR = emu
+BOOT_DIR  = iso/boot
+EMU_DIR   = emu
 
 DISK_DIR  = disk
 LOOP_DEVICE = /dev/loop0
@@ -18,10 +20,20 @@ MNT_DIR = /mnt/$(OS_NAME)_tmp
 DISK_REF = $(DISK_DIR)/disk_ref.img
 DISK_IMG = $(DISK_DIR)/disk.img
 
-# File names
+# Sources for the kernel
 LINKER = $(SRC_DIR)/link.ld
 OBJECTS = loader.o kmain.o shell.o process.o scheduler.o syscall.o bitset.o malloc.o paging.o memory.o filesystem.o ata_pio.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o queue.o list.o utils.o
 OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
+
+# Sources for user programs
+LINKER_PROG = $(PROGS_SRC_DIR)/link_prog.ld
+LIB_PROG_C = $(PROGS_SRC_DIR)/lib.c
+LIB_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(LIB_PROG_C))
+PROGS_C   = $(filter-out $(LIB_PROG_C),$(wildcard $(PROGS_SRC_DIR)/*.c))
+PROGS_O   = $(patsubst $(PROGS_SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(PROGS_C))
+PROGS_BIN = $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_BIN_DIR)/%.bin,$(PROGS_C))
+
+# OS targets
 OS_ISO = $(BUILD_DIR)/os.iso
 KERNEL_ELF = $(BOOT_DIR)/kernel.elf
 
@@ -98,7 +110,7 @@ CFLAGS =-m32 \
 
 # Linker and flags
 LD =      ld
-LDFLAGS = -T $(LINKER)
+LDFLAGS = -melf_i386
 
 # ASM compiler and flags
 AS =      nasm
@@ -110,10 +122,11 @@ all: runq
 
 disk: diskq
 
-.PHONY: all runb runq syncdisk disk diskb diskq clean cleandisk mount rsync umount log redisk
+.PHONY: all runb runq syncdisk disk diskb diskq clean cleandisk mount rsync umount log redisk progs
+.SECONDARY:   # Avoid deletion of intermediate files
 
 
-$(BUILD_DIR) $(EMU_DIR): # Ensures folders exist
+$(BUILD_DIR) $(EMU_DIR) $(PROGS_BIN_DIR): # Ensures folders exist
 	mkdir -p $@
 
 # Configuration files writing
@@ -132,8 +145,6 @@ $(GRUB2_CONFIG):
 	$(call ECHO_CONFIG,$(GRUB2_CONFIG_CONTENT),$(GRUB2_CONFIG))
 
 
-
-
 runb: $(OS_ISO) $(BOCHS_CONFIG_CD) $(BOCHS_CONFIG_DEBUGGER)
 	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_CD) #-rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
 
@@ -146,15 +157,25 @@ runq: $(OS_ISO)
 diskq: syncdisk #qemu
 	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m 512 -s -serial file:$(EMU_DIR)/logq.txt
 
+
+# Kernel .c and .s compilation into .o
 $(BUILD_DIR)/%.o: src/%.c $(BUILD_DIR)
-	@$(CC) $< -c -o $@  $(CFLAGS) $(CPPFLAGS)
+	$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
 
 $(BUILD_DIR)/%.o: src/%.s $(BUILD_DIR)
-	@$(AS) $< -o $@ $(ASFLAGS)
+	$(AS) $< -o $@ $(ASFLAGS)
 
-$(OS_ISO):	$(KERNEL_ELF) $(GRUB_CONFIG)
+# Progs compilation into .o and .bin
+$(BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.c $(BUILD_DIR)
+	$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
+
+$(PROGS_BIN_DIR)/%.bin: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_BIN_DIR)
+	$(LD) $(LDFLAGS) -T $(LINKER_PROG) $(LIB_PROG_O) $< -o $@
+
+
+$(OS_ISO):	$(KERNEL_ELF) $(GRUB_CONFIG) $(PROGS_BIN)
     # Builds the ISO image from the ISO folder
-	@genisoimage -R \
+	genisoimage -R \
                 -b $(ELTORITO) \
                 -no-emul-boot \
                 -boot-load-size 4 \
@@ -167,7 +188,11 @@ $(OS_ISO):	$(KERNEL_ELF) $(GRUB_CONFIG)
 
 $(KERNEL_ELF):	$(OBJS)
     # Links the file and produces the .elf in the ISO folder
-	$(LD) $(LDFLAGS) $(OBJS) -o $(KERNEL_ELF) -melf_i386
+	$(LD) $(LDFLAGS) -T $(LINKER) $(OBJS) -o $(KERNEL_ELF)
+
+
+
+# Disk targets
 
 $(DISK_REF):
 	mkdir -p $(DISK_DIR)
@@ -192,22 +217,26 @@ rsync:
 	sudo rsync -r $(BOOT_DIR) $(MNT_DIR)
 
 mount:
-	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
-	@sudo partprobe $(LOOP_DEVICE)
-	@sudo mkdir -p $(MNT_DIR)
-	@sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
+	sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
+	sudo partprobe $(LOOP_DEVICE)
+	sudo mkdir -p $(MNT_DIR)
+	sudo mount $(LOOP_DEVICE)p1 $(MNT_DIR)
 
 umount:
-	@sudo umount -d $(MNT_DIR)
-	@sudo rm -rf $(MNT_DIR)
-	@sudo losetup -d $(LOOP_DEVICE)
+	sudo umount -d $(MNT_DIR)
+	sudo rm -rf $(MNT_DIR)
+	sudo losetup -d $(LOOP_DEVICE)
 
-syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF) mount rsync umount
+syncdisk: $(DISK_IMG) $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK) $(KERNEL_ELF) $(PROGS_BIN) mount rsync umount
+
+
+# Clean targets
 
 clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf $(EMU_DIR)
 	rm -f $(BOOT_DIR)/kernel.elf
+	rm -rf $(PROGS_BIN_DIR)
 
 cleandisk: clean
 	rm -f $(DISK_IMG)
