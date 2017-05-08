@@ -177,24 +177,52 @@ command_t cd_cmd = {
 };
 
 
-void splash_screen()
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void splash_screen(list_t args)
 {
-  writef("%f%b\
+  clear();
+  writef("%f%b\n\
    ____    ____                  _         ______             ___     ______    \
   |_   \\  /   _|                (_)       |_   _ \\          .'   `. .' ____ \\   \
     |   \\/   |   ,--.   _ .--.  __   .--.   | |_) | _ .--. /  .-.  \\| (___ \\_|  \
     | |\\  /| |  `'_\\ : [ `/'`\\][  |/ .'`\\ \\ |  __'.[ `/'`\\]| |   | | _.____`.   \
    _| |_\\/_| |_ // | |, | |     | || \\__. |_| |__) || |    \\  `-'  /| \\____) |  \
   |_____||_____|\\'-;__/[___]   [___]'.__.'|_______/[___]    `.___.'  \\______.'  \
-\n%f%b\n", White, Red, White, Black);
-}
+\n\n", White, Red);
 
-void display_ascii()
+  write_box(POS(0,0), POS(8,SCREEN_WIDTH-1));
+
+  writef("%f%b", Red, Black);
+
+  for (unsigned char c = 178; c >= 176; c--) {
+    for (int i = 0; i < 80; i++) {
+      writef("%c", c);
+    }
+  }
+
+  writef("%f%b\n", White, Black);
+}
+#pragma GCC diagnostic pop
+command_t splash_cmd = {
+  .name = "splash",
+  .help = "Clears the screen and displays the splash screen (ignores its arguments)",
+  .handler = *splash_screen,
+};
+
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void display_ascii(list_t args)
 {
   for (int c = 0; c < 256; c++) {
     writef("%d:%c ", c, c);
   }
+  writef("\n");
 }
+#pragma GCC diagnostic pop
+command_t ascii_cmd = {
+  .name = "ascii",
+  .help = "Displays the ascii table (ignores its arguments)",
+  .handler = *display_ascii,
+};
 
 
 void shell_install()
@@ -202,14 +230,15 @@ void shell_install()
   path = (string)mem_alloc(sizeof("/"));
   path[0] = '/'; path[1] = '\0';
 
+  register_command(splash_cmd);
   register_command(ls_cmd);
   register_command(help_cmd);
   register_command(echo_cmd);
   register_command(cd_cmd);
+  register_command(ascii_cmd);
 
-  clear();
   /* display_ascii(); */
-  splash_screen();
+  splash_screen(NULL);
   echo_thingy();
 
   start_of_command = get_cursor_pos();

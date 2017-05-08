@@ -120,6 +120,81 @@ void syscall_wait()
 }
 
 
+extern unsigned char utf8_c2[], utf8_c3[];  /* Defined in printer.c */
+extern color_t foreground, background;      /* Defined in printer.c */
+
+#define POP(type)                                                       \
+  type param = *(type *)(ctx.regs->useresp + 4*nb_args);                \
+  nb_args++;
+
+
+void syscall_printf()
+{
+  context_t ctx = state->processes[state->curr_pid].context;
+  switch_page_directory(ctx.page_dir);
+
+  string s = (string)ctx.regs->ebx;
+
+  int read  = 0;
+  char buffer[17];
+  char c = s[0];
+  int nb_args = 0;
+
+  while(c!='\0') {
+    if(c=='%') {
+      read++;
+      switch(s[read]) {
+
+      case 'd': { // Decimal (signed)
+        POP(int);
+        int_to_string(buffer, param, 10);
+        write_string(buffer); break; }
+      case 'u': { // Decimal (unsigned)
+        POP(unsigned int);
+        u_int_to_string(buffer, param, 10);
+        write_string(buffer); break; }
+      case 'x': { // Hexadecimal
+        POP(unsigned int);
+        u_int_to_string(buffer, param, 16);
+        write_string("0x"); write_string(buffer); break; }
+      case 'h': { // Hexadecimal (without "0x")
+        POP(unsigned int);
+        u_int_to_string(buffer, param, 16);
+        write_string(buffer); break; }
+      case 'c': { // Character
+        POP(char);
+        write_char(param); break; }
+      case 's': { // String
+        POP(string);
+        write_string(param); break; }
+      case 'f': { // Foreground color
+        POP(color_t);
+        foreground = param; break; }
+      case 'b': { // Background color
+        POP(color_t);
+        background = param; break; }
+      case '%': { // Writes a '%'
+        write_char('%'); break; }
+      default:  { // Emergency stop
+        throw("Invalid format string");
+      }
+      }
+    } else if(c==0xc2) {
+      read++;
+      write_char(utf8_c2[(unsigned int)(s[read]-0xa1)]);
+    }
+    else if(c==0xc3) {
+      read++;
+      write_char(utf8_c3[(unsigned int)(s[read]-0x80)]);
+    }
+    else
+      write_char(c);
+    read++;
+    c = s[read];
+  }
+}
+
+
 void syscall_invalid()
 {
   throw("Invalid syscall!");

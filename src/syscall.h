@@ -7,9 +7,10 @@
 #define SYSCALL_ISR 20
 
 typedef enum syscall {
-  Exit = 0,    /* The process is finished and returns a value */
-  Fork = 1,    /* Creates a new child process, with the same context at first */
-  Wait = 2,    /* Waits for a child to return a value */
+  Exit   = 0,    /* The process is finished and returns a value */
+  Fork   = 1,    /* Creates a new child process, with the same context at first */
+  Wait   = 2,    /* Waits for a child to return a value */
+  Printf = 3,    /* Prints to the framebuffer */
 } syscall_t;
 
 /**
@@ -39,6 +40,15 @@ void syscall_exit();
  * @return void
  */
 void syscall_wait();
+
+/**
+ * @name syscall_printf - Prints to the framebuffer (stdout)
+ * The address of the format string is located in ebx, while the different
+ * arguments are pushed on top of the stack (in reverse order, i.e. the one on
+ * top is the leftmost).
+ * @return void
+ */
+void syscall_printf();
 
 void syscall_invalid();
 #endif

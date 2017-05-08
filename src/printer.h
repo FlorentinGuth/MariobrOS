@@ -17,6 +17,11 @@
 #define SCREEN_HEIGHT 25
 #define TAB_WIDTH      4
 
+#define ROW(pos)       ((pos) / SCREEN_WIDTH)
+#define COL(pos)       ((pos) % SCREEN_WIDTH)
+#define POS(row, col)  ((row) * SCREEN_WIDTH + (col))
+
+
 /* The I/O ports */
 #define ADDRESS_REG (port_t)0x3D4
 #define DATA_REG    (port_t)0x3D5
@@ -130,8 +135,10 @@ void write_hex(int n);
  *  - %d: a signed integer
  *  - %u: an unsigned integer
  *  - %x: an unsigned integer, in hex
+ *  - %h: same as %x, but without the "0x"
  *  - %c: a char
  *  - %s: a string
+ *  - %%: a real '%'
  *  - %f: changes the foreground color
  *  - %b: changes the background color
  *  - %%: writes a '%'
@@ -140,5 +147,13 @@ void write_hex(int n);
  *  @param ... - Arguments of the formatted string
  */
 void writef(char s[], ...);
+
+/**
+ * @name write_box - Writes a double-framed box to the framebuffer
+ * @param upper_left -
+ * @param lower_right -
+ * @return void
+ */
+void write_box(pos_t upper_left, pos_t lower_right);
 
 #endif

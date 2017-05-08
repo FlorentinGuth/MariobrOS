@@ -38,3 +38,12 @@ bool syscall_wait(u_int32 *pid, u_int32 *return_value)
   }
   return ret;
 }
+
+
+void syscall_printf(string s, ...)
+{
+  asm volatile ("mov $3, %eax");  /* Printf is syscall number 3 */
+  asm volatile ("mov %0, %%ebx" : : "r" (s));
+
+  asm volatile ("int $20");       /* Interruption 20 is syscall */
+}

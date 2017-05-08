@@ -1,4 +1,4 @@
-OS_NAME = MariobrOS
+OS_NAME = MarioBrOS
 
 # Options
 

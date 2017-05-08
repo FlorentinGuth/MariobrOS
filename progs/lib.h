@@ -11,6 +11,9 @@ typedef unsigned char bool;
 #define TRUE  1
 
 
+typedef char* string;
+
+
 /**
  * @name syscall_fork - Creates a new process with a new, copied context
  * @param priority    - The priority to give to the child process
@@ -36,5 +39,8 @@ void syscall_exit(u_int32 return_value);
  *                       1 if the call succeeded, and pid and return_value will be set accordingly
  */
 bool syscall_wait(u_int32 *pid, u_int32 *return_value);
+
+
+void syscall_printf(string s, ...);
 
 #endif
