@@ -122,7 +122,7 @@ all: runq
 
 disk: diskq
 
-.PHONY: all runb runq syncdisk disk diskb diskq clean cleandisk mount rsync umount log redisk progs
+.PHONY: all runb runq syncdisk disk diskb diskq clean cleandisk mount rsync umount log redisk progs core
 .SECONDARY:   # Avoid deletion of intermediate files
 
 
@@ -173,7 +173,7 @@ $(PROGS_BIN_DIR)/%.bin: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_BIN_DIR)
 	@$(LD) $(LDFLAGS) -T $(LINKER_PROG) $(LIB_PROG_O) $< -o $@
 
 
-$(OS_ISO):	$(KERNEL_ELF) $(GRUB_CONFIG) $(PROGS_BIN)
+$(OS_ISO):	$(GRUB_CONFIG) core
     # Builds the ISO image from the ISO folder
 	genisoimage -R \
                 -b $(ELTORITO) \
@@ -185,6 +185,8 @@ $(OS_ISO):	$(KERNEL_ELF) $(GRUB_CONFIG) $(PROGS_BIN)
                 -boot-info-table \
                 -o $(OS_ISO) \
                 iso
+
+core: $(KERNEL_ELF) $(PROGS_BIN)
 
 $(KERNEL_ELF):	$(OBJS)
     # Links the file and produces the .elf in the ISO folder
@@ -217,7 +219,7 @@ rsync: $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK)
 	sudo rsync -r $(BOOT_DIR)      $(MNT_DIR)
 	sudo rsync -r $(PROGS_BIN_DIR) $(MNT_DIR)
 
-mount: $(DISK_IMG) $(KERNEL_ELF) $(PROGS_BIN)
+mount: $(DISK_IMG)
 	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
 	@sudo partprobe $(LOOP_DEVICE)
 	@sudo mkdir -p $(MNT_DIR)
@@ -228,7 +230,7 @@ umount:
 	@sudo rm -rf $(MNT_DIR)
 	@sudo losetup -d $(LOOP_DEVICE)
 
-syncdisk: mount rsync umount
+syncdisk: core mount rsync umount
 
 
 # Clean targets

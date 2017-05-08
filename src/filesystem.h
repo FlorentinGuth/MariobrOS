@@ -83,7 +83,7 @@ struct inode_t {
   u_int32 deletion_time;
   u_int16 group_id;
   u_int16 hard_links;
-  u_int32 blocks;
+  u_int32 sectors;
   u_int32 flags;
   u_int32 OS_spec1;
   u_int32 dbp[12]; // Direct Block Pointer
@@ -100,26 +100,27 @@ typedef struct inode_t inode_t;
 
 
 /* Masks for the type field */
-#define TYPE_FIFO      0x1000;
-#define TYPE_CHAR_DEV  0x2000;
-#define TYPE_DIR       0x4000;
-#define TYPE_BLOCK_DEV 0x6000;
-#define TYPE_FILE      0x8000;
-#define TYPE_SYMB_LINK 0xA000;
-#define TYPE_UNIX_SOCK 0xC000;
+#define TYPE_FIFO      0x1000
+#define TYPE_CHAR_DEV  0x2000
+#define TYPE_DIR       0x4000
+#define TYPE_BLOCK_DEV 0x6000
+#define TYPE_FILE      0x8000
+#define TYPE_SYMB_LINK 0xA000
+#define TYPE_UNIX_SOCK 0xC000
 
-#define PERM_OTHER_E  0x001;
-#define PERM_OTHER_W  0x002;
-#define PERM_OTHER_R  0x004;
-#define PERM_GROUP_E  0x008;
-#define PERM_GROUP_W  0x010;
-#define PERM_GROUP_R  0X020;
-#define PERM_USER_E   0x040;
-#define PERM_USER_W   0x080;
-#define PERM_USER_R   0x100;
-#define PERM_STICKY   0x200;
-#define PERM_GROUP_ID 0x400;
-#define PERM_USER_ID  0x800;
+#define PERM_OTHER_E  0x001
+#define PERM_OTHER_W  0x002
+#define PERM_OTHER_R  0x004
+#define PERM_GROUP_E  0x008
+#define PERM_GROUP_W  0x010
+#define PERM_GROUP_R  0X020
+#define PERM_USER_E   0x040
+#define PERM_USER_W   0x080
+#define PERM_USER_R   0x100
+#define PERM_STICKY   0x200
+#define PERM_GROUP_ID 0x400
+#define PERM_USER_ID  0x800
+#define PERM_ALL      0x1FF
 /* inode_t->type is TYPE | PERM */
 
 struct dir_entry {
@@ -131,6 +132,15 @@ struct dir_entry {
 }__attribute__((packed));
 
 typedef struct dir_entry dir_entry;
+
+#define FILE_UNKNOWN   0x0
+#define FILE_REGULAR   0x1
+#define FILE_DIR       0x2
+#define FILE_CHAR_DEV  0x3
+#define FILE_BLOCK_DEV 0x4
+#define FILE_FIFO      0x5
+#define FILE_SOCKET    0x6
+#define FILE_SYMB_LINK 0x7
 
 
 /**
@@ -197,6 +207,14 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
  */
 u_int32 write_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
                          u_int32 length);
+
+/**
+ *  @name create_dir - Creates a directory
+ *  @param father    - The inode number of the father directory of this one
+ *  @param name      - The name of the directory
+ *  @return num      - The inode number of the created directory
+ */
+u_int32 create_dir(u_int32 father, string name);
 
 /**
  *  @name open_file - Opens a file

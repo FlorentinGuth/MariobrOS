@@ -2,7 +2,7 @@
 
 /* lba n means sector n, with sector_size = 0x200 = 512 bytes. The volume starts
  * at 1M = 0x10000 in memory. Thus, lba n is the address 512 * n from the 
- * beginning  of the volume, that is at the physical address 0x10000 + n * 0x200.
+ * beginning  of the volume, that is at the physical address 0x10000 + n * 0x200
  * The superpblock is at lba 2, so 0x10400 is the position of block 0.
  * Each block is 2048 = 256 * 8 bytes wide.
  */
@@ -27,14 +27,6 @@ inode_t *std_inode = 0;
  */
 #define BLOCK(n) (block_factor*(n))
 
-void find_inode(u_int32 inode, inode_t *buffer)
-{
-  u_int32 block_group = (inode-1) / spb->inode_per_group;
-  u_int32 index = (inode-1) % spb->inode_per_group;
-  readPIO(BLOCK(bgpt[block_group].inode_table_address), \
-          index*sizeof(inode_t)/2, sizeof(inode_t)/2, (u_int16*) buffer);
-}
-
 
 void update_block(u_int16* buffer, u_int32 ofs, u_int32 length, u_int32 address)
 {
@@ -43,6 +35,23 @@ void update_block(u_int16* buffer, u_int32 ofs, u_int32 length, u_int32 address)
     std_buf[pos] = buffer[pos-ofs];
   }
   writeLBA(address, block_factor, std_buf);
+}
+
+
+void find_inode(u_int32 inode, inode_t *buffer)
+{
+  u_int32 block_group = (inode-1) / spb->inode_per_group;
+  u_int32 index = (inode-1) % spb->inode_per_group;
+  readPIO(BLOCK(bgpt[block_group].inode_table_address), \
+          index*sizeof(inode_t)/2, sizeof(inode_t)/2, (u_int16*) buffer);
+}
+
+void update_inode(u_int32 inode, inode_t *buffer)
+{
+  u_int32 block_group = (inode-1) / spb->inode_per_group;
+  u_int32 index = (inode-1) % spb->inode_per_group;
+  update_block((u_int16*) buffer, index*sizeof(inode_t)/2, sizeof(inode_t)/2, \
+               BLOCK(bgpt[block_group].inode_table_address));
 }
 
 void update_or_bitmap(u_int32 address, u_int8 word, u_int16 mask)
@@ -58,7 +67,7 @@ u_int32 allocate_inode()
   if(!(spb->unalloc_inode_num && spb->first_free_inode)) {
     return 0;
   }
-  u_int32 ret = spb->first_free_inode;
+  u_int32 ret = spb->first_free_inode + 1;
   spb->unalloc_inode_num--;
 
   u_int32 k = spb->first_free_inode>>11; // Current checked sector
@@ -70,10 +79,10 @@ u_int32 allocate_inode()
   j++;
   bgpt[(k<<11)/spb->inode_per_group].unalloc_inode--;
 
-  if(! bgpt[(k<<11)/spb->inode_per_group].unalloc_inode) {
+  if(bgpt[(k<<11)/spb->inode_per_group].unalloc_inode) {
     for(; i < 128; i++) {
       // The first loop is inlined so as not to re-read the bitmap
-      if(std_buf[i]!=0xff) { // std_buf has been set up in update_or_bitmap
+      if(std_buf[i]!=0xffff) { // std_buf has been set up in update_or_bitmap
         for(; j < 16; j++) {
           if(!(std_buf[i] & (1<<j))) {
             spb->first_free_inode = (k<<11) + (i<<4) + j;
@@ -91,7 +100,7 @@ u_int32 allocate_inode()
     address = bgpt[(k<<11) / spb->inode_per_group].inode_address_bitmap;
     readPIO(BLOCK(address), k<<8, 256, std_buf);
     for(i=0; i < 128; i++) {
-      if(std_buf[i]!=0xff) {
+      if(std_buf[i]!=0xffff) {
         for(j = 0; j < 16; j++) {
           if(!(std_buf[i] & (1<<j))) {
             spb->first_free_inode = (k<<11) + (i<<4) + j;
@@ -123,19 +132,6 @@ u_int8 unallocate_inode(u_int32 inode)
   return 0;
 }
 
-u_int8 unallocate_block(u_int32 block)
-{
-  u_int32 address = bgpt[block / spb->block_per_group].block_address_bitmap;
-  readLBA(BLOCK(address), 1, std_buf);
-  if(! (std_buf[(block%2048) / 16] & (1<<(block%16)) )) {
-      return 1; // Not allocated block
-  }
-  bgpt[block / spb->block_per_group].unalloc_block++;
-  std_buf[(block%2048) / 16] &= ~(1<<(block%16));
-  writeLBA(BLOCK(address), 1, std_buf);
-  return 0;
-}
-
 u_int32 allocate_block(u_int32 prec)
 {
   if(!spb->unalloc_block_num) {
@@ -146,14 +142,13 @@ u_int32 allocate_block(u_int32 prec)
   u_int32 k = prec>>11; // Current checked sector
   u_int8 i = (u_int8) (prec % 2048)>>4; // Current checked word
   u_int8 j = (u_int8) prec % 16; // Current checked bit
-
   u_int32 address = bgpt[(k<<11)/spb->block_per_group].block_address_bitmap;
 
   readLBA(BLOCK(address) + k/2, 1, std_buf);
   if(bgpt[(k<<11)/spb->block_per_group].unalloc_block) {
     for(; i < 128; i++) {
       // The first loop is inlined so as not to re-read the bitmap
-      if(std_buf[i]!=0xff) {
+      if(std_buf[i]!=0xffff) {
         for(; j < 16; j++) {
           if(!(std_buf[i] & (1<<j))) {
             bgpt[(k<<11)/spb->block_per_group].unalloc_block--;
@@ -165,14 +160,14 @@ u_int32 allocate_block(u_int32 prec)
     }
   }
 
-  for(k++; k < (spb->block_num)>>11; k++) {
+  for(k++; k < (spb->block_num>>11); k++) {
     if(! bgpt[(k<<11)/spb->block_per_group].unalloc_block) {
       continue;
     }
     address = bgpt[(k<<11) / spb->block_per_group].block_address_bitmap;
     readLBA(BLOCK(address) + k/2, 1, std_buf);
     for(i=0; i < 128; i++) {
-      if(std_buf[i]!=0xff) {
+      if(std_buf[i]!=0xffff) {
         for(j = 0; j < 16; j++) {
           if(!(std_buf[i] & (1<<j))) {
             std_buf[i + ((k%2)<<8)] |= (1<<j);
@@ -191,6 +186,18 @@ u_int32 allocate_block(u_int32 prec)
   }
 }
 
+u_int8 unallocate_block(u_int32 block)
+{
+  u_int32 address = bgpt[block / spb->block_per_group].block_address_bitmap;
+  readLBA(BLOCK(address), 1, std_buf);
+  if(! (std_buf[(block%2048) / 16] & (1<<(block%16)) )) {
+      return 1; // Not allocated block
+  }
+  bgpt[block / spb->block_per_group].unalloc_block++;
+  std_buf[(block%2048) / 16] &= ~(1<<(block%16));
+  writeLBA(BLOCK(address), 1, std_buf);
+  return 0;
+}
 
 
 /* The following function does not use std_buf if offset+length<12*block_size */
@@ -331,12 +338,89 @@ u_int32 open_file(string str_path)
   return inode;
 }
 
+
+u_int16 set_dir_entry(dir_entry* e, u_int32 inode, u_int8 file_type, \
+                      string name, u_int16 size)
+{
+  u_int8 len = (u_int8) str_length(name);
+  u_int16 ret;
+  e->inode = inode;
+  e->name_length = len;
+  if(size) {
+    ret = 4 * (1 + (size-1)/4);
+    e->size = ret;
+  } else {
+    ret = 4 * ( 1 + (len + sizeof(dir_entry) - 1)/4 );
+    e->size = ret;
+  }
+  e->file_type = file_type;
+  for(int i = 0; i <= len; i++) {
+    ((string) &(e->name))[i] = name[i];
+  }
+  return ret;
+}
+
+u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
+{
+  read_inode_data(dir, std_buf, 0, block_size);
+  dir_entry *entry = (void*) std_buf;
+  u_int32 room = entry->size;
+  string b; int i;
+  while(entry->inode && room < 2*block_size) {
+    b = (string) &(entry->name);
+    for(i=0; name[i] != '\0' && b[i] != '\0' && name[i]==b[i]; i++);
+    if(name[i] == b[i] || (name[i] == '\0' && i == entry->name_length)) {
+      return 1; // Already a file with the same name
+    }
+    entry = (dir_entry*) (((u_int32)entry) + entry->size);
+    room += entry->size;
+  }
+  room -= entry->size;
+  if(2*block_size - room < sizeof(dir_entry) + (u_int8) str_length(name)) {
+    return 2; // No room for another file in this directory
+  }
+  u_int8 len = (u_int8) str_length((string)&entry->name);
+  u_int16 resize = 4 * ( 1 + (len + sizeof(dir_entry) - 1)/4 );
+  entry->size = resize;
+  entry = (dir_entry*) (((u_int32)entry) + entry->size);
+  set_dir_entry(entry, inode, file_type, name, 2*block_size - resize - room);
+  find_inode(dir, std_inode);
+  writeLBA(BLOCK(std_inode->dbp[0]), 1, std_buf);
+  return 0;
+}
+
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+u_int32 create_dir(u_int32 father, string name)
+{
+  u_int32 num = allocate_inode();
+  u_int32 block = allocate_block(0);
+  std_inode->type = TYPE_DIR | PERM_ALL;
+  std_inode->hard_links = 5;
+  std_inode->size_low = block_size * 2;
+  std_inode->sectors = block_factor;
+  std_inode->dbp[0] = block;
+  update_inode(num, std_inode);
+  
+  u_int16 size = set_dir_entry((void*) std_buf, num, FILE_DIR, ".", 0);
+  set_dir_entry((void*) ((u_int32) std_buf + size), father, FILE_DIR, "..", \
+                2*block_size - size);
+
+  writeLBA(BLOCK(block), 1, std_buf);
+
+  if(add_file(father, num, FILE_DIR, name)) {
+    return 0;
+  }
+  return num;
+}
+
+
+
 void ls_dir(u_int32 inode)
 {
   read_inode_data(inode, std_buf, 0, block_size);
   dir_entry *entry = (void*) std_buf;
   u_int32 endpos = (u_int32)std_buf + (block_size<<1);
-  
+
   while(entry->size && (u_int32)entry < endpos) {
     writef("\n-->  ");
     for(u_int8 i = 0 ; i < entry->name_length ; i++) {
@@ -345,7 +429,7 @@ void ls_dir(u_int32 inode)
     writef(" \t <-- inode = %u", entry->inode);
     entry = (dir_entry*) (((u_int32)entry) + entry->size);
   }
-  writef("\n  _____\n");
+  writef("\n");
 }
 
 
@@ -378,4 +462,8 @@ void filesystem_install()
   readPIO(BLOCK(1), 0, bgpt_size/2, (u_int16*) bgpt);
 
   std_inode = mem_alloc(sizeof(inode_t));
+
+  allocate_inode();
+
+  create_dir(create_dir(2,"test"), "sous_test");
 }
