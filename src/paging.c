@@ -297,6 +297,8 @@ void paging_install()
   /* Let's make a page directory */
   kernel_directory = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
   mem_set(kernel_directory, 0, sizeof(page_directory_t));
+  kernel_directory->physical_address = (u_int32)kernel_directory->entries;  /* Will be identity paged */
+
   current_directory = kernel_directory;
 
   /* We need to identity map (phys addr = virt addr) from 0x0 to the end of the
@@ -305,7 +307,7 @@ void paging_install()
    * as we will allocate place for the page tables.
    */
   /* TODO: allocate every page tables now? */
-  for(u_int32 frame = 0; frame < (u_int32)unallocated_mem; frame += 0x1000) {
+  for (u_int32 frame = 0; frame < (u_int32)unallocated_mem; frame += 0x1000) {
     /* Kernel code and data is readable but not writable from user-space */
     /* kloug(100, "Identity-mapping frame %x\n", frame); */
     map_page_to_frame(get_page(kernel_directory, frame), frame / 0x1000, TRUE, FALSE);
@@ -316,6 +318,50 @@ void paging_install()
 
   paging_enabled = TRUE;
   kloug(100, "Paging installed\n");
+}
+
+
+/**
+ * @name clone_page_table - Copy a page table, linking the pages
+ * @param table           - The page table to copy
+ * @return page_table_t*
+ */
+page_table_t *clone_page_table(page_table_t *table)
+{
+  page_table_t *copy = (page_table_t)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
+  mem_copy(copy, table, sizeof(page_table_t));
+  return copy;
+}
+
+
+/**
+ * @name clone_directory - Creates an identical page directory, with new page tables
+ * Beware that if dir == current_directory, we may not have a correct copy (TODO).
+ * @param dir            - The page directory to copy
+ * @return page_directory_t*
+ */
+page_directory_t *clone_directory(page_directory_t *dir)
+{
+  page_directory_t *copy = (page_table_t)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
+  mem_copy(copy, dir, sizeof(page_directory_t));
+
+  copy->physical_address = get_physical_address(current_directory, (u_int32)copy);
+
+  /* First, copy the tables */
+  for (int index = 0; index < 1024; index++) {
+    if (dir->entries[index].present) {
+      copy->tables[index] = clone_page_table(dir->tables[index]);
+    }
+  }
+
+  /* Now the physical addresses, once everything is mapped */
+  for (int index = 0; index < 1024; index++) {
+    if (dir->entries[index].present) {
+      copy->entries[index].address = get_physical_address(copy, (u_int32)copy->tables[index]) / 0x1000;
+    }
+  }
+
+  return copy;
 }
 
 

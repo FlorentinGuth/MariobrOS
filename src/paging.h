@@ -63,7 +63,7 @@ typedef struct page_directory
    * address, for loading into the CR3 register. */
   page_directory_entry_t entries[1024];
 
-  /* The physical address of tables_physical_address. This comes into play
+  /* The physical address of the entries. This comes into play
    * when we get our kernel heap allocated and the directory
    * may be in a different location in virtual memory. */
   u_int32 physical_address;  /* Unused for now */
