@@ -37,6 +37,10 @@ typedef unsigned char bool;
 extern unsigned int ld_end;
 #define END_OF_KERNEL_LOCATION  &ld_end
 
+/* Two variables set by kmain to determine the boundaries of the kernel stack */
+extern u_int32 START_OF_KERNEL_STACK;  /* Beware, START > END as the stack grows downward! */
+extern u_int32 END_OF_KERNEL_STACK;
+
 
 /* Two variables set by kmain function right at the beginning of the call */
 extern u_int32 LOWER_MEMORY;  /* The memory from 0x0 to LOWER_MEMORY is free */

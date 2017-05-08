@@ -192,6 +192,8 @@ void syscall_printf()
     read++;
     c = s[read];
   }
+
+  switch_page_directory(kernel_directory);
 }
 
 

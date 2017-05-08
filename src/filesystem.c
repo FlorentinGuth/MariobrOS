@@ -1,4 +1,5 @@
 #include "filesystem.h"
+#include "logging.h"
 
 /* lba n means sector n, with sector_size = 0x200 = 512 bytes. The volume starts
  * at 1M = 0x10000 in memory. Thus, lba n is the address 512 * n from the 
