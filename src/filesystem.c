@@ -31,6 +31,10 @@ inode_t *std_inode = 0;
 
 void update_block(u_int16* buffer, u_int32 ofs, u_int32 length, u_int32 address)
 {
+  address += block_factor * (ofs / block_size);
+  ofs %= block_size;
+
+  /* writef("Updating BLOCK %u with offset %u and length %u\n", address, ofs, length); */
   readLBA(address, block_factor, std_buf);
   for(u_int32 pos = ofs; pos < ofs + length; pos++) {
     std_buf[pos] = buffer[pos-ofs];
@@ -43,6 +47,7 @@ void find_inode(u_int32 inode, inode_t *buffer)
 {
   u_int32 block_group = (inode-1) / spb->inode_per_group;
   u_int32 index = (inode-1) % spb->inode_per_group;
+  /* writef("Finding inode %u (block_group %u, index %u)\n", inode, block_group, index); */
   readPIO(BLOCK(bgpt[block_group].inode_table_address), \
           index*sizeof(inode_t)/2, sizeof(inode_t)/2, (u_int16*) buffer);
 }
@@ -51,6 +56,7 @@ void update_inode(u_int32 inode, inode_t *buffer)
 {
   u_int32 block_group = (inode-1) / spb->inode_per_group;
   u_int32 index = (inode-1) % spb->inode_per_group;
+  /* writef("Updating inode %u (block group %u, index %u)\n",inode, block_group, index); */
   update_block((u_int16*) buffer, index*sizeof(inode_t)/2, sizeof(inode_t)/2, \
                BLOCK(bgpt[block_group].inode_table_address));
 }
@@ -68,7 +74,7 @@ u_int32 allocate_inode()
   if(!(spb->unalloc_inode_num && spb->first_free_inode)) {
     return 0;
   }
-  u_int32 ret = spb->first_free_inode + 1;
+  u_int32 ret = spb->first_free_inode;
   spb->unalloc_inode_num--;
 
   u_int32 k = spb->first_free_inode>>11; // Current checked sector
@@ -86,11 +92,12 @@ u_int32 allocate_inode()
       if(std_buf[i]!=0xffff) { // std_buf has been set up in update_or_bitmap
         for(; j < 16; j++) {
           if(!(std_buf[i] & (1<<j))) {
-            spb->first_free_inode = (k<<11) + (i<<4) + j;
+            spb->first_free_inode = (k<<11) + (i<<4) + j + 1;
             return ret;
           }
         }
       }
+      j = 0;
     }
   }
 
@@ -104,7 +111,7 @@ u_int32 allocate_inode()
       if(std_buf[i]!=0xffff) {
         for(j = 0; j < 16; j++) {
           if(!(std_buf[i] & (1<<j))) {
-            spb->first_free_inode = (k<<11) + (i<<4) + j;
+            spb->first_free_inode = (k<<11) + (i<<4) + j + 1;
             return ret;
           }
         }
@@ -158,6 +165,7 @@ u_int32 allocate_block(u_int32 prec)
           }
         }
       }
+      j = 0;
     }
   }
 
@@ -215,7 +223,7 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
   } else {
     width = length;
   }
-
+  /* writef("Block to read: %u, with offset %u and width %u\n", to_read, ofs, width); */
   if(to_read < 12) {
     readPIO(BLOCK(std_inode->dbp[to_read]), ofs, width, buffer);
   } else {
@@ -366,51 +374,70 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
   read_inode_data(dir, std_buf, 0, block_size);
   dir_entry *entry = (void*) std_buf;
   u_int32 room = entry->size;
-  string b; int i;
+  string b = (string) &(entry->name); int i;
+  for(i=0; name[i] != '\0' && b[i] != '\0' && name[i]==b[i]; i++);
+  if(name[i] == b[i] || (name[i] == '\0' && i == entry->name_length)) {
+    return 1; // Already a file with the same name
+  }
+  
   while(entry->inode && room < 2*block_size) {
+    entry = (dir_entry*) (((u_int32)entry) + entry->size);
     b = (string) &(entry->name);
     for(i=0; name[i] != '\0' && b[i] != '\0' && name[i]==b[i]; i++);
     if(name[i] == b[i] || (name[i] == '\0' && i == entry->name_length)) {
       return 1; // Already a file with the same name
     }
-    entry = (dir_entry*) (((u_int32)entry) + entry->size);
     room += entry->size;
   }
+
   room -= entry->size;
   if(2*block_size - room < sizeof(dir_entry) + (u_int8) str_length(name)) {
     return 2; // No room for another file in this directory
   }
-  u_int8 len = (u_int8) str_length((string)&entry->name);
-  u_int16 resize = 4 * ( 1 + (len + sizeof(dir_entry) - 1)/4 );
+  u_int16 resize = 4 * ( 1 + (entry->name_length + sizeof(dir_entry) - 1)/4 );
   entry->size = resize;
-  entry = (dir_entry*) (((u_int32)entry) + entry->size);
+  entry = (dir_entry*) (((u_int32)entry) + resize);
   set_dir_entry(entry, inode, file_type, name, 2*block_size - resize - room);
   find_inode(dir, std_inode);
   writeLBA(BLOCK(std_inode->dbp[0]), 1, std_buf);
+  std_inode->hard_links++;
+  update_inode(dir, std_inode);
   return 0;
 }
 
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 u_int32 create_dir(u_int32 father, string name)
 {
+  if(!father) {
+    return 0;
+  }
   u_int32 num = allocate_inode();
+  if(!num) {
+    return 0;
+  }
   u_int32 block = allocate_block(0);
+  if(!block) {
+    unallocate_inode(num);
+    return 0;
+  }
+  if(add_file(father, num, FILE_DIR, name)) {
+    unallocate_inode(num);
+    unallocate_block(block);
+    return 0;
+  }
   std_inode->type = TYPE_DIR | PERM_ALL;
-  std_inode->hard_links = 5;
+  std_inode->hard_links = 2; // Father + itself
   std_inode->size_low = block_size * 2;
   std_inode->sectors = block_factor;
   std_inode->dbp[0] = block;
+
   update_inode(num, std_inode);
-  
+  writef("!\n");
+  ls_dir(num);
   u_int16 size = set_dir_entry((void*) std_buf, num, FILE_DIR, ".", 0);
   set_dir_entry((void*) ((u_int32) std_buf + size), father, FILE_DIR, "..", \
                 2*block_size - size);
 
   writeLBA(BLOCK(block), 1, std_buf);
-
-  if(add_file(father, num, FILE_DIR, name)) {
-    return 0;
-  }
   return num;
 }
 
@@ -418,12 +445,17 @@ u_int32 create_dir(u_int32 father, string name)
 
 void ls_dir(u_int32 inode)
 {
+  if(!inode) {
+    writef("Invalid address\n");
+    return;
+  }
+  /* writef("Reading data from inode %u\n", inode); */
   read_inode_data(inode, std_buf, 0, block_size);
   dir_entry *entry = (void*) std_buf;
   u_int32 endpos = (u_int32)std_buf + (block_size<<1);
 
   while(entry->size && (u_int32)entry < endpos) {
-    writef("\n-->  ");
+    writef("\n%c ", 195);
     for(u_int8 i = 0 ; i < entry->name_length ; i++) {
       writef("%c", ((u_int8*) &(entry->name))[i]);
     }
@@ -466,7 +498,7 @@ void filesystem_install()
 
   allocate_inode();
 
-  create_dir(create_dir(2,"test"), "sous_test");
-
-  kloug(100, "Filesystem installed\n");
+  u_int32 test1 = create_dir(2, "test1");
+  create_dir(2, "test2");
+  create_dir(test1, "sub_test1");
 }
