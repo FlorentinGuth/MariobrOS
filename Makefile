@@ -208,7 +208,7 @@ $(DISK_REF):
 	@sudo rm -rf $(MNT_DIR)
 	sudo losetup -d $(LOOP_DEVICE)
 
-$(DISK_IMG): $(DISK_REF) $(KERNEL_ELF) $(PROGS_BIN)
+$(DISK_IMG): $(DISK_REF)
 	dd if=$(DISK_REF) of=$(DISK_IMG) bs=512 count=131072
 
 redisk: cleandisk disk
@@ -217,7 +217,7 @@ rsync: $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK)
 	sudo rsync -r $(BOOT_DIR)      $(MNT_DIR)
 	sudo rsync -r $(PROGS_BIN_DIR) $(MNT_DIR)
 
-mount: $(DISK_IMG)
+mount: $(DISK_IMG) $(KERNEL_ELF) $(PROGS_BIN)
 	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
 	@sudo partprobe $(LOOP_DEVICE)
 	@sudo mkdir -p $(MNT_DIR)

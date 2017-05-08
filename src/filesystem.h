@@ -156,8 +156,23 @@ u_int32 allocate_inode();
 u_int8 unallocate_inode(u_int32 inode);
 
 /**
- *  @name read_inode_data - Copies a certain amount of data from the disk to 
- *  a given buffer
+ *  @name allocate_block - Allocates a new block
+ *  @return ret          - The block number of the new used block. 
+ *                         0 if there is no free block available
+ */
+u_int32 allocate_block(u_int32 prec);
+
+/**
+ *  @name unallocate_block - Unallocates a block
+ *  @param inode - The block to free
+ *  @return      - 0: No error
+ *                 1: The block was not allocated before. No change was made
+ */
+u_int8 unallocate_block(u_int32 block);
+
+/**
+ *  @name read_inode_data - Copies a certain amount of data from the disk to
+ *  a given buffer. Only reads up to the end of the current block.
  *
  *  @param inode  - The inode number of the file to read
  *  @param buffer - The output buffer
@@ -168,6 +183,20 @@ u_int8 unallocate_inode(u_int32 inode);
  */
 u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
                         u_int32 length);
+
+/**
+ *  @name write_inode_data - Writes a certain amount of data to the disk from
+ *  a given buffer. Only writes up to the end of the current block.
+ *
+ *  @param inode  - The inode number of the file to write
+ *  @param buffer - The input buffer
+ *  @param offset - Offset within the file, in words (NOT in bytes)
+ *  @param length - The length of the data to copy, in words (NOT in bytes)
+ *
+ *  @return       - The actually written length of data
+ */
+u_int32 write_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
+                         u_int32 length);
 
 /**
  *  @name open_file - Opens a file

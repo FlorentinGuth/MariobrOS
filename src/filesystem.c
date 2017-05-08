@@ -35,6 +35,24 @@ void find_inode(u_int32 inode, inode_t *buffer)
           index*sizeof(inode_t)/2, sizeof(inode_t)/2, (u_int16*) buffer);
 }
 
+
+void update_block(u_int16* buffer, u_int32 ofs, u_int32 length, u_int32 address)
+{
+  readLBA(address, block_factor, std_buf);
+  for(u_int32 pos = ofs; pos < ofs + length; pos++) {
+    std_buf[pos] = buffer[pos-ofs];
+  }
+  writeLBA(address, block_factor, std_buf);
+}
+
+void update_or_bitmap(u_int32 address, u_int8 word, u_int16 mask)
+{
+  readLBA(address, 1, std_buf);
+  std_buf[word] |= mask;
+  writeLBA(address, 1, std_buf);
+}
+
+
 u_int32 allocate_inode()
 {
   if(!(spb->unalloc_inode_num && spb->first_free_inode)) {
@@ -48,42 +66,40 @@ u_int32 allocate_inode()
   u_int8 j = (u_int8) spb->first_free_inode % 16; // Current checked bit
 
   u_int32 address=bgpt[(k<<11)/spb->inode_per_group].inode_address_bitmap;
-  readLBA(BLOCK(address)+k/2, 1, std_buf);
-  std_buf[i+((k%2)<<8)] |= (1<<j);
-  writeLBA(BLOCK(address)+k/2, 1, std_buf); // Updating the inode bitmap
+  update_or_bitmap(BLOCK(address) + k/2, i + ((k%2)<<8), (1<<j));
   j++;
-  bgpt[(int) (k<<11)/spb->inode_per_group].unalloc_inode--;
+  bgpt[(k<<11)/spb->inode_per_group].unalloc_inode--;
 
-  while(i < 128) { // The first loop is inlined so as not to re-read the bitmap
-    if(std_buf[i]!=0xff) {
-      while(j < 16) {
-        if(!(std_buf[i] & (1<<j))) {
-          spb->first_free_inode = (k<<11) + (i<<4) + j;
-          return ret;
-        }
-        j++;
-      }
-    }
-    j = 0; i++;
-  }
-  i = 0; k++;
-
-  while(k < (spb->inode_num>>11)) {
-    address = bgpt[(k<<11) / spb->inode_per_group].inode_address_bitmap;
-    readPIO(BLOCK(address), k<<8, 256, std_buf);
-    while(i < 128) {
-      if(std_buf[i]!=0xff) {
-        while(j < 16) {
+  if(! bgpt[(k<<11)/spb->inode_per_group].unalloc_inode) {
+    for(; i < 128; i++) {
+      // The first loop is inlined so as not to re-read the bitmap
+      if(std_buf[i]!=0xff) { // std_buf has been set up in update_or_bitmap
+        for(; j < 16; j++) {
           if(!(std_buf[i] & (1<<j))) {
             spb->first_free_inode = (k<<11) + (i<<4) + j;
             return ret;
           }
-          j++;
         }
       }
-      j = 0; i++;
     }
-    i = 0; k++;
+  }
+
+  for(k++; k < (spb->inode_num)>>11; k++) {
+    if(! bgpt[(k<<11)/spb->inode_per_group].unalloc_inode) {
+      continue;
+    }
+    address = bgpt[(k<<11) / spb->inode_per_group].inode_address_bitmap;
+    readPIO(BLOCK(address), k<<8, 256, std_buf);
+    for(i=0; i < 128; i++) {
+      if(std_buf[i]!=0xff) {
+        for(j = 0; j < 16; j++) {
+          if(!(std_buf[i] & (1<<j))) {
+            spb->first_free_inode = (k<<11) + (i<<4) + j;
+            return ret;
+          }
+        }
+      }
+    }
   }
 
   spb->first_free_inode = 0; // No next free inode
@@ -97,7 +113,7 @@ u_int8 unallocate_inode(u_int32 inode)
   }
   u_int32 address = bgpt[(inode-1) / spb->inode_per_group].inode_address_bitmap;
   readLBA(BLOCK(address), 1, std_buf);
-  if(! (std_buf[((inode-1)%2048) / 16] & (1<<(inode-1%16))) ) {
+  if(! (std_buf[((inode-1)%2048) / 16] & (1<<((inode-1)%16))) ) {
     return 1; // Not allocated inode
   }
   spb->unalloc_inode_num++;
@@ -107,7 +123,77 @@ u_int8 unallocate_inode(u_int32 inode)
   return 0;
 }
 
-/* The following function does not use std_buf for length < 12*block_size */
+u_int8 unallocate_block(u_int32 block)
+{
+  u_int32 address = bgpt[block / spb->block_per_group].block_address_bitmap;
+  readLBA(BLOCK(address), 1, std_buf);
+  if(! (std_buf[(block%2048) / 16] & (1<<(block%16)) )) {
+      return 1; // Not allocated block
+  }
+  bgpt[block / spb->block_per_group].unalloc_block++;
+  std_buf[(block%2048) / 16] &= ~(1<<(block%16));
+  writeLBA(BLOCK(address), 1, std_buf);
+  return 0;
+}
+
+u_int32 allocate_block(u_int32 prec)
+{
+  if(!spb->unalloc_block_num) {
+    return 0;
+  }
+  spb->unalloc_block_num--;
+
+  u_int32 k = prec>>11; // Current checked sector
+  u_int8 i = (u_int8) (prec % 2048)>>4; // Current checked word
+  u_int8 j = (u_int8) prec % 16; // Current checked bit
+
+  u_int32 address = bgpt[(k<<11)/spb->block_per_group].block_address_bitmap;
+
+  readLBA(BLOCK(address) + k/2, 1, std_buf);
+  if(bgpt[(k<<11)/spb->block_per_group].unalloc_block) {
+    for(; i < 128; i++) {
+      // The first loop is inlined so as not to re-read the bitmap
+      if(std_buf[i]!=0xff) {
+        for(; j < 16; j++) {
+          if(!(std_buf[i] & (1<<j))) {
+            bgpt[(k<<11)/spb->block_per_group].unalloc_block--;
+            update_or_bitmap(BLOCK(address) + k/2, i + ((k%2)<<8), (1<<j));
+            return (k<<11) + (i<<4) + j;
+          }
+        }
+      }
+    }
+  }
+
+  for(k++; k < (spb->block_num)>>11; k++) {
+    if(! bgpt[(k<<11)/spb->block_per_group].unalloc_block) {
+      continue;
+    }
+    address = bgpt[(k<<11) / spb->block_per_group].block_address_bitmap;
+    readLBA(BLOCK(address) + k/2, 1, std_buf);
+    for(i=0; i < 128; i++) {
+      if(std_buf[i]!=0xff) {
+        for(j = 0; j < 16; j++) {
+          if(!(std_buf[i] & (1<<j))) {
+            std_buf[i + ((k%2)<<8)] |= (1<<j);
+            bgpt[(k<<11)/spb->block_per_group].unalloc_block--;
+            return (k<<11) + (i<<4) + j;
+          }
+        }
+      }
+    }
+  }
+
+  if(!prec) {
+    throw("Superblock corrupted, no free block found");
+  } else {
+    return allocate_block(0); // Restart from the beginning
+  }
+}
+
+
+
+/* The following function does not use std_buf if offset+length<12*block_size */
 u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
                         u_int32 length)
 {
@@ -121,7 +207,7 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
   } else {
     width = length;
   }
-  
+
   if(to_read < 12) {
     readPIO(BLOCK(std_inode->dbp[to_read]), ofs, width, buffer);
   } else {
@@ -150,6 +236,56 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
                 block_size, std_buf);
         readPIO(BLOCK(((u_int32*)std_buf)[to_read % block_size]), \
                 ofs, width, buffer);
+      }
+    }
+  }
+  return width;
+}
+
+u_int32 write_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
+                         u_int32 length)
+{
+  u_int32 width; // Length written, in words (NOT in bytes)
+  u_int32 to_write = offset / block_size;
+  find_inode(inode, std_inode);
+  u_int32 ofs = offset % block_size;
+
+  if(length > block_size - ofs) {
+    width = block_size - ofs;
+  } else {
+    width = length;
+  }
+
+  if(to_write < 12) {
+    update_block(buffer, ofs, length, BLOCK(std_inode->dbp[to_write]));
+  } else {
+    u_int32 address;
+    to_write -= 12;
+    if(to_write < block_size / 2) {
+      readPIO(BLOCK(std_inode->sibp), 0, block_size, std_buf);
+      address = BLOCK(((u_int32*)std_buf)[to_write]);
+      update_block(buffer, ofs, length, address);
+    } else {
+      to_write -= block_size / 2;
+      u_int32 dbsize = block_size*block_size;
+      if(to_write < dbsize / 4) {
+        readPIO(BLOCK(std_inode->dibp), 0, block_size, std_buf);
+        readPIO(BLOCK(((u_int32*)std_buf)[to_write/block_size]), 0,  \
+                block_size, std_buf);
+        address = BLOCK(((u_int32*)std_buf)[to_write % block_size]);
+        update_block(buffer, ofs, length, address);
+      } else {
+        to_write -= dbsize / 4;
+        if(to_write >= dbsize*block_size / 8) {
+          throw("Invalid offset");
+        }
+        readPIO(BLOCK(std_inode->tibp), 0, block_size, std_buf);
+        readPIO(BLOCK(((u_int32*)std_buf)[to_write/dbsize]), 0, block_size, \
+                std_buf);
+        readPIO(BLOCK(((u_int32*)std_buf)[(to_write%dbsize)/block_size]), 0, \
+                block_size, std_buf);
+        address = BLOCK(((u_int32*)std_buf)[to_write % block_size]);
+        update_block(buffer, ofs, length, address);
       }
     }
   }
@@ -213,6 +349,7 @@ void ls_dir(u_int32 inode)
 }
 
 
+
 void filesystem_install()
 {
   set_disk(FALSE);
@@ -241,10 +378,4 @@ void filesystem_install()
   readPIO(BLOCK(1), 0, bgpt_size/2, (u_int16*) bgpt);
 
   std_inode = mem_alloc(sizeof(inode_t));
-
-  inode_t *root_inode = mem_alloc(sizeof(inode_t));
-  find_inode(2, root_inode);
-
-  char* s = "/";
-  ls_dir(open_file(s));
 }
