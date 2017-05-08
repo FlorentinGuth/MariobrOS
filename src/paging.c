@@ -218,7 +218,7 @@ void switch_page_directory(page_directory_t *dir)
 
   /* Loads address of the current directory into cr3 */
   current_directory = dir;
-  asm volatile ("mov %0, %%cr3" : : "r"(&dir->entries));
+  asm volatile ("mov %0, %%cr3" : : "r"(&dir->entries));  /* TODO: physical address */
 
   /* Reads current cr0 */
   u_int32 cr0;
@@ -316,4 +316,13 @@ void paging_install()
 
   paging_enabled = TRUE;
   kloug(100, "Paging installed\n");
+}
+
+
+page_directory_t *new_page_dir()
+{
+  page_directory_t *page_dir = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
+  mem_set(page_dir, 0, sizeof(page_directory_t));
+
+  return NULL;
 }

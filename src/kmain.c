@@ -1,14 +1,19 @@
-#include "kmain.h"
+#include "gdt.h"
+#include "timer.h"
+#include "multiboot.h"
+#include "paging.h"
+#include "malloc.h"
+#include "filesystem.h"
 #include "shell.h"
 
 /** kmain.c
  *  Contains the kernel main function.
  */
 
-u_int32 UPPER_MEMORY;
-u_int32 LOWER_MEMORY;
+u_int32 UPPER_MEMORY, LOWER_MEMORY;
+u_int32 START_OF_KERNEL_STACK, END_OF_KERNEL_STACK;
 
-int kmain(multiboot_info_t* mbd)
+int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
 {
   kloug(100, "Successfully booted\n");
 
@@ -16,6 +21,10 @@ int kmain(multiboot_info_t* mbd)
   LOWER_MEMORY = 1024 * mbd->mem_lower;
   UPPER_MEMORY = 1024 * mbd->mem_upper;
   kloug(100, "Lower memory: %x, upper memory: %x\n", LOWER_MEMORY, UPPER_MEMORY);
+
+  START_OF_KERNEL_STACK = stack_start;
+  END_OF_KERNEL_STACK   = stack_start - stack_size;
+  kloug(100, "Stack goes from %x to %x\n", START_OF_KERNEL_STACK, END_OF_KERNEL_STACK);
 
   /* First things first: memory */
   paging_enabled = FALSE;  /* Do not change this line */

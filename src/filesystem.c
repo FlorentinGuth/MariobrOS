@@ -1,4 +1,5 @@
 #include "filesystem.h"
+#include "logging.h"
 
 /* lba n means sector n, with sector_size = 0x200 = 512 bytes. The volume starts
  * at 1M = 0x10000 in memory. Thus, lba n is the address 512 * n from the 
@@ -437,7 +438,7 @@ void ls_dir(u_int32 inode)
 void filesystem_install()
 {
   set_disk(FALSE);
-  
+
   spb = (void*) mem_alloc(sizeof(superblock_t));
   readPIO(2, 0, sizeof(superblock_t)/2, (u_int16*) spb);
   if(spb->signature!=0xef53) {
@@ -466,4 +467,6 @@ void filesystem_install()
   allocate_inode();
 
   create_dir(create_dir(2,"test"), "sous_test");
+
+  kloug(100, "Filesystem installed\n");
 }
