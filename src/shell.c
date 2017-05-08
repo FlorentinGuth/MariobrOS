@@ -255,7 +255,15 @@ void echo_command()
   blank_command[max_length] = ' ';
 
   set_cursor_pos(start_of_command);
-  write_string(history[history_pos]);
+  writef("%f", LightRed);
+  for (int i = 0; history[history_pos][i] != '\0'; i++) {
+    char c = history[history_pos][i];
+    if (c == ' ') {
+      writef("%f", White);
+    }
+    write_char(c);
+  }
+  writef("%f", White);  /* In case the command has no spaces */
   set_pos();
 }
 
