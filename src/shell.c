@@ -255,11 +255,17 @@ void echo_command()
   blank_command[max_length] = ' ';
 
   set_cursor_pos(start_of_command);
-  writef("%f", LightRed);
+  int state = 0; /* 0 for first spaces, 1 for first word, 2 for after */
   for (int i = 0; history[history_pos][i] != '\0'; i++) {
     char c = history[history_pos][i];
-    if (c == ' ') {
+    if (state == 0 && c != ' ') {
+      /* First word! */
+      writef("%f", LightRed);
+      state = 1;
+    } else if (state == 1 && c == ' ') {
+      /* After first word */
       writef("%f", White);
+      state = 2;
     }
     write_char(c);
   }
