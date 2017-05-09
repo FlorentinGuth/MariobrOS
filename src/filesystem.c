@@ -1,5 +1,4 @@
 #include "filesystem.h"
-#include "logging.h"
 
 /* lba n means sector n, with sector_size = 0x200 = 512 bytes. The volume starts
  * at 1M = 0x10000 in memory. Thus, lba n is the address 512 * n from the 
@@ -314,11 +313,16 @@ u_int32 write_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
   return width;
 }
 
-u_int32 open_file(string str_path)
+u_int32 open_file(string str_path, u_int32 root)
 {
   list_t path = (str_split(str_path, '/', TRUE)->tail);
-  
-  u_int32 inode = 2; // root directory
+
+  u_int32 inode;
+  if(str_path[0]=='/') {
+    inode = 2;
+  } else {
+    inode = root;
+  }
   dir_entry *entry = 0;
   int i; char* a; char* b;
   u_int32 endpos = (u_int32)std_buf + (block_size<<1);
@@ -445,7 +449,8 @@ u_int8 remove_file(u_int32 dir, u_int32 inode)
   return 0;
 }
 
-u_int32 create_dir(u_int32 father, string name)
+
+u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
 {
   if(!father) {
     return 0;
@@ -459,27 +464,36 @@ u_int32 create_dir(u_int32 father, string name)
     unallocate_inode(num);
     return 0;
   }
-  if(add_file(father, num, FILE_DIR, name)) {
+  if(add_file(father, num, ftype, name)) {
     unallocate_inode(num);
     unallocate_block(block);
     return 0;
   }
-  std_inode->type = TYPE_DIR | PERM_ALL;
-  std_inode->hard_links = 2; // Father + itself
+  u_int8 is_a_dir = !!(type & TYPE_DIR);
+  std_inode->type = type;
+  std_inode->hard_links = 1 + is_a_dir; // Father (+ itself)
   std_inode->size_low = block_size * 2;
   std_inode->sectors = block_factor;
   std_inode->dbp[0] = block;
-
+  for(u_int8 i = 1; i < 12; i++) {
+    std_inode->dbp[i] = 0;
+  }
+  std_inode->sibp = 0; std_inode->dibp = 0; std_inode->tibp = 0;
   update_inode(num, std_inode);
-  ls_dir(num);
-  u_int16 size = set_dir_entry((void*) std_buf, num, FILE_DIR, ".", 0);
-  set_dir_entry((void*) ((u_int32) std_buf + size), father, FILE_DIR, "..", \
-                2*block_size - size);
 
-  writeLBA(BLOCK(block), 1, std_buf);
+  if(is_a_dir) {
+    u_int16 size = set_dir_entry((void*) std_buf, num, FILE_DIR, ".", 0);
+    set_dir_entry((void*) ((u_int32) std_buf + size), father, FILE_DIR, "..",\
+                  2*block_size - size);
+    writeLBA(BLOCK(block), 1, std_buf);
+  }
+
   return num;
 }
 
+u_int32 create_dir(u_int32 father, string name) {
+  return create_file(father, name, TYPE_DIR | PERM_ALL, FILE_DIR);
+}
 
 
 
