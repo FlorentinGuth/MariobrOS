@@ -134,14 +134,14 @@ u_int8 unallocate_inode(u_int32 inode)
     spb->first_free_inode = inode;
   }
   u_int32 address = bgpt[(inode-1) / spb->inode_per_group].inode_address_bitmap;
-  readLBA(BLOCK(address), 1, std_buf);
+  readLBA(BLOCK(address), block_factor, std_buf);
   if(! (std_buf[((inode-1)%2048) / 16] & (1<<((inode-1)%16))) ) {
     return 1; // Not allocated inode
   }
   spb->unalloc_inode_num++;
   bgpt[(inode-1) / spb->inode_per_group].unalloc_inode++;
   std_buf[((inode-1)%2048) / 16] &= ~(1<<((inode-1)%16));
-  writeLBA(BLOCK(address), 1, std_buf);
+  writeLBA(BLOCK(address), block_factor, std_buf);
   return 0;
 }
 
@@ -203,13 +203,13 @@ u_int32 allocate_block(u_int32 prec)
 u_int8 unallocate_block(u_int32 block)
 {
   u_int32 address = bgpt[block / spb->block_per_group].block_address_bitmap;
-  readLBA(BLOCK(address), 1, std_buf);
+  readLBA(BLOCK(address), block_factor, std_buf);
   if(! (std_buf[(block%2048) / 16] & (1<<(block%16)) )) {
       return 1; // Not allocated block
   }
   bgpt[block / spb->block_per_group].unalloc_block++;
   std_buf[(block%2048) / 16] &= ~(1<<(block%16));
-  writeLBA(BLOCK(address), 1, std_buf);
+  writeLBA(BLOCK(address), block_factor, std_buf);
   return 0;
 }
 
@@ -381,10 +381,15 @@ u_int16 set_dir_entry(dir_entry* e, u_int32 inode, u_int8 file_type, \
 
 u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
 {
+  u_int32 len = str_length(name);
+  if(len>>8) {
+    return 3;
+  }
   read_inode_data(dir, std_buf, 0, block_size);
   dir_entry *entry = (void*) std_buf;
   u_int32 room = entry->size;
-  string b = (string) &(entry->name); int i;
+  string b = (string) &(entry->name);
+  u_int32 i;
   for(i=0; name[i] != '\0' && b[i] != '\0' && name[i]==b[i]; i++);
   if(name[i] == b[i] || (name[i] == '\0' && i == entry->name_length)) {
     return 1; // Already a file with the same name
@@ -401,19 +406,50 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
   }
 
   room -= entry->size;
-  if(2*block_size - room < sizeof(dir_entry) + (u_int8) str_length(name)) {
-    return 2; // TODO Decompacify
+
+  if(2*block_size - room < sizeof(dir_entry) + len) {
+    // Shrinking each entry to its natural size (widened because of deletions)
+    u_int32 endpos = (u_int32)std_buf + (block_size<<1);
+    dir_entry* ref = (void*) ((u_int32)std_buf + 8);
+    entry = ref;
+    // 8 is the size (in bytes) of the first dir entry, ".", that was not erased
+
+    while(entry->inode && (u_int32) entry < endpos) {
+      room = entry->name_length;
+
+      ref->name_length = room;
+      ref->inode = entry->inode;
+      ref->file_type = entry->file_type;
+      ref->size = 4 * (1 + (room + sizeof(dir_entry) - 1)/4);
+
+      for(i = 0; i < room; i++) { // Name copy
+        ((u_int8*) ref)[8+i] = ((u_int8*) entry)[8+i];
+      }
+      entry = (dir_entry*) (((u_int32)entry) + entry->size);
+      ref = (dir_entry*) (((u_int32)ref) + ref->size);
+    }
+
+    room = 2*block_size - ((u_int32)ref - (u_int32)std_buf);
+    if(room < sizeof(dir_entry) + len) {
+      return 2; // No room for another entry in this directory
+      /* This condition is sufficient because of the 4-bytes alignment */
+    }
+    set_dir_entry(ref, inode, file_type, name, room);
   }
-  u_int16 resize = 4 * ( 1 + (entry->name_length + sizeof(dir_entry) - 1)/4 );
-  entry->size = resize;
-  entry = (dir_entry*) (((u_int32)entry) + resize);
-  set_dir_entry(entry, inode, file_type, name, 2*block_size - resize - room);
+
+  else {
+    u_int16 resize = 4 * ( 1 + (entry->name_length + sizeof(dir_entry) - 1)/4 );
+    entry->size = resize;
+    entry = (dir_entry*) (((u_int32)entry) + resize);
+    set_dir_entry(entry, inode, file_type, name, 2*block_size - resize - room);
+  }
   /* find_inode(dir, std_inode);*/ // std_inode already set by read_inode_data
-  writeLBA(BLOCK(std_inode->dbp[0]), 1, std_buf);
+  writeLBA(BLOCK(std_inode->dbp[0]), block_factor, std_buf);
   if(file_type & FILE_DIR) {
     std_inode->hard_links++;
     update_inode(dir, std_inode);
   }
+
   return 0;
 }
 
@@ -425,9 +461,7 @@ u_int8 remove_file(u_int32 dir, u_int32 inode)
   u_int32 endpos = (u_int32)std_buf + (block_size<<1);
   dir_entry *entry = (void*) std_buf; // "."
   dir_entry *prec = (void*) ((u_int32)entry + entry->size); // ".."
-  writef("Entry: %s, prec: %s\n", &entry->name, &prec->name);
   entry = (dir_entry*) (((u_int32)prec) + prec->size);
-  writef("Entry: %s, prec: %s\n", &entry->name, &prec->name);
   while((u_int32) entry < endpos) {
     if(entry->inode == inode) {
       break;
@@ -439,9 +473,9 @@ u_int8 remove_file(u_int32 dir, u_int32 inode)
   if((u_int32)entry >= endpos) {
     return 1; // No such file found
   }
-  writef("Entry: %s, prec: %s\n", &entry->name, &prec->name);
+
   prec->size += entry->size;
-  writeLBA(BLOCK(std_inode->dbp[0]), 1, std_buf);
+  writeLBA(BLOCK(std_inode->dbp[0]), block_factor, std_buf);
   if(entry->file_type & FILE_DIR) {
     std_inode->hard_links--;
     update_inode(dir, std_inode);
@@ -510,10 +544,10 @@ void ls_dir(u_int32 inode)
 
   while(entry->size && (u_int32)entry < endpos) {
     writef("\n%c ", 195);
-    for(u_int8 i = 0 ; i < entry->name_length ; i++) {
+    for(u_int32 i = 0 ; i < entry->name_length ; i++) {
       writef("%c", ((u_int8*) &(entry->name))[i]);
     }
-    writef(" \t <-- inode = %u", entry->inode);
+    writef("\t<-- inode = %u", entry->inode);
     entry = (dir_entry*) (((u_int32)entry) + entry->size);
   }
   writef("\n");
@@ -554,6 +588,22 @@ void filesystem_install()
   allocate_inode();
 
   u_int32 test1 = create_dir(2, "test1");
-  create_dir(2, "test2");
+  /* u_int32 test2 =  */create_dir(2, "test2");
   create_dir(test1, "subtest1");
+
+  /* string name = (void*) mem_alloc(256); */
+  /* for(int i = 0; i < 256; i++) { */
+  /*   if(!((i+2)%128)) */
+  /*     name[i] = '0'; */
+  /*   else */
+  /*     name[i] = '.'; */
+  /* } */
+  /* name[254] = '!'; */
+  /* name[255] = '\0'; */
+  /* u_int32 inode; */
+  /* for(int i = 0; i < 20; i++) { */
+  /*   inode = allocate_inode(); */
+  /*   name[0] = (char)i + 49; */
+  /*   add_file(test2, inode, FILE_REGULAR, name); */
+  /* } */
 }
