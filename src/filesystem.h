@@ -44,7 +44,7 @@ struct superblock {      // Starting byte
   u_int32 compression;           // 200
   u_int8  preallocate_for_files; // 204
   u_int8  preallocate_for_dirs;  // 205
-  u_int16 unused;                // 206
+  u_int16 just_boot;             // 206 - Specific to this implementation
   u_int32 journal_id[4];         // 208
   u_int32 journal_inode;         // 224
   u_int32 journal_device;        // 228

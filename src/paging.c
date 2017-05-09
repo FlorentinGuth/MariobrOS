@@ -328,7 +328,7 @@ void paging_install()
  */
 page_table_t *clone_page_table(page_table_t *table)
 {
-  page_table_t *copy = (page_table_t)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
+  page_table_t *copy = (page_table_t*)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
   mem_copy(copy, table, sizeof(page_table_t));
   return copy;
 }
@@ -342,7 +342,7 @@ page_table_t *clone_page_table(page_table_t *table)
  */
 page_directory_t *clone_directory(page_directory_t *dir)
 {
-  page_directory_t *copy = (page_table_t)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
+  page_directory_t *copy = (void*)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
   mem_copy(copy, dir, sizeof(page_directory_t));
 
   copy->physical_address = get_physical_address(current_directory, (u_int32)copy);

@@ -74,17 +74,23 @@ u_int32 allocate_inode()
   if(!(spb->unalloc_inode_num && spb->first_free_inode)) {
     return 0;
   }
-  u_int32 ret = spb->first_free_inode;
-  spb->unalloc_inode_num--;
 
-  u_int32 k = spb->first_free_inode>>11; // Current checked sector
-  u_int8 i = (u_int8) (spb->first_free_inode % 2048)>>4; // Current checked word
-  u_int8 j = (u_int8) spb->first_free_inode % 16; // Current checked bit
+  u_int32 ret = spb->first_free_inode;
+
+  u_int32 k = (ret-1)>>11; // Current checked sector
+  u_int8 i = (u_int8) ((ret-1) % 2048)>>4; // Current checked word
+  u_int8 j = (u_int8) (ret-1) % 16; // Current checked bit
 
   u_int32 address=bgpt[(k<<11)/spb->inode_per_group].inode_address_bitmap;
-  update_or_bitmap(BLOCK(address) + k/2, i + ((k%2)<<8), (1<<j));
+  if(spb->just_boot) { // Setting first_free_inode accurately
+    spb->just_boot = 0;
+    readPIO(BLOCK(address), k<<8, 256, std_buf);
+  } else {
+    spb->unalloc_inode_num--;
+    update_or_bitmap(BLOCK(address) + k/2, i + ((k%2)<<8), (1<<j));
+    bgpt[(k<<11)/spb->inode_per_group].unalloc_inode--;
+  }
   j++;
-  bgpt[(k<<11)/spb->inode_per_group].unalloc_inode--;
 
   if(bgpt[(k<<11)/spb->inode_per_group].unalloc_inode) {
     for(; i < 128; i++) {
@@ -431,7 +437,6 @@ u_int32 create_dir(u_int32 father, string name)
   std_inode->dbp[0] = block;
 
   update_inode(num, std_inode);
-  writef("!\n");
   ls_dir(num);
   u_int16 size = set_dir_entry((void*) std_buf, num, FILE_DIR, ".", 0);
   set_dir_entry((void*) ((u_int32) std_buf + size), father, FILE_DIR, "..", \
@@ -496,9 +501,10 @@ void filesystem_install()
 
   std_inode = mem_alloc(sizeof(inode_t));
 
+  spb->just_boot = 1; // Set to 0 by the first allocate_inode
   allocate_inode();
 
   u_int32 test1 = create_dir(2, "test1");
   create_dir(2, "test2");
-  create_dir(test1, "sub_test1");
+  create_dir(test1, "subtest1");
 }
