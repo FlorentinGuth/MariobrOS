@@ -301,12 +301,29 @@ void paging_install()
 
   current_directory = kernel_directory;
 
+  /* First: allocate every page tables to avoid further problems */
+  u_int32 nb_pages  = UPPER_MEMORY / 0x1000;
+  u_int32 nb_tables = ceil_ratio(nb_pages, 1024);
+  page_table_t* tables = (page_table_t *)mem_alloc_aligned(nb_tables * sizeof(page_table_t), 0x1000);
+  mem_set(tables, 0, nb_tables * sizeof(page_table_t));
+
+  /* Let's tell the directory about the tables */
+  for (u_int32 table_index = 0; table_index < nb_tables; table_index++) {
+    kernel_directory->tables[table_index]  = &tables[table_index];
+
+    page_directory_entry_t *entry = &kernel_directory->entries[table_index];
+    entry->present   = TRUE;
+    entry->rw        = FALSE;
+    entry->user      = TRUE;
+    entry->page_size = FALSE;        /* Should already be 0, but ensures 4KB size */
+    entry->address = (u_int32)(&tables[table_index]) / 0x1000;
+  }
+
   /* We need to identity map (phys addr = virt addr) from 0x0 to the end of the
    * kernel heap (given by mem_alloc), so we can access this transparently, as
    * if paging wasn't enabled. Note that the heap can grow during the loop turns,
    * as we will allocate place for the page tables.
    */
-  /* TODO: allocate every page tables now? */
   for (u_int32 frame = 0; frame < (u_int32)unallocated_mem; frame += 0x1000) {
     /* Kernel code and data is readable but not writable from user-space */
     /* kloug(100, "Identity-mapping frame %x\n", frame); */
@@ -328,7 +345,7 @@ void paging_install()
  */
 page_table_t *clone_page_table(page_table_t *table)
 {
-  page_table_t *copy = (page_table_t*)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
+  page_table_t *copy = (page_table_t *)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
   mem_copy(copy, table, sizeof(page_table_t));
   return copy;
 }
@@ -342,7 +359,7 @@ page_table_t *clone_page_table(page_table_t *table)
  */
 page_directory_t *clone_directory(page_directory_t *dir)
 {
-  page_directory_t *copy = (void*)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
+  page_directory_t *copy = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
   mem_copy(copy, dir, sizeof(page_directory_t));
 
   copy->physical_address = get_physical_address(current_directory, (u_int32)copy);
