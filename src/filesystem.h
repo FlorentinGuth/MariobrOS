@@ -208,13 +208,6 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
 u_int32 write_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
                          u_int32 length);
 
-/**
- *  @name create_dir - Creates a directory
- *  @param father    - The inode number of the father directory of this one
- *  @param name      - The name of the directory
- *  @return num      - The inode number of the created directory
- */
-u_int32 create_dir(u_int32 father, string name);
 
 /**
  *  @name open_file - Opens a file
@@ -222,6 +215,41 @@ u_int32 create_dir(u_int32 father, string name);
  *  @return inode   - The inode number of the file
  */
 u_int32 open_file(string str_path);
+
+/**
+ *  @name add_file - Adds a file to a directory
+ *
+ *  @param dir       - The inode number of the directory
+ *  @param inode     - The inode number of the file to add
+ *  @param file_type - The file type for the directory entry (FILE_...)
+ *  @param name      - A string containing the name of the new file
+ *
+ *  @return          - 0: No error
+ *                     1: Already a file with the same name in the directory
+ *                     2: No room for another file in this directory
+ */
+u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name);
+
+/**
+ *  @name remove_file - Removes the file from the directory
+ *  WARNING: Does not erase the file itself, only removes it from search
+ *
+ *  @param dir        - The parent directory
+ *  @param inode      - The inode number of the file to remove
+ *
+ *  @param return     - 0: No error
+ *                      1: No such file found in the directory
+ */
+u_int8 remove_file(u_int32 dir, u_int32 inode);
+
+
+/**
+ *  @name create_dir - Creates a directory
+ *  @param father    - The inode number of the father directory of this one
+ *  @param name      - The name of the directory
+ *  @return num      - The inode number of the created directory
+ */
+u_int32 create_dir(u_int32 father, string name);
 
 /**
  *  @name  ls_dir - Prints to the screen the contents of a directory

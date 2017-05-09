@@ -385,7 +385,7 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
   if(name[i] == b[i] || (name[i] == '\0' && i == entry->name_length)) {
     return 1; // Already a file with the same name
   }
-  
+
   while(entry->inode && room < 2*block_size) {
     entry = (dir_entry*) (((u_int32)entry) + entry->size);
     b = (string) &(entry->name);
@@ -398,16 +398,50 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
 
   room -= entry->size;
   if(2*block_size - room < sizeof(dir_entry) + (u_int8) str_length(name)) {
-    return 2; // No room for another file in this directory
+    return 2; // TODO Decompacify
   }
   u_int16 resize = 4 * ( 1 + (entry->name_length + sizeof(dir_entry) - 1)/4 );
   entry->size = resize;
   entry = (dir_entry*) (((u_int32)entry) + resize);
   set_dir_entry(entry, inode, file_type, name, 2*block_size - resize - room);
-  find_inode(dir, std_inode);
+  /* find_inode(dir, std_inode);*/ // std_inode already set by read_inode_data
   writeLBA(BLOCK(std_inode->dbp[0]), 1, std_buf);
-  std_inode->hard_links++;
-  update_inode(dir, std_inode);
+  if(file_type & FILE_DIR) {
+    std_inode->hard_links++;
+    update_inode(dir, std_inode);
+  }
+  return 0;
+}
+
+// The next function only updates the parent directory, it does not unallocate
+u_int8 remove_file(u_int32 dir, u_int32 inode)
+{
+  read_inode_data(dir, std_buf, 0, block_size);
+
+  u_int32 endpos = (u_int32)std_buf + (block_size<<1);
+  dir_entry *entry = (void*) std_buf; // "."
+  dir_entry *prec = (void*) ((u_int32)entry + entry->size); // ".."
+  writef("Entry: %s, prec: %s\n", &entry->name, &prec->name);
+  entry = (dir_entry*) (((u_int32)prec) + prec->size);
+  writef("Entry: %s, prec: %s\n", &entry->name, &prec->name);
+  while((u_int32) entry < endpos) {
+    if(entry->inode == inode) {
+      break;
+    }
+    prec = (dir_entry*) (((u_int32)prec) + prec->size);
+    entry = (dir_entry*) (((u_int32)entry) + entry->size);
+  }
+
+  if((u_int32)entry >= endpos) {
+    return 1; // No such file found
+  }
+  writef("Entry: %s, prec: %s\n", &entry->name, &prec->name);
+  prec->size += entry->size;
+  writeLBA(BLOCK(std_inode->dbp[0]), 1, std_buf);
+  if(entry->file_type & FILE_DIR) {
+    std_inode->hard_links--;
+    update_inode(dir, std_inode);
+  }
   return 0;
 }
 
@@ -445,6 +479,7 @@ u_int32 create_dir(u_int32 father, string name)
   writeLBA(BLOCK(block), 1, std_buf);
   return num;
 }
+
 
 
 
