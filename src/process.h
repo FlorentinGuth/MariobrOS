@@ -50,6 +50,13 @@ typedef struct process {
 } process_t;
 
 
+/**
+ * @name new_process - Returns a new process with a clean paging and malloc state
+ * What remains to initialize is the kernel esp and the eip.
+ * @param parent_id  - Identifier of the parent process
+ * @param prio       - Priority of the process
+ * @return process_t
+ */
 process_t new_process(pid parent_id, priority prio);
 
 

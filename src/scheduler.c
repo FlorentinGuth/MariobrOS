@@ -41,7 +41,7 @@ void select_new_process()
 }
 
 
-/* Context-switching defines, not functions, to avoid stack using */
+/* Context-switching defines, not functions, to avoid using the stack */
 #define SWITCH_BEFORE() {                                               \
     /* Restores kernel paging */                                        \
     switch_page_directory(kernel_directory);                            \
@@ -125,19 +125,13 @@ void init()
   /* Creating idle process */
   pid idle_pid = 0;
   process_t *idle = &state->processes[idle_pid];
-  idle->state = Runnable;
-  idle->parent_id = idle_pid;    /* Idle is its own parent */
-  idle->prio = 0;
-  /* TODO: context and paging directory */
+  *idle = new_process(idle_pid, 0);
   /* Idle code: for (;;) { asm("hlt"; )}; */
 
   /* Creating init process */
   pid init_pid = 1;
   process_t *init = &(state->processes[init_pid]);
-  init->state = Runnable;
-  init->parent_id = init_pid;    /* Init is its own parent */
-  init->prio = MAX_PRIORITY;
-  /* TODO: context and paging directory */
+  *init = new_process(init_pid, MAX_PRIORITY);
   /* Init code: for (;;) { syscall_wait() }; */
 
   /* Initialization of the state */

@@ -281,6 +281,93 @@ void page_fault_handler(regs_t *regs)
 }
 
 
+/**
+ * @name clone_page_table - Copy a page table, linking the pages
+ * @param table           - The page table to copy
+ * @return page_table_t*
+ */
+page_table_t *clone_page_table(page_table_t *table)
+{
+  page_table_t *copy = (page_table_t *)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
+  mem_copy(copy, table, sizeof(page_table_t));
+  return copy;
+}
+
+/**
+ * @name clone_directory - Creates an identical page directory, with new page tables (but links pages)
+ * @param dir            - The page directory to copy
+ * @return page_directory_t*
+ */
+page_directory_t *clone_directory(page_directory_t *dir)
+{
+  page_directory_t *copy = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
+  mem_copy(copy, dir, sizeof(page_directory_t));
+
+  copy->physical_address = get_physical_address(current_directory, (u_int32)copy);
+
+  /* Now, iterate the copy until both directories are equal */
+  bool equal = TRUE;
+  do {
+    /* Search the whole directories for a difference */
+    for (u_int32 table_index = 0; table_index < 1024; table_index++) {
+      if (dir->entries[table_index].present) {
+        if (!copy->entries[table_index].present) {
+          /* Add the page table */
+          copy->tables[table_index] = clone_page_table(dir->tables[table_index]);
+
+          equal = FALSE;
+        }
+
+        /* Now the table is present in both directories, let's compare it */
+        for (u_int32 page_index = 0; page_index < 1024; page_index++) {
+          page_table_entry_t *dir_page  = &dir->tables[table_index]->pages[page_index];
+          page_table_entry_t *copy_page = &copy->tables[table_index]->pages[page_index];
+
+          if (dir_page->present && !copy_page->present) {
+            copy_page->present = TRUE;
+            copy_page->rw      = dir_page->rw;
+            copy_page->user    = dir_page->user;
+            copy_page->address = dir_page->address;  /* Same physical address: we just link here */
+
+            equal = FALSE;
+          }
+        }
+      }
+    }
+  } while (!equal);
+
+  /* Now the physical addresses, once everything is mapped */
+  for (int index = 0; index < 1024; index++) {
+    if (dir->entries[index].present) {
+      copy->entries[index].address = get_physical_address(copy, (u_int32)copy->tables[index]) / 0x1000;
+    }
+  }
+
+  return copy;
+}
+
+
+/**
+ * @name set_user_addresses - Set up start_of_user_stack/heap, base on base_dir
+ * @return void
+ */
+void set_user_addresses()
+{
+  /* The stack starts at the end of (virtual) memory */
+  start_of_user_stack = floor_multiple(UPPER_MEMORY, 0x1000);  /* Stack page-aligned */
+
+  /* We search for the first unmapped page in memory */
+  u_int32 address = 0x1000;
+  while (get_physical_address(base_directory, address)) {
+    address += 0x1000;
+  }
+  start_of_user_heap = address;
+
+  kloug(100, "Start of user heap: %x, start of user stack: %x\n", \
+        start_of_user_heap, start_of_user_stack);
+}
+
+
 void paging_install()
 {
   /* Before we enable paging, we must register our page fault handler
@@ -301,23 +388,24 @@ void paging_install()
 
   current_directory = kernel_directory;
 
-  /* First: allocate every page tables to avoid further problems */
-  u_int32 nb_pages  = UPPER_MEMORY / 0x1000;
-  u_int32 nb_tables = ceil_ratio(nb_pages, 1024);
-  page_table_t* tables = (page_table_t *)mem_alloc_aligned(nb_tables * sizeof(page_table_t), 0x1000);
-  mem_set(tables, 0, nb_tables * sizeof(page_table_t));
+  /* We'll see, if problems arise, uncomment the following lines */
+  /* /\* First: allocate every page tables to avoid further problems *\/ */
+  /* u_int32 nb_pages  = UPPER_MEMORY / 0x1000; */
+  /* u_int32 nb_tables = ceil_ratio(nb_pages, 1024); */
+  /* page_table_t* tables = (page_table_t *)mem_alloc_aligned(nb_tables * sizeof(page_table_t), 0x1000); */
+  /* mem_set(tables, 0, nb_tables * sizeof(page_table_t)); */
 
-  /* Let's tell the directory about the tables */
-  for (u_int32 table_index = 0; table_index < nb_tables; table_index++) {
-    kernel_directory->tables[table_index]  = &tables[table_index];
+  /* /\* Let's tell the directory about the tables *\/ */
+  /* for (u_int32 table_index = 0; table_index < nb_tables; table_index++) { */
+  /*   kernel_directory->tables[table_index]  = &tables[table_index]; */
 
-    page_directory_entry_t *entry = &kernel_directory->entries[table_index];
-    entry->present   = TRUE;
-    entry->rw        = FALSE;
-    entry->user      = TRUE;
-    entry->page_size = FALSE;        /* Should already be 0, but ensures 4KB size */
-    entry->address = (u_int32)(&tables[table_index]) / 0x1000;
-  }
+  /*   page_directory_entry_t *entry = &kernel_directory->entries[table_index]; */
+  /*   entry->present   = TRUE; */
+  /*   entry->rw        = FALSE; */
+  /*   entry->user      = TRUE; */
+  /*   entry->page_size = FALSE;        /\* Should already be 0, but ensures 4KB size *\/ */
+  /*   entry->address = (u_int32)(&tables[table_index]) / 0x1000; */
+  /* } */
 
   /* We need to identity map (phys addr = virt addr) from 0x0 to the end of the
    * kernel heap (given by mem_alloc), so we can access this transparently, as
@@ -332,60 +420,31 @@ void paging_install()
 
   /* Now, enable paging! */
   switch_page_directory(kernel_directory);
-
   paging_enabled = TRUE;
+
+  /* Let's keep a copy of the original kernel directory for later use */
+  base_directory = clone_directory(kernel_directory);
+  set_user_addresses();
+
   kloug(100, "Paging installed\n");
-}
-
-
-/**
- * @name clone_page_table - Copy a page table, linking the pages
- * @param table           - The page table to copy
- * @return page_table_t*
- */
-page_table_t *clone_page_table(page_table_t *table)
-{
-  page_table_t *copy = (page_table_t *)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
-  mem_copy(copy, table, sizeof(page_table_t));
-  return copy;
-}
-
-
-/**
- * @name clone_directory - Creates an identical page directory, with new page tables
- * Beware that if dir == current_directory, we may not have a correct copy (TODO).
- * @param dir            - The page directory to copy
- * @return page_directory_t*
- */
-page_directory_t *clone_directory(page_directory_t *dir)
-{
-  page_directory_t *copy = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
-  mem_copy(copy, dir, sizeof(page_directory_t));
-
-  copy->physical_address = get_physical_address(current_directory, (u_int32)copy);
-
-  /* First, copy the tables */
-  for (int index = 0; index < 1024; index++) {
-    if (dir->entries[index].present) {
-      copy->tables[index] = clone_page_table(dir->tables[index]);
-    }
-  }
-
-  /* Now the physical addresses, once everything is mapped */
-  for (int index = 0; index < 1024; index++) {
-    if (dir->entries[index].present) {
-      copy->entries[index].address = get_physical_address(copy, (u_int32)copy->tables[index]) / 0x1000;
-    }
-  }
-
-  return copy;
 }
 
 
 page_directory_t *new_page_dir()
 {
-  page_directory_t *page_dir = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
-  mem_set(page_dir, 0, sizeof(page_directory_t));
+  page_directory_t *new = clone_directory(base_directory);
 
-  return NULL;
+  /* Add one page of user stack */
+  if (!map_page(get_page(new, start_of_user_stack), FALSE, TRUE)) {
+    throw("Unable to add user stack!");
+    /* TODO: free and return NULL */
+  }
+
+  /* And one page of user heap */
+  if (!map_page(get_page(new, start_of_user_heap), FALSE, TRUE)) {
+    throw("Unable to add user heap!");
+    /* TODO: free and return NULL */
+  }
+
+  return new;
 }

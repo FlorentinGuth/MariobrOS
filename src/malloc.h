@@ -38,6 +38,18 @@ void mem_free(void* ptr);
 
 
 /**
+ * @name malloc_new_state       - Installs malloc for another page directory
+ * @param dir                   - The page directory to install malloc onto
+ * @param start_of_heap         - the virtual address of the start of the heap
+ * @param user_first_free_block - Will be set to first_free_block
+ * @param user_unallocated_mem  - Will be set to unallocated_mem
+ * @return void
+ */
+void malloc_new_state(page_directory_t *dir, u_int32 start_of_heap,     \
+                      void **user_first_free_block, void **user_unallocated_mem);
+
+
+/**
  *  @name log_memory - Logs the heap structure
  *  @return void
  */

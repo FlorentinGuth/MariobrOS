@@ -365,6 +365,26 @@ void malloc_install()
 }
 
 
+void malloc_new_state(page_directory_t *dir, u_int32 start_of_heap, \
+                      void **user_first_free_block, void **user_unallocated_mem)
+{
+  switch_page_directory(dir);
+
+  void *temp_um = unallocated_mem, *temp_ffb = first_free_block;
+  first_free_block = 0;
+  unallocated_mem = (void *)start_of_heap;
+
+  extend_heap(1);
+
+  *user_unallocated_mem = unallocated_mem;
+  *user_first_free_block = first_free_block;
+  unallocated_mem = temp_um;
+  first_free_block = temp_ffb;
+
+  switch_page_directory(kernel_directory);
+}
+
+
 void *mem_alloc_aligned(size_t size, unsigned int alignment)
 {
   kloug(100, "Allocating a block of size %x, alignment %x\n", size, alignment);

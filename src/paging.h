@@ -72,6 +72,9 @@ typedef struct page_directory
 
 page_directory_t* current_directory;
 page_directory_t* kernel_directory;
+page_directory_t* base_directory;    /* Copy of the original kernel directory */
+u_int32 start_of_user_heap;          /* Constant, set to the address of the user heap start */
+u_int32 start_of_user_stack;         /* Constant, set to the address of the user stack start */
 
 
 /**
@@ -105,5 +108,15 @@ void free_virtual_space(u_int32 virtual_address);
  * @return void
  */
 void switch_page_directory(page_directory_t *new);
+
+/**
+ * @name new_page_dir - Allocates and creates a new page directory, with the
+ * kernel code and data (including stack) at the same virtual space.
+ * The new virtual space also includes a heap (start_of_user_heap) and a stack
+ * (start_of_user_stack).
+ * @return page_directory_t*
+ */
+page_directory_t *new_page_dir();
+
 
 #endif
