@@ -145,10 +145,10 @@ void load_code(string program_name, context_t ctx)
   switch_page_directory(ctx.page_dir);
 
   /* Loads ELF file in memory */
-  u_int16 *elf_buffer = (u_int16 *)mem_alloc(size);
-  u_int16 *current = elf_buffer;
-  while (current < elf_buffer + size/2) {
-    current += read_inode_data(inode, current, 0, elf_buffer + size/2 - current);
+  u_int8 *elf_buffer = (u_int8*) mem_alloc(size);
+  u_int8 *current = elf_buffer;
+  while (current < elf_buffer + size) {
+    current += read_inode_data(inode, current, 0, elf_buffer + size - current);
   }
 
   /* Loads actual code and data at the right place, and set up eip */

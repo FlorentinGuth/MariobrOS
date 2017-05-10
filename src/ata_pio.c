@@ -128,7 +128,7 @@ void software_reset()
   ATA_DELAY;
 }
 
-void readLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[])
+void readLBA(u_int32 lba, unsigned char sector_count, u_int8 buffer[])
 {
   lba = lba+0x800; // 0x800 : beginning of volume
   if(disk_id) { identify_throw(disk_id); }
@@ -146,17 +146,19 @@ void readLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[])
       throw("Error while reading");
     }
     for(short j=0; j<256; j++) {
-      buffer[i*256+j] = inw(ATA_DATA);
+      ((u_int16*)buffer)[i*256+j] = inw(ATA_DATA);
     }
   }
 }
 
-void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int16 buffer[])
+void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int8 buffer[])
 {
-  lba += 0x800 + (offset>>8); // 0x800 : beginning of volume
-  offset %= 256;
+  lba += 0x800 + (offset>>9); // 0x800 : beginning of volume
+  offset %= 512;
   if(disk_id) { identify_throw(disk_id); }
-  u_int16 sector_count = 1 + ((offset + length - 1)>>8);
+  u_int16 minibuf;
+  
+  u_int16 sector_count = 1 + ((offset + length - 1)>>9);
   if(sector_count>256)  { throw("Too much data to read"); }
   if(sector_count==256) { sector_count = 0; }
   outb(ATA_DRIVE_SELECT, 0xE0 | ((lba >> 24) & 0x0F));
@@ -167,28 +169,35 @@ void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int16 buffer[])
   outb(ATA_ADDRESS2, (u_int8) (lba>>8));
   outb(ATA_ADDRESS3, (u_int8) (lba>>16));
   outb(ATA_COMMAND, 0x20); // READ SECTORS command
-  int i = -offset;
-  while(i < (s_int32) length) {
-    if(!((i+offset) % 256)) {
+  int i = - offset;
+  while(i < (s_int32) length-1) {
+    if(!((i + offset) % 512)) {
       if(poll()) {
         throw("Error while reading"); // TODO Deal with this properly. Soft reset?
       }
     }
-    if(i<0) {
+    if(i < -1) {
       inw(ATA_DATA);
+    } else if(i==-1) {
+      minibuf = inw(ATA_DATA);
+      buffer[0] = (u_int8) minibuf;
     } else {
-      buffer[i] = inw(ATA_DATA);
+      * ((u_int16*) (buffer + i)) = inw(ATA_DATA);
     }
-    i++;
+    i+=2;
+  }
+  if((length + offset) % 2) {
+    minibuf = inw(ATA_DATA);
+    buffer[i] = minibuf>>8;
   }
   i+=offset;
-  while(i%256) {
+  while(i%512) {
     inw(ATA_DATA);
-    i++;
+    i+=2;
   }
 }
 
-void writeLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[])
+void writeLBA(u_int32 lba, unsigned char sector_count, u_int8 buffer[])
 {
   lba = lba+0x800; // 0x800 : beginning of volume
   if(disk_id) { identify_throw(disk_id); }
@@ -205,7 +214,7 @@ void writeLBA(u_int32 lba, unsigned char sector_count, u_int16 buffer[])
       throw("Error while writing");
     }
     for(short j=0; j<256; j++) {
-      outw(ATA_DATA,buffer[i*256+j]);
+      outw(ATA_DATA,((u_int16*)buffer)[i*256+j]);
     }
     ATA_DELAY;
     outb(ATA_COMMAND, 0xE7); // Cache flush
