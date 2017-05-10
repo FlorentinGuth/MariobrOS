@@ -6,7 +6,7 @@
 #define MAGIC_NUMBER (256*256*256*0x7F + 256*256*'E' + 256*'L' + 'F')
 
 
-void check_and_load(void *elf_file)
+u_int32 check_and_load(void *elf_file)
 {
   elf_header_t *elf_header = (elf_header_t *)elf_file;
 
@@ -30,4 +30,6 @@ void check_and_load(void *elf_file)
       mem_copy(address, elf_file + segment->segment_offset, segment->segment_size_in_file);
     }
   }
+
+  return elf_header->entry_point;
 }

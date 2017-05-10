@@ -3,9 +3,10 @@
 #include "queue.h"
 #include "timer.h"
 #include "irq.h"
-#include "syscall.h"  /* Ugly */
+#include "syscall.h"
 #include "paging.h"
 #include "filesystem.h"
+#include "elf.h"
 
 
 scheduler_state_t *state = NULL;
@@ -119,10 +120,10 @@ void syscall_handler(regs_t *regs)
 }
 
 
-void load_code(string program_name, page_directory_t *dir)
+void load_code(string program_name, context_t ctx)
 {
   string temp = str_cat("/progs/", program_name);
-  string path = str_cat(temp, ".bin");
+  string path = str_cat(temp, ".elf");
   mem_free(temp);
 
   u_int32 inode = open_file(path, 0);
@@ -136,14 +137,29 @@ void load_code(string program_name, page_directory_t *dir)
     throw("Binary file too large");
   }
 
-  /* To access the code section, we need to be in the process page directory */
-  switch_page_directory(dir);
-  u_int16 *code_buffer = (u_int16 *)START_OF_USER_CODE;
-  u_int16 *current = code_buffer;
-  while (current < code_buffer + size/2) {
-    current += read_inode_data(inode, current, 0, code_buffer + size/2 - current);
+  /* Entering process context */
+  kernel_context.unallocated_mem  = unallocated_mem;
+  kernel_context.first_free_block = first_free_block;
+  first_free_block = ctx.first_free_block;
+  unallocated_mem  = ctx.unallocated_mem;
+  switch_page_directory(ctx.page_dir);
+
+  /* Loads ELF file in memory */
+  u_int16 *elf_buffer = (u_int16 *)mem_alloc(size);
+  u_int16 *current = elf_buffer;
+  while (current < elf_buffer + size/2) {
+    current += read_inode_data(inode, current, 0, elf_buffer + size/2 - current);
   }
+
+  /* Loads actual code and data at the right place, and set up eip */
+  ctx.regs->eip = check_and_load(elf_buffer);
+
+  /* Leaving process context */
   switch_page_directory(kernel_directory);
+  ctx.first_free_block = first_free_block;
+  ctx.unallocated_mem  = unallocated_mem;
+  first_free_block = kernel_context.first_free_block;
+  unallocated_mem  = kernel_context.unallocated_mem;
 }
 
 
@@ -169,7 +185,6 @@ void switch_to_process(pid pid)
   /* Restores process paging */
   switch_page_directory(ctx.page_dir);
 
-  /* Let's go! */
   /* TODO */
 }
 

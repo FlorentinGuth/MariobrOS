@@ -92,10 +92,10 @@ typedef enum section_type {
  * @name check_and_load - Checks if the ELF file is valid, and loads everything in memory
  * The current page directory must be the process', to be able to reach the virtual load address
  * @param elf_file      - A pointer towards the ELF file, loaded in memory
- * @return void
+ * @return              - The entry point address
  */
-void check_and_load(void *elf_file);
+u_int32 check_and_load(void *elf_file);
+
+
 
 #endif
-
-
