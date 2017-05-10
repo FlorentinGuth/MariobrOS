@@ -500,31 +500,24 @@ u_int8 remove_file(u_int32 dir, u_int32 inode)
 
 u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
 {
-  writef("1");
   if(!father) {
-    writef(" ! ");
     return 0;
   }
-  writef("2");
   u_int32 num = allocate_inode();
   if(!num) {
     return 0;
   }
-  writef("3");
   u_int32 block = allocate_block(0);
   if(!block) {
     unallocate_inode(num);
     return 0;
   }
-  writef("4");
   u_int8 error = add_file(father, num, ftype, name);
   if(error) {
-    writef("Num: %u; block: %u, error: %u", num, block, error);
     unallocate_inode(num);
     unallocate_block(block);
     return 0;
   }
-  writef("5");
   u_int8 is_a_dir = !!(type & TYPE_DIR);
   std_inode->type = type;
   std_inode->hard_links = 2; // Father (+ itself)
@@ -609,13 +602,10 @@ void filesystem_install()
 
   spb->just_boot = 1; // Set to 0 by the first allocate_inode
   allocate_inode();
-  writef("Test1\t\t");
+
   u_int32 test1 = create_dir(2, "test1");
-  writef("\t%u\nTest2\t\t", test1);
   u_int32 test2 = create_dir(2, "test2");
-  writef("\t%u\nSubtest \t", test2);
-  u_int32 subtest = create_dir(test1, "subtest");
-  writef("\t%u\nFiletest\t",subtest);
+  create_dir(test1, "subtest");
   u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR);
 
   add_file(test2, filetest, FILE_REGULAR, "filetest");
