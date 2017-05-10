@@ -126,12 +126,12 @@ void load_code(string program_name, context_t ctx)
   string path = str_cat(temp, ".elf");
   mem_free(temp);
 
-  u_int32 inode = open_file(path, 0);
+  u_int32 inode = find_inode(path, 0);
   mem_free(path);
 
   /* TODO: read until EOF or something */
   inode_t inode_buffer;
-  find_inode(inode, &inode_buffer);
+  set_inode(inode, &inode_buffer);
   size_t size = inode_buffer.sectors * 512;  /* Each sector amounts to 512 bytes */
   if (size > 0xFFFFFFFF - START_OF_USER_CODE + 1) {
     throw("Binary file too large");

@@ -42,7 +42,7 @@ void update_block(u_int16* buffer, u_int32 ofs, u_int32 length, u_int32 address)
 }
 
 
-void find_inode(u_int32 inode, inode_t *buffer)
+void set_inode(u_int32 inode, inode_t *buffer)
 {
   u_int32 block_group = (inode-1) / spb->inode_per_group;
   u_int32 index = (inode-1) % spb->inode_per_group;
@@ -220,7 +220,7 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
 {
   u_int32 width; // Length read, in words (NOT in bytes)
   u_int32 to_read = offset / block_size;
-  find_inode(inode, std_inode);
+  set_inode(inode, std_inode);
   u_int32 ofs = offset % block_size;
 
   if(length > block_size - ofs) {
@@ -268,7 +268,7 @@ u_int32 write_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
 {
   u_int32 width; // Length written, in words (NOT in bytes)
   u_int32 to_write = offset / block_size;
-  find_inode(inode, std_inode);
+  set_inode(inode, std_inode);
   u_int32 ofs = offset % block_size;
 
   if(length > block_size - ofs) {
@@ -313,7 +313,7 @@ u_int32 write_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
   return width;
 }
 
-u_int32 open_file(string str_path, u_int32 root)
+u_int32 find_inode(string str_path, u_int32 root)
 {
   list_t path = (str_split(str_path, '/', TRUE)->tail);
 
@@ -451,7 +451,7 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
     entry = (dir_entry*) (((u_int32)entry) + resize);
     set_dir_entry(entry, inode, file_type, name, 2*block_size - room);
   }
-  /* find_inode(dir, std_inode);*/ // std_inode already set by read_inode_data
+  /* set_inode(dir, std_inode);*/ // std_inode already set by read_inode_data
   writeLBA(BLOCK(std_inode->dbp[0]), block_factor, std_buf);
   if(file_type & FILE_DIR) {
     std_inode->hard_links++;
@@ -562,8 +562,8 @@ void ls_dir(u_int32 inode)
     for(u_int32 i = 0 ; i < entry->name_length ; i++) {
       writef("%c", ((u_int8*) &(entry->name))[i]);
     }
-    find_inode(entry->inode, std_inode);
-    writef("\t<-- inode = %u, size = %u", entry->inode, std_inode->size_low);
+    set_inode(entry->inode, std_inode);
+    writef("\t<-- inode = %u", entry->inode);
     entry = (dir_entry*) (((u_int32)entry) + entry->size);
   }
   writef("\n");

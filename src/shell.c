@@ -128,14 +128,14 @@ void ls_handler(list_t args)
       string absolute_path = str_cat(path, relative_path);
 
       writef("%s:\n", relative_path);
-      ls_dir(open_file(absolute_path, 2)); // FIXME with current inode
+      ls_dir(find_inode(absolute_path, 2)); // FIXME with current inode
       writef("\n");
 
       mem_free(absolute_path);
       mem_free(relative_path);
     }
   } else {
-    ls_dir(open_file(path, 2)); // FIXME with current inode
+    ls_dir(find_inode(path, 2)); // FIXME with current inode
   }
 }
 command_t ls_cmd = {
