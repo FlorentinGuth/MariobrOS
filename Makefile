@@ -9,7 +9,7 @@ HOST_MEMORY  = 512  # Memory that bochs should use to emulate our OS
 # Folders and paths
 SRC_DIR   = src
 PROGS_SRC_DIR = progs
-PROGS_BIN_DIR = iso/progs
+PROGS_ELF_DIR = iso/progs
 BUILD_DIR = build
 BOOT_DIR  = iso/boot
 EMU_DIR   = emu
@@ -31,7 +31,7 @@ LIB_PROG_C = $(PROGS_SRC_DIR)/lib.c
 LIB_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(LIB_PROG_C))
 PROGS_C   = $(filter-out $(LIB_PROG_C),$(wildcard $(PROGS_SRC_DIR)/*.c))
 PROGS_O   = $(patsubst $(PROGS_SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(PROGS_C))
-PROGS_BIN = $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_BIN_DIR)/%.bin,$(PROGS_C))
+PROGS_ELF = $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_ELF_DIR)/%.elf,$(PROGS_C))
 
 # OS targets
 OS_ISO = $(BUILD_DIR)/os.iso
@@ -126,7 +126,7 @@ disk: diskq
 .SECONDARY:   # Avoid deletion of intermediate files
 
 
-$(BUILD_DIR) $(EMU_DIR) $(PROGS_BIN_DIR): # Ensures folders exist
+$(BUILD_DIR) $(EMU_DIR) $(PROGS_ELF_DIR): # Ensures folders exist
 	@mkdir -p $@
 
 # Configuration files writing
@@ -165,11 +165,11 @@ $(BUILD_DIR)/%.o: src/%.c $(BUILD_DIR)
 $(BUILD_DIR)/%.o: src/%.s $(BUILD_DIR)
 	@$(AS) $< -o $@ $(ASFLAGS)
 
-# Progs compilation into .o and .bin
+# Progs compilation into .o and .elf
 $(BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.c $(BUILD_DIR)
 	@$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
 
-$(PROGS_BIN_DIR)/%.bin: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_BIN_DIR) $(LINKER_PROG)
+$(PROGS_ELF_DIR)/%.elf: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_ELF_DIR) $(LINKER_PROG)
 	@$(LD) $(LDFLAGS) -T $(LINKER_PROG) $(LIB_PROG_O) $< -o $@
 
 
@@ -186,7 +186,7 @@ $(OS_ISO):	$(GRUB_CONFIG) core
                 -o $(OS_ISO) \
                 iso
 
-core: $(KERNEL_ELF) $(PROGS_BIN)
+core: $(KERNEL_ELF) $(PROGS_ELF)
 
 $(KERNEL_ELF):	$(OBJS) $(LINKER)  # To remake if linker script changed
     # Links the file and produces the .elf in the ISO folder
@@ -217,7 +217,7 @@ redisk: cleandisk disk
 
 rsync: $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK)
 	sudo rsync -r $(BOOT_DIR)      $(MNT_DIR)
-	sudo rsync -r $(PROGS_BIN_DIR) $(MNT_DIR)
+	sudo rsync -r $(PROGS_ELF_DIR) $(MNT_DIR)
 
 mount: $(DISK_IMG)
 	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)
@@ -239,7 +239,7 @@ clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf $(EMU_DIR)
 	rm -f $(BOOT_DIR)/kernel.elf
-	rm -rf $(PROGS_BIN_DIR)
+	rm -rf $(PROGS_ELF_DIR)
 
 cleandisk: clean
 	rm -f $(DISK_IMG)
