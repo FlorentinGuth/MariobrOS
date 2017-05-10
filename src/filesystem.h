@@ -92,6 +92,8 @@ u_int32 open_file(string str_path, u_int32 root);
  *                     1: Already a file with the same name in the directory
  *                     2: No room for another file in this directory
  *                     3: Name is too long (must be < 256 characters)
+ *                     4: No directory
+ *                     5: No inode
  */
 u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name);
 
@@ -104,6 +106,8 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name);
  *
  *  @param return     - 0: No error
  *                      1: No such file found in the directory
+ *                      4: No directory
+ *                      5: No inode
  */
 u_int8 remove_file(u_int32 dir, u_int32 inode);
 

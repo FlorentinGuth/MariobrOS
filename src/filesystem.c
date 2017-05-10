@@ -382,6 +382,12 @@ u_int16 set_dir_entry(dir_entry* e, u_int32 inode, u_int8 file_type, \
 
 u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
 {
+  if(!dir) {
+    return 4;
+  }
+  if(!inode) {
+    return 5;
+  }
   u_int32 len = str_length(name);
   if(len>>8) {
     return 3;
@@ -458,6 +464,12 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
 // The next function only updates the parent directory, it does not unallocate
 u_int8 remove_file(u_int32 dir, u_int32 inode)
 {
+  if(!dir) {
+    return 4;
+  }
+  if(!inode) {
+    return 5;
+  }
   read_inode_data(dir, std_buf, 0, block_size);
 
   u_int32 endpos = (u_int32)std_buf + (block_size<<1);
@@ -488,29 +500,37 @@ u_int8 remove_file(u_int32 dir, u_int32 inode)
 
 u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
 {
+  writef("1");
   if(!father) {
+    writef(" ! ");
     return 0;
   }
+  writef("2");
   u_int32 num = allocate_inode();
   if(!num) {
     return 0;
   }
+  writef("3");
   u_int32 block = allocate_block(0);
   if(!block) {
     unallocate_inode(num);
     return 0;
   }
-  if(add_file(father, num, ftype, name)) {
+  writef("4");
+  u_int8 error = add_file(father, num, ftype, name);
+  if(error) {
+    writef("Num: %u; block: %u, error: %u", num, block, error);
     unallocate_inode(num);
     unallocate_block(block);
     return 0;
   }
+  writef("5");
   u_int8 is_a_dir = !!(type & TYPE_DIR);
   std_inode->type = type;
-  std_inode->hard_links = 1 + is_a_dir; // Father (+ itself)
-  std_inode->size_low = block_size * 2;
+  std_inode->hard_links = 2; // Father (+ itself)
   std_inode->sectors = block_factor;
   std_inode->dbp[0] = block;
+  std_inode->size_low = block_size * 2 * is_a_dir;
   for(u_int8 i = 1; i < 12; i++) {
     std_inode->dbp[i] = 0;
   }
@@ -549,7 +569,8 @@ void ls_dir(u_int32 inode)
     for(u_int32 i = 0 ; i < entry->name_length ; i++) {
       writef("%c", ((u_int8*) &(entry->name))[i]);
     }
-    writef("\t<-- inode = %u", entry->inode);
+    find_inode(entry->inode, std_inode);
+    writef("\t<-- inode = %u, size = %u", entry->inode, std_inode->size_low);
     entry = (dir_entry*) (((u_int32)entry) + entry->size);
   }
   writef("\n");
@@ -588,27 +609,14 @@ void filesystem_install()
 
   spb->just_boot = 1; // Set to 0 by the first allocate_inode
   allocate_inode();
-
+  writef("Test1\t\t");
   u_int32 test1 = create_dir(2, "test1");
-  u_int32 test2 =create_dir(2, "test2");
-  create_dir(test1, "subtest1");
+  writef("\t%u\nTest2\t\t", test1);
+  u_int32 test2 = create_dir(2, "test2");
+  writef("\t%u\nSubtest \t", test2);
+  u_int32 subtest = create_dir(test1, "subtest");
+  writef("\t%u\nFiletest\t",subtest);
+  u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR);
 
-  string name = (void*) mem_alloc(256);
-  for(int i = 0; i < 256; i++) {
-    if(!((i+2)%128))
-      name[i] = '0';
-    else
-      name[i] = '.';
-  }
-  name[254] = '!';
-  name[255] = '\0';
-  u_int32 inode;
-
-  for(int i = 0; i < 20; i++) {
-    inode = allocate_inode();
-    name[0] = (char)i + 49;
-    if(add_file(test2, inode, FILE_REGULAR, name)) {
-      unallocate_inode(inode);
-    }
-  }
+  add_file(test2, filetest, FILE_REGULAR, "filetest");
 }
