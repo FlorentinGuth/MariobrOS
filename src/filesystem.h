@@ -7,11 +7,11 @@
 
 
 /**
- *  @name find_inode - Finds the inode corresponding to an inode number
+ *  @name set_inode - Sets an inode buffer to the corresponding inode number
  *  @param inode     - The inode number
  *  @param buffer    - The output buffer of the inode, must be at least 128B wide
  */
-void find_inode(u_int32 inode, inode_t *buffer);
+void set_inode(u_int32 inode, inode_t *buffer);
 
 /**
  *  @name allocate_inode - Allocates a new inode
@@ -60,6 +60,7 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
 /**
  *  @name write_inode_data - Writes a certain amount of data to the disk from
  *  a given buffer. Only writes up to the end of the current block.
+ *  Also sets up std_inode to the content of the inode
  *
  *  @param inode  - The inode number of the file to write
  *  @param buffer - The input buffer
@@ -73,12 +74,14 @@ u_int32 write_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
 
 
 /**
- *  @name open_file - Opens a file
+ *  @name find_inode - Opens a file
+ *  Also sets up std_inode to the content of the parent inode
+ *
  *  @param str_path - The path to the file, relative to root
  *  @param root     - If path begins with '/', this argument is ignored
  *  @return inode   - The inode number of the file
  */
-u_int32 open_file(string str_path, u_int32 root);
+u_int32 find_inode(string str_path, u_int32 root);
 
 /**
  *  @name add_file - Adds a file to a directory
@@ -92,6 +95,8 @@ u_int32 open_file(string str_path, u_int32 root);
  *                     1: Already a file with the same name in the directory
  *                     2: No room for another file in this directory
  *                     3: Name is too long (must be < 256 characters)
+ *                     4: No directory
+ *                     5: No inode
  */
 u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name);
 
@@ -104,6 +109,8 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name);
  *
  *  @param return     - 0: No error
  *                      1: No such file found in the directory
+ *                      4: No directory
+ *                      5: No inode
  */
 u_int8 remove_file(u_int32 dir, u_int32 inode);
 
