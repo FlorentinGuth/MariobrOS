@@ -5,6 +5,7 @@
 #include "malloc.h"
 #include "filesystem.h"
 #include "shell.h"
+#include "scheduler.h"
 
 /** kmain.c
  *  Contains the kernel main function.
@@ -46,6 +47,7 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   /* Last but not least, the shell */
   shell_install();
 
+  /* scheduler_install(); */
 
   /* Enables interruptions */
   __asm__ __volatile__ ("sti");

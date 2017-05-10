@@ -22,7 +22,7 @@ DISK_IMG = $(DISK_DIR)/disk.img
 
 # Sources for the kernel
 LINKER = $(SRC_DIR)/link.ld
-OBJECTS = loader.o kmain.o shell.o process.o scheduler.o syscall.o bitset.o malloc.o paging.o memory.o filesystem.o ata_pio.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o queue.o list.o utils.o
+OBJECTS = loader.o kmain.o shell.o process.o scheduler.o elf.o syscall.o bitset.o malloc.o paging.o memory.o filesystem.o ata_pio.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o queue.o list.o utils.o
 OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
 
 # Sources for user programs

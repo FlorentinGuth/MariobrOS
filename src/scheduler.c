@@ -220,6 +220,6 @@ void init()
   /* Adds handlers for timer and syscall interruptions */
   extern void *timer_phase(int hz);  /* Defined in timer.c */
   timer_phase(SWITCH_FREQ);
-  irq_install_handler(0, timer_handler);
-  isr_install_handler(SYSCALL_ISR, syscall_handler);
+  /* irq_install_handler(0, timer_handler); */
+  /* isr_install_handler(SYSCALL_ISR, syscall_handler); */
 }
