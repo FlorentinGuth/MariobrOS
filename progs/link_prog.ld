@@ -4,7 +4,7 @@ ENTRY(main)         /* Programs start at the main function */
 SECTIONS {
   /* Space reserved for the kernel */
 
-  . = 0x00400000;           /* The code should be loaded at 4 MB */
+  . = 0xFFFF0000;           /* The code should be loaded at 4GB - 64KB */
 
   .text ALIGN (0x1000) :    /* Align at 4KB */
   {

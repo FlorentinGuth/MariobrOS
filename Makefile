@@ -169,7 +169,7 @@ $(BUILD_DIR)/%.o: src/%.s $(BUILD_DIR)
 $(BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.c $(BUILD_DIR)
 	@$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
 
-$(PROGS_BIN_DIR)/%.bin: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_BIN_DIR)
+$(PROGS_BIN_DIR)/%.bin: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_BIN_DIR) $(LINKER_PROG)
 	@$(LD) $(LDFLAGS) -T $(LINKER_PROG) $(LIB_PROG_O) $< -o $@
 
 
@@ -188,7 +188,7 @@ $(OS_ISO):	$(GRUB_CONFIG) core
 
 core: $(KERNEL_ELF) $(PROGS_BIN)
 
-$(KERNEL_ELF):	$(OBJS)
+$(KERNEL_ELF):	$(OBJS) $(LINKER)  # To remake if linker script changed
     # Links the file and produces the .elf in the ISO folder
 	$(LD) $(LDFLAGS) -T $(LINKER) $(OBJS) -o $(KERNEL_ELF)
 

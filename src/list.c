@@ -103,3 +103,17 @@ u_int32 find(list_t *l, bool (*p)(u_int32), bool remove)
   }
   return 0;
 }
+
+
+
+void delete_list(list_t *l, bool free_elts)
+{
+  while (!is_empty_list(l)) {
+    u_int32 x = pop(l);
+    if (free_elts) {
+      mem_free((void *)x);
+    }
+  }
+
+  mem_free(l);
+}

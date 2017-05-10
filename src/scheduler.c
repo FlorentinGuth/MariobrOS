@@ -5,6 +5,7 @@
 #include "irq.h"
 #include "syscall.h"  /* Ugly */
 #include "paging.h"
+#include "filesystem.h"
 
 
 scheduler_state_t *state = NULL;
@@ -118,6 +119,61 @@ void syscall_handler(regs_t *regs)
 }
 
 
+void load_code(string program_name, page_directory_t *dir)
+{
+  string temp = str_cat("/progs/", program_name);
+  string path = str_cat(temp, ".bin");
+  mem_free(temp);
+
+  u_int32 inode = open_file(path, 0);
+  mem_free(path);
+
+  /* TODO: read until EOF or something */
+  inode_t inode_buffer;
+  find_inode(inode, &inode_buffer);
+  size_t size = inode_buffer.sectors * 512;  /* Each sector amounts to 512 bytes */
+  if (size > 0xFFFFFFFF - START_OF_USER_CODE + 1) {
+    throw("Binary file too large");
+  }
+
+  /* To access the code section, we need to be in the process page directory */
+  switch_page_directory(dir);
+  u_int16 *code_buffer = (u_int16 *)START_OF_USER_CODE;
+  u_int16 *current = code_buffer;
+  while (current < code_buffer + size/2) {
+    current += read_inode_data(inode, current, 0, code_buffer + size/2 - current);
+  }
+  switch_page_directory(kernel_directory);
+}
+
+
+/**
+ * @name switch_to_process - Transfers control to the given new process
+ * This ignores the regs structure, as well as the kernel esp
+ * @param pid              - The process to transfer control to
+ * @return void
+ */
+void switch_to_process(pid pid)
+{
+  process_t proc = state->processes[pid];
+
+  /* Saves kernel context */
+  kernel_context.unallocated_mem  = unallocated_mem;
+  kernel_context.first_free_block = first_free_block;
+
+  /* Restores process context */
+  context_t ctx = proc.context;
+  first_free_block = ctx.first_free_block;
+  unallocated_mem  = ctx.unallocated_mem;
+
+  /* Restores process paging */
+  switch_page_directory(ctx.page_dir);
+
+  /* Let's go! */
+  /* TODO */
+}
+
+
 void init()
 {
   state = mem_alloc(sizeof(scheduler_state_t));
@@ -126,13 +182,13 @@ void init()
   pid idle_pid = 0;
   process_t *idle = &state->processes[idle_pid];
   *idle = new_process(idle_pid, 0);
-  /* Idle code: for (;;) { asm("hlt"; )}; */
+  /* TODO: Idle code: for (;;) { asm("hlt"; )}; */
 
   /* Creating init process */
   pid init_pid = 1;
   process_t *init = &(state->processes[init_pid]);
   *init = new_process(init_pid, MAX_PRIORITY);
-  /* Init code: for (;;) { syscall_wait() }; */
+  /* TODO: Init code: for (;;) { syscall_wait() }; */
 
   /* Initialization of the state */
   state->curr_pid = init_pid;  /* We start with the init process */

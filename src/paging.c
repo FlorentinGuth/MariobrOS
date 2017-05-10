@@ -347,24 +347,27 @@ page_directory_t *clone_directory(page_directory_t *dir)
 }
 
 
+u_int32 START_OF_USER_STACK, START_OF_USER_HEAP, START_OF_USER_CODE;
 /**
- * @name set_user_addresses - Set up start_of_user_stack/heap, base on base_dir
+ * @name set_user_addresses - Set up START_OF_USER addresses, base on base_dir
  * @return void
  */
 void set_user_addresses()
 {
-  /* The stack starts at the end of (virtual) memory */
-  start_of_user_stack = floor_multiple(UPPER_MEMORY, 0x1000);  /* Stack page-aligned */
+  /* The code is linked at the higher end of virtual memory */
+  START_OF_USER_CODE = 0xFFFF0000;               /* 64KB is enough */
+  /* The stack starts at the same address, going downward */
+  START_OF_USER_STACK = START_OF_USER_CODE - 1;
 
   /* We search for the first unmapped page in memory */
   u_int32 address = 0x1000;
   while (get_physical_address(base_directory, address)) {
     address += 0x1000;
   }
-  start_of_user_heap = address;
+  START_OF_USER_HEAP = address;
 
   kloug(100, "Start of user heap: %x, start of user stack: %x\n", \
-        start_of_user_heap, start_of_user_stack);
+        START_OF_USER_HEAP, START_OF_USER_STACK);
 }
 
 
@@ -434,14 +437,22 @@ page_directory_t *new_page_dir()
 {
   page_directory_t *new = clone_directory(base_directory);
 
+  /* Add pages for the code, until the end of virtual memory (address will loop to 0) */
+  for (u_int32 address = START_OF_USER_CODE; address != 0; address += 0x1000) {
+    if (!map_page(get_page(new, address), FALSE, TRUE)) {
+      throw("Unable to add user code!");
+      /* TODO: free and return NULL */
+    }
+  }
+
   /* Add one page of user stack */
-  if (!map_page(get_page(new, start_of_user_stack), FALSE, TRUE)) {
+  if (!map_page(get_page(new, START_OF_USER_STACK), FALSE, TRUE)) {
     throw("Unable to add user stack!");
     /* TODO: free and return NULL */
   }
 
   /* And one page of user heap */
-  if (!map_page(get_page(new, start_of_user_heap), FALSE, TRUE)) {
+  if (!map_page(get_page(new, START_OF_USER_HEAP), FALSE, TRUE)) {
     throw("Unable to add user heap!");
     /* TODO: free and return NULL */
   }

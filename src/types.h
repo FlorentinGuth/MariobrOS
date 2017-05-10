@@ -25,10 +25,18 @@ typedef unsigned char bool;
 
 /* Constants defining the memory layout */
 /* The memory  is laid out as follows:
- *  - from 0MB to 1MB (0x10000), we have BIOS and GRUB-reserved memory (such as the framebuffer)
- *  - from 1MB to 8MB there is the kernel code, stack and heap (waste of space...)
- *  - from 8MB to ??? there is the user space
+ *  - from LOWER_MEMORY to 1MB (0x10000), we have BIOS and GRUB-reserved memory (such as the framebuffer)
+ *  - from 1MB to END_OF_KERNEL_LOCATION there is the kernel code, data and stack
+ *  - from END_OF_KERNEL_LOCATION to ??? there is the kernel heap
+ *  - from START_OF_USER_HEAP to ??? there is the user heap (starts after a bit of the kernel heap,
+ *    to be able to access its page directory and such things)
+ *  - from ??? to START_OF_USER_STACK there is the user stack
+ *  - from START_OF_USER_CODE = START_OF_USER_STACK to UPPER_MEMORY there is the user code
  */
+
+/* Physical memory - set by kmain */
+extern u_int32 LOWER_MEMORY;  /* The memory from 0x0 to LOWER_MEMORY is free */
+extern u_int32 UPPER_MEMORY;  /* The memory from 1MB to UPPER_MEMORY is free */
 
 /* The framebuffer location in memory */
 #define FRAMEBUFFER_LOCATION    0x000B8000
@@ -41,10 +49,10 @@ extern unsigned int ld_end;
 extern u_int32 START_OF_KERNEL_STACK;  /* Beware, START > END as the stack grows downward! */
 extern u_int32 END_OF_KERNEL_STACK;
 
-
-/* Two variables set by kmain function right at the beginning of the call */
-extern u_int32 LOWER_MEMORY;  /* The memory from 0x0 to LOWER_MEMORY is free */
-extern u_int32 UPPER_MEMORY;  /* The memory from 1MB to UPPER_MEMORY is free */
+/* User space - set by paging_install */
+extern u_int32 START_OF_USER_HEAP;
+extern u_int32 START_OF_USER_STACK;
+extern u_int32 START_OF_USER_CODE;
 
 
 /* This defines what the stack looks like after an ISR was running */

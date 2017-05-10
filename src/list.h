@@ -73,4 +73,12 @@ void reverse(list_t *l);
  */
 u_int32 find(list_t *l, bool (*predicate)(u_int32 x), bool remove);
 
+/**
+ * @name delete_list - Frees a whole list
+ * @param l          - The list to free
+ * @param free_elts  - Whether to free its elements (which are interpreted as pointers)
+ * @return void
+ */
+void delete_list(list_t *l, bool free_elts);
+
 #endif

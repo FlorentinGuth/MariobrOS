@@ -73,8 +73,6 @@ typedef struct page_directory
 page_directory_t* current_directory;
 page_directory_t* kernel_directory;
 page_directory_t* base_directory;    /* Copy of the original kernel directory */
-u_int32 start_of_user_heap;          /* Constant, set to the address of the user heap start */
-u_int32 start_of_user_stack;         /* Constant, set to the address of the user stack start */
 
 
 /**
