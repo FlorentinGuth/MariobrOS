@@ -154,6 +154,9 @@ void load_code(string program_name, context_t ctx)
   /* Loads actual code and data at the right place, and set up eip */
   ctx.regs->eip = check_and_load(elf_buffer);
 
+  /* Free! */
+  mem_free(elf_buffer);
+
   /* Leaving process context */
   switch_page_directory(kernel_directory);
   ctx.first_free_block = first_free_block;
@@ -197,13 +200,13 @@ void init()
   pid idle_pid = 0;
   process_t *idle = &state->processes[idle_pid];
   *idle = new_process(idle_pid, 0);
-  /* TODO: Idle code: for (;;) { asm("hlt"; )}; */
+  load_code("idle", idle->context);
 
   /* Creating init process */
   pid init_pid = 1;
   process_t *init = &(state->processes[init_pid]);
   *init = new_process(init_pid, MAX_PRIORITY);
-  /* TODO: Init code: for (;;) { syscall_wait() }; */
+  load_code("init", init->context);
 
   /* Initialization of the state */
   state->curr_pid = init_pid;  /* We start with the init process */
