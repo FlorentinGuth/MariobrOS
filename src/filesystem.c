@@ -75,7 +75,7 @@ u_int32 allocate_inode()
   }
 
   u_int32 ret = spb->first_free_inode;
-
+  /* writef("FFI: %u, ", ret); */ 
   u_int32 k = (ret-1)>>11; // Current checked sector
   u_int8 i = (u_int8) ((ret-1) % 2048)>>4; // Current checked word
   u_int8 j = (u_int8) (ret-1) % 16; // Current checked bit
@@ -373,9 +373,10 @@ u_int16 set_dir_entry(dir_entry* e, u_int32 inode, u_int8 file_type, \
     e->size = ret;
   }
   e->file_type = file_type;
-  for(int i = 0; i <= len; i++) {
+  for(int i = 0; i < len; i++) {
     ((string) &(e->name))[i] = name[i];
   }
+
   return ret;
 }
 
@@ -387,7 +388,7 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
   }
   read_inode_data(dir, std_buf, 0, block_size);
   dir_entry *entry = (void*) std_buf;
-  u_int32 room = entry->size;
+  u_int32 room = entry->size; // Occupied room until current entry (included)
   string b = (string) &(entry->name);
   u_int32 i;
   for(i=0; name[i] != '\0' && b[i] != '\0' && name[i]==b[i]; i++);
@@ -395,7 +396,7 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
     return 1; // Already a file with the same name
   }
 
-  while(entry->inode && room < 2*block_size) {
+  while(entry->inode && room < 2*block_size) { // Redundant condition (safer)
     entry = (dir_entry*) (((u_int32)entry) + entry->size);
     b = (string) &(entry->name);
     for(i=0; name[i] != '\0' && b[i] != '\0' && name[i]==b[i]; i++);
@@ -404,8 +405,9 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
     }
     room += entry->size;
   }
-
-  room -= entry->size;
+  
+  u_int16 resize = 4 * ( 1 + (entry->name_length + sizeof(dir_entry) - 1)/4 );
+  room = room - entry->size + resize;
 
   if(2*block_size - room < sizeof(dir_entry) + len) {
     // Shrinking each entry to its natural size (widened because of deletions)
@@ -430,6 +432,7 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
     }
 
     room = 2*block_size - ((u_int32)ref - (u_int32)std_buf);
+
     if(room < sizeof(dir_entry) + len) {
       return 2; // No room for another entry in this directory
       /* This condition is sufficient because of the 4-bytes alignment */
@@ -438,10 +441,9 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
   }
 
   else {
-    u_int16 resize = 4 * ( 1 + (entry->name_length + sizeof(dir_entry) - 1)/4 );
     entry->size = resize;
     entry = (dir_entry*) (((u_int32)entry) + resize);
-    set_dir_entry(entry, inode, file_type, name, 2*block_size - resize - room);
+    set_dir_entry(entry, inode, file_type, name, 2*block_size - room);
   }
   /* find_inode(dir, std_inode);*/ // std_inode already set by read_inode_data
   writeLBA(BLOCK(std_inode->dbp[0]), block_factor, std_buf);
@@ -588,22 +590,25 @@ void filesystem_install()
   allocate_inode();
 
   u_int32 test1 = create_dir(2, "test1");
-  /* u_int32 test2 =  */create_dir(2, "test2");
+  u_int32 test2 =create_dir(2, "test2");
   create_dir(test1, "subtest1");
 
-  /* string name = (void*) mem_alloc(256); */
-  /* for(int i = 0; i < 256; i++) { */
-  /*   if(!((i+2)%128)) */
-  /*     name[i] = '0'; */
-  /*   else */
-  /*     name[i] = '.'; */
-  /* } */
-  /* name[254] = '!'; */
-  /* name[255] = '\0'; */
-  /* u_int32 inode; */
-  /* for(int i = 0; i < 20; i++) { */
-  /*   inode = allocate_inode(); */
-  /*   name[0] = (char)i + 49; */
-  /*   add_file(test2, inode, FILE_REGULAR, name); */
-  /* } */
+  string name = (void*) mem_alloc(256);
+  for(int i = 0; i < 256; i++) {
+    if(!((i+2)%128))
+      name[i] = '0';
+    else
+      name[i] = '.';
+  }
+  name[254] = '!';
+  name[255] = '\0';
+  u_int32 inode;
+
+  for(int i = 0; i < 20; i++) {
+    inode = allocate_inode();
+    name[0] = (char)i + 49;
+    if(add_file(test2, inode, FILE_REGULAR, name)) {
+      unallocate_inode(inode);
+    }
+  }
 }

@@ -215,7 +215,18 @@ command_t splash_cmd = {
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void display_ascii(list_t args)
 {
-  for (int c = 0; c < 256; c++) {
+  writef("0: 1:%c\t", 1);
+  for (int c = 2; c < 128; c++) {
+    if(c==10) {
+      writef("10:\n");
+    } else if(c < 10) {
+      writef("%d:%c\t\t",c,c);
+    } else {
+      writef("%d:%c\t", c, c);
+    }
+  }
+  writef("\n");
+  for(int c = 128; c < 256; c++) {
     writef("%d:%c ", c, c);
   }
   writef("\n");
