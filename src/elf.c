@@ -18,7 +18,7 @@ void mem_set_page(void *str, char c, u_int32 length, u_int32 virtuals[])
 void mem_copy_page(void *dest, const void *src, u_int32 length, u_int32 virtuals[])
 {
   for (u_int32 i = 0; i< length; i++) {
-    *ADR((u_int32)dest + i) = *ADR((u_int32)src + i);
+    *ADR((u_int32)dest + i) = *((u_int8 *)src + i);
   }
 }
 
@@ -60,10 +60,11 @@ u_int32 check_and_load(void *elf_file, u_int32 virtuals[])
   for (u_int16 segment_number = 0; segment_number < elf_header->pht_entry_nb; segment_number += 1) {
     program_header_entry_t *segment = (program_header_entry_t *) \
       (elf_file + elf_header->program_header_table + segment_number * elf_header->pht_entry_size);
-    writef("Segment %d\n", segment_number);
+    kloug(100, "Segment %d\n", segment_number);
 
     if (segment->segment_type == Load) {
       void *address = (void *)segment->segment_virtual_address;
+      kloug(100, "Should be loaded at %x (mapped at %x)\n", address, ADR((u_int32)address));
       mem_set_page (address,                                  0, segment->segment_size_in_memory, virtuals);
       mem_copy_page(address, elf_file + segment->segment_offset, segment->segment_size_in_file,   virtuals);
     }
