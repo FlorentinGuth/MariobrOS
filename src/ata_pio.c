@@ -153,6 +153,9 @@ void readLBA(u_int32 lba, unsigned char sector_count, u_int8 buffer[])
 
 void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int8 buffer[])
 {
+  if(!length) {
+    return;
+  }
   lba += 0x800 + (offset>>9); // 0x800 : beginning of volume
   offset %= 512;
   if(disk_id) { identify_throw(disk_id); }
@@ -180,7 +183,7 @@ void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int8 buffer[])
       inw(ATA_DATA);
     } else if(i==-1) {
       minibuf = inw(ATA_DATA);
-      buffer[0] = (u_int8) minibuf;
+      buffer[0] = minibuf>>8;
     } else {
       * ((u_int16*) (buffer + i)) = inw(ATA_DATA);
     }
@@ -188,7 +191,8 @@ void readPIO(u_int32 lba, u_int32 offset, u_int32 length, u_int8 buffer[])
   }
   if((length + offset) % 2) {
     minibuf = inw(ATA_DATA);
-    buffer[i] = minibuf>>8;
+    buffer[i] = (u_int8) minibuf;
+    i+=2;
   }
   i+=offset;
   while(i%512) {
