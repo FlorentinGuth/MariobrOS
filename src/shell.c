@@ -33,7 +33,7 @@ void update_max_length()
 
 
 /* Prompt */
-char user[] = "MarcPouzet";
+char user[] = "TimPouzet";
 char machine[] = "MarioBrOS";
 string path;
 void echo_thingy()

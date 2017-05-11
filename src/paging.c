@@ -181,6 +181,27 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
 }
 
 
+/**
+ * @name find_unmapped_page - Finds the first unmapped page
+ * This might lead to the creation of a page table
+ * @param dir               - The page directory
+ * @return                  - A free page
+ */
+page_table_entry_t *find_unmapped_page(page_directory_t *dir)
+{
+  for (u_int32 page = 0; page < 1024 * 1024; page++) {
+    if (!get_physical_address(dir, 0x1000 * page)) {
+      return get_page(dir, 0x1000 * page);
+    }
+  }
+
+  /* All pages are mapped */
+  kloug(100, "find_unmapped_page returned NULL\n");
+  return NULL;
+}
+
+
+
 bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool is_kernel, bool is_writable)
 {
   kloug(100, "Virtual space at %x requested\n", virtual_address);
@@ -201,11 +222,24 @@ bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool 
   return map_page(page, is_kernel, is_writable);
 }
 
-void free_virtual_space(u_int32 virtual_address)
+u_int32 request_physical_space(page_directory_t *dir, u_int32 physical_address, \
+                               bool is_kernel, bool is_writable)
 {
-  page_table_entry_t *page = get_page(current_directory, virtual_address);
+  page_table_entry_t *page = find_unmapped_page(dir);
+  if (!page) {
+    kloug(100, "All pages are mapped\n");
+    return NULL;
+  }
 
-  free_page(page, FALSE);  /* TODO: check when we can free the frame as well as the page */
+  map_page_to_frame(page, physical_address / 0x1000, is_kernel, is_writable);
+  return (u_int32)page + physical_address % 0x1000;
+}
+
+void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool free_frame)
+{
+  page_table_entry_t *page = get_page(dir, virtual_address);
+
+  free_page(page, free_frame);
 }
 
 
@@ -425,7 +459,7 @@ void paging_install()
 }
 
 
-page_directory_t *new_page_dir()
+page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem)
 {
   kloug(100, "New page dir\n");
 
@@ -450,6 +484,12 @@ page_directory_t *new_page_dir()
     throw("Unable to add user heap!");
     /* TODO: free and return NULL */
   }
+
+  /* Adding malloc: we need to map this user heap page */
+  u_int32 heap_physical = get_physical_address(new, START_OF_USER_HEAP);
+  u_int32 heap_virtual = request_physical_space(current_directory, heap_physical, TRUE, FALSE);
+  malloc_new_state(heap_virtual, user_first_free_block, user_unallocated_mem);
+  free_virtual_space(current_directory, heap_virtual, FALSE);  /* The frame is used by the process */
 
   kloug(100, "New page dir successfully created\n");
   return new;

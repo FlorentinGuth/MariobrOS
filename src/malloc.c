@@ -296,7 +296,7 @@ bool extend_heap(int nb_pages)
         /* The allocation failed, we need to free everything we requested */
         for (i = i - 1; i >= 0; i--) {
           current_end_of_heap -= 0x1000;
-          free_virtual_space(current_end_of_heap);
+          free_virtual_space(current_directory, current_end_of_heap, TRUE);
         }
 
         kloug(100, "Heap extension aborted\n");
@@ -354,26 +354,12 @@ header_free_t *alloc_pages(size_t size)
 }
 
 
-void malloc_install()
-{
-  unallocated_mem = (void *)START_OF_HEAP;
-  first_free_block = 0;
-
-  if (!extend_heap(1)) {
-    throw("Unable to install malloc");
-  }
-
-  kloug(100, "Malloc installed\n");
-}
-
-
-void malloc_new_state(page_directory_t *dir, u_int32 start_of_heap, \
-                      void **user_first_free_block, void **user_unallocated_mem)
+void malloc_new_state(u_int32 start_of_heap, void **user_first_free_block, void **user_unallocated_mem)
 {
   kloug(100, "Creating new malloc state: heap starts at %x\n", start_of_heap);
-  switch_page_directory(dir);
 
-  void *temp_um = unallocated_mem, *temp_ffb = first_free_block;
+  void *temp_um = unallocated_mem;
+  void *temp_ffb = first_free_block;
   first_free_block = 0;
   unallocated_mem = (void *)start_of_heap;
 
@@ -386,7 +372,13 @@ void malloc_new_state(page_directory_t *dir, u_int32 start_of_heap, \
   unallocated_mem = temp_um;
   first_free_block = temp_ffb;
 
-  switch_page_directory(kernel_directory);
+  kloug(100, "Malloc installed\n");
+}
+
+
+void malloc_install()
+{
+  malloc_new_state(START_OF_HEAP, &first_free_block, &unallocated_mem);
 }
 
 

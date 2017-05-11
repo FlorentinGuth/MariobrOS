@@ -90,15 +90,26 @@ void paging_install();
  * @param is_writable          - Whether the page should be writable (only applies in user-mode)
  * @return bool                - Whether the request was successful
  */
-bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool is_kernel, bool is_writable);
-
-
+bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, \
+                           bool is_kernel, bool is_writable);
+/**
+ * @name request_physical_space - Asks for access to a physical frame
+ * @param dir                   - The page directory (usually current_directory)
+ * @param physical_address      - An address in the requested frame
+ * @param is_kernel             - Whether the page should be in kernel mode
+ * @param is_writable           - Whether the page should be writable (only applies in user-mode)
+ * @return u_int32              - The virtual address corresponding to the physical address (NULL is an error)
+ */
+u_int32 request_physical_space(page_directory_t *dir, u_int32 physical_address, \
+                               bool is_kernel, bool is_writable);
 /**
  * @name free_virtual_space - Frees up the virtual space, so someone else can access it
+ * @param dir               - The page directory (usually current_directory)
  * @param virtual_address   - An address in the freed page
+ * @param free_frame        - Whether to mark the frame as free
  * @return void
  */
-void free_virtual_space(u_int32 virtual_address);
+void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool free_frame);
 
 
 /**
@@ -111,11 +122,13 @@ void switch_page_directory(page_directory_t *new);
 /**
  * @name new_page_dir - Allocates and creates a new page directory, with the
  * kernel code and data (including stack) at the same virtual space.
- * The new virtual space also includes a heap (start_of_user_heap) and a stack
- * (start_of_user_stack).
+ * The new virtual space also includes a heap (at start_of_user_heap) and a stack
+ * (at start_of_user_stack).
+ * @param user_first_free_block - Will be set to the malloc first free block
+ * @param user_unallocated_mem  - Will be set to the malloc end of memory
  * @return page_directory_t*
  */
-page_directory_t *new_page_dir();
+page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem);
 
 
 #endif
