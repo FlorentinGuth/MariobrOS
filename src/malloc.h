@@ -39,7 +39,7 @@ void mem_free(void* ptr);
 
 /**
  * @name malloc_new_state       - Installs malloc for another page directory
- * @param start_of_heap         - The virtual address of the start of the heap
+ * @param start_of_heap         - The virtual address of the start of the heap (already allocated)
  * @param user_first_free_block - Will be set to first_free_block
  * @param user_unallocated_mem  - Will be set to unallocated_mem
  * @return void
