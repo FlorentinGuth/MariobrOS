@@ -17,12 +17,6 @@
  */
 
 
-/**
- * @name get_physical_address - Returns the physical address corresponding to the given virtual one
- * @param dir                 - The paging directory
- * @param virtual_address     - The virtual address
- * @return u_int32            - The physical address
- */
 u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
 {
   /**
@@ -185,13 +179,14 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
  * @name find_unmapped_page - Finds the first unmapped page
  * This might lead to the creation of a page table
  * @param dir               - The page directory
- * @return                  - A free page
+ * @return                  - The index (1024 * index_table + index_page) of a free page
  */
-page_table_entry_t *find_unmapped_page(page_directory_t *dir)
+u_int32 find_unmapped_page(page_directory_t *dir)
 {
-  for (u_int32 page = 0; page < 1024 * 1024; page++) {
+  /* Start at second page, because physical_address(0) = 0... */
+  for (u_int32 page = 1; page < 1024 * 1024; page++) {
     if (!get_physical_address(dir, 0x1000 * page)) {
-      return get_page(dir, 0x1000 * page);
+      return page;
     }
   }
 
@@ -206,12 +201,6 @@ bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool 
 {
   kloug(100, "Virtual space at %x requested\n", virtual_address);
 
-  if (virtual_address > floor_multiple(UPPER_MEMORY, 0x1000)) {
-    kloug(100, "Virtual address beyond physical memory!\n");
-    /* TODO: memory swap */
-    return FALSE;
-  }
-
   page_table_entry_t *page = get_page(dir, virtual_address);
 
   if (page->present) {
@@ -225,14 +214,20 @@ bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool 
 u_int32 request_physical_space(page_directory_t *dir, u_int32 physical_address, \
                                bool is_kernel, bool is_writable)
 {
-  page_table_entry_t *page = find_unmapped_page(dir);
-  if (!page) {
+  kloug(100, "Physical space at %x requested\n", physical_address);
+
+  u_int32 index = find_unmapped_page(dir);
+  if (!index) {
     kloug(100, "All pages are mapped\n");
     return NULL;
   }
 
+  u_int32 virtual_address = index * 0x1000 + physical_address % 0x1000;
+  page_table_entry_t *page = get_page(dir, virtual_address);
   map_page_to_frame(page, physical_address / 0x1000, is_kernel, is_writable);
-  return (u_int32)page + physical_address % 0x1000;
+
+  kloug(100, "Mapped from %x\n", virtual_address);
+  return virtual_address;
 }
 
 void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool free_frame)
@@ -383,7 +378,7 @@ void set_user_addresses()
   /* The code is linked at the higher end of virtual memory */
   START_OF_USER_CODE = 0xFFFF0000;               /* 64KB is enough */
   /* The stack starts at the same address, going downward */
-  START_OF_USER_STACK = START_OF_USER_CODE - 1;
+  START_OF_USER_STACK = START_OF_USER_CODE - 4;
 
   /* We search for the first unmapped page in memory */
   u_int32 address = 0x1000;
@@ -392,8 +387,8 @@ void set_user_addresses()
   }
   START_OF_USER_HEAP = address;
 
-  kloug(100, "Start of user heap: %x, start of user stack: %x\n", \
-        START_OF_USER_HEAP, START_OF_USER_STACK);
+  kloug(100, "Start of user heap: %x, stack: %x, code: %x\n", \
+        START_OF_USER_HEAP, START_OF_USER_STACK, START_OF_USER_CODE);
 }
 
 
@@ -467,28 +462,34 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
 
   /* Add pages for the code, until the end of virtual memory (address will loop to 0) */
   for (u_int32 address = START_OF_USER_CODE; address != 0; address += 0x1000) {
-    if (!map_page(get_page(new, address), FALSE, TRUE)) {
+    if (!request_virtual_space(new, address, FALSE, TRUE)) {
       throw("Unable to add user code!");
       /* TODO: free and return NULL */
     }
   }
 
   /* Add one page of user stack */
-  if (!map_page(get_page(new, START_OF_USER_STACK), FALSE, TRUE)) {
+  if (!request_virtual_space(new, START_OF_USER_STACK, FALSE, TRUE)) {
     throw("Unable to add user stack!");
     /* TODO: free and return NULL */
   }
 
   /* And one page of user heap */
-  if (!map_page(get_page(new, START_OF_USER_HEAP), FALSE, TRUE)) {
+  if (!request_virtual_space(new, START_OF_USER_HEAP, FALSE, TRUE)) {
     throw("Unable to add user heap!");
     /* TODO: free and return NULL */
   }
 
   /* Adding malloc: we need to map this user heap page */
   u_int32 heap_physical = get_physical_address(new, START_OF_USER_HEAP);
+  kloug(100, "Start of user heap is %x, mapped at physical %x\n", START_OF_USER_HEAP, heap_physical);
   u_int32 heap_virtual = request_physical_space(current_directory, heap_physical, TRUE, FALSE);
+
   malloc_new_state(heap_virtual, user_first_free_block, user_unallocated_mem);
+  /* Setting the user addresses, inaccurate because of relocation */
+  *user_first_free_block = (void *)START_OF_USER_HEAP;
+  *user_unallocated_mem  = (void *)START_OF_USER_HEAP + 0x1000;
+
   free_virtual_space(current_directory, heap_virtual, FALSE);  /* The frame is used by the process */
 
   kloug(100, "New page dir successfully created\n");

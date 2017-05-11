@@ -5,7 +5,25 @@
 #include "logging.h"
 
 
-u_int32 check_and_load(void *elf_file)
+/* Translates a process' virtual address into a kernel's virtual address */
+#define ADR(v)  (u_int8 *)(virtuals[(v-START_OF_USER_CODE) / 0x1000] + (v-START_OF_USER_CODE) % 0x1000)
+
+void mem_set_page(void *str, char c, u_int32 length, u_int32 virtuals[])
+{
+  for (u_int32 i = 0; i < length; i++) {
+    *ADR((u_int32)str + i) = c;
+  }
+}
+
+void mem_copy_page(void *dest, const void *src, u_int32 length, u_int32 virtuals[])
+{
+  for (u_int32 i = 0; i< length; i++) {
+    *ADR((u_int32)dest + i) = *ADR((u_int32)src + i);
+  }
+}
+
+
+u_int32 check_and_load(void *elf_file, u_int32 virtuals[])
 {
   elf_header_t *elf_header = (elf_header_t *)elf_file;
 
@@ -32,8 +50,8 @@ u_int32 check_and_load(void *elf_file)
 
     if (segment->segment_type == Load) {
       void *address = (void *)segment->segment_virtual_address;
-      mem_set (address,                                  0, segment->segment_size_in_memory);
-      mem_copy(address, elf_file + segment->segment_offset, segment->segment_size_in_file);
+      mem_set_page (address,                                  0, segment->segment_size_in_memory, virtuals);
+      mem_copy_page(address, elf_file + segment->segment_offset, segment->segment_size_in_file,   virtuals);
     }
   }
 

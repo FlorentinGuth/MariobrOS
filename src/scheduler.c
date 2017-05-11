@@ -135,16 +135,6 @@ void load_code(string program_name, context_t ctx)
   inode_t inode_buffer;
   set_inode(inode, &inode_buffer);
   size_t size = inode_buffer.sectors * 512;  /* Each sector amounts to 512 bytes */
-  if (size > 0xFFFFFFFF - START_OF_USER_CODE + 1) {
-    throw("Binary file too large");
-  }
-
-  /* Entering process context */
-  kernel_context.unallocated_mem  = unallocated_mem;
-  kernel_context.first_free_block = first_free_block;
-  first_free_block = ctx.first_free_block;
-  unallocated_mem  = ctx.unallocated_mem;
-  switch_page_directory(ctx.page_dir);
 
   /* Loads ELF file in memory */
   u_int16 *elf_buffer = (u_int16 *)mem_alloc(size);
@@ -153,18 +143,28 @@ void load_code(string program_name, context_t ctx)
     current += read_inode_data(inode, current, 0, elf_buffer + size/2 - current);
   }
 
+  u_int32 nb_pages = (0xFFFFFFFF - START_OF_USER_CODE + 1) / 0x1000;
+  kloug(100, "%d pages of user code\n", nb_pages);
+  u_int32 virtuals[nb_pages];
+  for (u_int32 page = 0; page < nb_pages; page++) {
+    u_int32 physical = get_physical_address(ctx.page_dir, START_OF_USER_CODE + page*0x1000);
+    u_int32 virtual = request_physical_space(current_directory, physical, TRUE, FALSE);
+    if (virtual) {
+      virtuals[page] = virtual;
+    } else {
+      /* TODO: free properly */
+      throw("Unable to load user code");
+    }
+  }
+
   /* Loads actual code and data at the right place, and set up eip */
-  ctx.regs->eip = check_and_load(elf_buffer);
+  ctx.regs->eip = check_and_load(elf_buffer, virtuals);
 
   /* Free! */
   mem_free(elf_buffer);
-
-  /* Leaving process context */
-  switch_page_directory(kernel_directory);
-  ctx.first_free_block = first_free_block;
-  ctx.unallocated_mem  = unallocated_mem;
-  first_free_block = kernel_context.first_free_block;
-  unallocated_mem  = kernel_context.unallocated_mem;
+  for (u_int32 page = 0; page < nb_pages; page++) {
+    free_virtual_space(current_directory, virtuals[page], FALSE);  /* Frame also mapped for the proc */
+  }
 }
 
 

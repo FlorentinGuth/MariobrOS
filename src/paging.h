@@ -83,6 +83,15 @@ void paging_install();
 
 
 /**
+ * @name get_physical_address - Returns the physical address corresponding to the given virtual one
+ * @param dir                 - The paging directory
+ * @param virtual_address     - The virtual address
+ * @return u_int32            - The physical address, or NULL if not mapped
+ */
+u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address);
+
+
+/**
  * @name request_virtual_space - Asks for access to a virtual page
  * @param dir                  - The page directory (usually current_directory)
  * @param virtual_address      - An address in the requested page

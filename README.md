@@ -18,5 +18,6 @@ Packages used: bochs (bochs-sdl) bochs-x genisoimage nasm build-essential
 - *emu*:      config for bochs, log for both bochs and qemu
 - *doc*:      tutorials used (useful when offline)
 - *iso*:      the contents of the iso
+- *progs*:    the user programs (sources)
 - *src*:      the sources
 - *disk*:     hard disk
