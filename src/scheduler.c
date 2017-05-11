@@ -192,7 +192,7 @@ void switch_to_process(pid pid)
 }
 
 
-void init()
+void scheduler_install()
 {
   state = mem_alloc(sizeof(scheduler_state_t));
 
@@ -222,4 +222,6 @@ void init()
   timer_phase(SWITCH_FREQ);
   /* irq_install_handler(0, timer_handler); */
   /* isr_install_handler(SYSCALL_ISR, syscall_handler); */
+
+  kloug(100, "Scheduler installed\n");
 }

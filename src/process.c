@@ -2,10 +2,13 @@
 #include "paging.h"
 #include "error.h"
 #include "malloc.h"
+#include "logging.h"
 
 
 process_t new_process(pid parent_id, priority prio)
 {
+  kloug(100, "Creating new process\n");
+
   process_t proc;
 
   proc.state = Runnable;

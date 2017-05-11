@@ -359,7 +359,9 @@ void malloc_install()
   unallocated_mem = (void *)START_OF_HEAP;
   first_free_block = 0;
 
-  extend_heap(1);
+  if (!extend_heap(1)) {
+    throw("Unable to install malloc");
+  }
 
   kloug(100, "Malloc installed\n");
 }
@@ -368,13 +370,16 @@ void malloc_install()
 void malloc_new_state(page_directory_t *dir, u_int32 start_of_heap, \
                       void **user_first_free_block, void **user_unallocated_mem)
 {
+  kloug(100, "Creating new malloc state: heap starts at %x\n", start_of_heap);
   switch_page_directory(dir);
 
   void *temp_um = unallocated_mem, *temp_ffb = first_free_block;
   first_free_block = 0;
   unallocated_mem = (void *)start_of_heap;
 
-  extend_heap(1);
+  if (!extend_heap(1)) {
+    throw("Unable to install new malloc state");
+  }
 
   *user_unallocated_mem = unallocated_mem;
   *user_first_free_block = first_free_block;

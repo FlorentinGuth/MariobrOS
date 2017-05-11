@@ -2,21 +2,27 @@
 #include "types.h"
 #include "error.h"
 #include "memory.h"
-
-#define MAGIC_NUMBER (256*256*256*0x7F + 256*256*'E' + 256*'L' + 'F')
+#include "logging.h"
 
 
 u_int32 check_and_load(void *elf_file)
 {
   elf_header_t *elf_header = (elf_header_t *)elf_file;
 
+  u_int8 *magic_number = (u_int8 *)elf_header->magic_number;
+
   /* Checks */
-  if (!(elf_header->magic_number == MAGIC_NUMBER &&
+  if (!(magic_number[0] == 0x7F &&
+        magic_number[1] == 'E' &&
+        magic_number[2] == 'L' &&
+        magic_number[3] == 'F' &&
         elf_header->nb_bits == 1 &&
         elf_header->endian == 1 &&
         elf_header->elf_type == 2 &&
         elf_header->instruction_set == 3 &&
-        elf_header->entry_point == START_OF_USER_CODE)) {
+        elf_header->entry_point < START_OF_USER_CODE)) {
+    kloug(100, "%x %d %d %d %d %x\n", elf_header->magic_number, elf_header->nb_bits, elf_header->endian, \
+          elf_header->elf_type, elf_header->instruction_set, elf_header->entry_point);
     throw("Invalid elf header");
   }
 

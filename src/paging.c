@@ -33,10 +33,8 @@ u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
   u_int32 page_index    = frame_address % 1024;
   u_int32 table_index   = frame_address / 1024;
 
-  page_table_t *page_table = dir->tables[table_index];
-  if (page_table) {
-    /* The page table exists - it implies its flag present is set in the corresponding page dir entry */
-    page_table_entry_t page = page_table->pages[page_index];
+  if (dir->entries[table_index].present) {
+    page_table_entry_t page = dir->tables[table_index]->pages[page_index];
     if (page.present) {
       /* The page is present, everything is alright */
       u_int32 physical_address = 0x1000 * page.address + virtual_address % 0x1000;
@@ -48,7 +46,7 @@ u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
   /* Either the page table or the page is not present, reading at the
    * supplied address would page_fault
    */
-  kloug(100, "get_physical_address returned NULL\n");
+  kloug(100, "get_physical_address of %x returned NULL\n", virtual_address);
   return NULL;
 }
 
@@ -126,7 +124,7 @@ void free_page(page_table_entry_t *page, bool set_frame_free)
  */
 void make_page_table(page_directory_t *dir, u_int32 table_index, bool is_kernel, bool is_writable)
 {
-  /* kloug(100, "Making page table %x\n", table_index); */
+  kloug(100, "Making page table %x\n", table_index);
 
   if (dir->tables[table_index]) {
     /* Page table already made */
@@ -137,7 +135,7 @@ void make_page_table(page_directory_t *dir, u_int32 table_index, bool is_kernel,
   u_int32 page_table_address = (u_int32)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
   u_int32 physical_address;
   if (paging_enabled) {
-    physical_address = get_physical_address(dir, page_table_address);
+    physical_address = get_physical_address(current_directory, page_table_address);
   } else {
     physical_address = page_table_address;  /* Will be identity mapped anyway */
   }
@@ -173,8 +171,8 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
   u_int32 table_index   = frame_address / 1024;
 
   page_table_t *page_table = dir->tables[table_index];
-
-  if (!page_table) {
+  if (!dir->entries[table_index].present) {
+    kloug(100, "get_page makes a page table\n");
     make_page_table(dir, table_index, TRUE, FALSE);  /* A page table is kernel-only */
     page_table = dir->tables[table_index];
   }
@@ -189,7 +187,7 @@ bool request_virtual_space(u_int32 virtual_address, bool is_kernel, bool is_writ
   kloug(100, "Virtual space at %x requested\n", virtual_address);
 
   if (virtual_address % 0x1000 + 0x1000 > UPPER_MEMORY) {
-    /* Virtual address beyond physical memory! */
+    kloug(100, "Virtual address beyond physical memory!\n");
     /* TODO: memory swap */
     return FALSE;
   }
@@ -197,7 +195,7 @@ bool request_virtual_space(u_int32 virtual_address, bool is_kernel, bool is_writ
   page_table_entry_t *page = get_page(current_directory, virtual_address);
 
   if (page->present) {
-    /* Virtual space is already used by someone else */
+    kloug(100, "Virtual space is already used by someone else\n");
     return FALSE;
   }
 
@@ -290,6 +288,7 @@ page_table_t *clone_page_table(page_table_t *table)
 {
   page_table_t *copy = (page_table_t *)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
   mem_copy(copy, table, sizeof(page_table_t));
+  kloug(100, "Cloned page table at (virtual) %x to %x\n", table, copy);
   return copy;
 }
 
@@ -300,49 +299,43 @@ page_table_t *clone_page_table(page_table_t *table)
  */
 page_directory_t *clone_directory(page_directory_t *dir)
 {
+  kloug(100, "Cloning directory\n");
   page_directory_t *copy = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
-  mem_copy(copy, dir, sizeof(page_directory_t));
+  mem_set(copy, 0, sizeof(page_directory_t));
 
   copy->physical_address = get_physical_address(current_directory, (u_int32)copy);
 
   /* Now, iterate the copy until both directories are equal */
-  bool equal = TRUE;
+  bool equal;
   do {
+    equal = TRUE;
     /* Search the whole directories for a difference */
     for (u_int32 table_index = 0; table_index < 1024; table_index++) {
       if (dir->entries[table_index].present) {
         if (!copy->entries[table_index].present) {
           /* Add the page table */
           copy->tables[table_index] = clone_page_table(dir->tables[table_index]);
+          /* Copy the entry as well, the address will be updated at the end */
+          copy->entries[table_index] = dir->entries[table_index];
 
           equal = FALSE;
         }
-
-        /* Now the table is present in both directories, let's compare it */
-        for (u_int32 page_index = 0; page_index < 1024; page_index++) {
-          page_table_entry_t *dir_page  = &dir->tables[table_index]->pages[page_index];
-          page_table_entry_t *copy_page = &copy->tables[table_index]->pages[page_index];
-
-          if (dir_page->present && !copy_page->present) {
-            copy_page->present = TRUE;
-            copy_page->rw      = dir_page->rw;
-            copy_page->user    = dir_page->user;
-            copy_page->address = dir_page->address;  /* Same physical address: we just link here */
-
-            equal = FALSE;
-          }
-        }
+        /* Since we link the pages to the same frame, there's nothing else to do! */
       }
     }
   } while (!equal);
 
+  kloug(100, "Infernal cloning loop ended\n");
+
   /* Now the physical addresses, once everything is mapped */
   for (int index = 0; index < 1024; index++) {
     if (dir->entries[index].present) {
-      copy->entries[index].address = get_physical_address(copy, (u_int32)copy->tables[index]) / 0x1000;
+      copy->entries[index].address = \
+        get_physical_address(current_directory, (u_int32)copy->tables[index]) / 0x1000;
     }
   }
 
+  kloug(100, "Directory cloned\n");
   return copy;
 }
 
@@ -435,6 +428,8 @@ void paging_install()
 
 page_directory_t *new_page_dir()
 {
+  kloug(100, "New page dir\n");
+
   page_directory_t *new = clone_directory(base_directory);
 
   /* Add pages for the code, until the end of virtual memory (address will loop to 0) */
@@ -457,5 +452,6 @@ page_directory_t *new_page_dir()
     /* TODO: free and return NULL */
   }
 
+  kloug(100, "New page dir successfully created\n");
   return new;
 }

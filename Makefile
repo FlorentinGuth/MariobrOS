@@ -22,7 +22,7 @@ DISK_IMG = $(DISK_DIR)/disk.img
 
 # Sources for the kernel
 LINKER = $(SRC_DIR)/link.ld
-OBJECTS = loader.o kmain.o shell.o process.o scheduler.o syscall.o bitset.o malloc.o paging.o memory.o filesystem.o ata_pio.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o queue.o list.o utils.o elf.o fs_inter.o
+OBJECTS = loader.o kmain.o shell.o process.o syscall.o scheduler.o bitset.o malloc.o paging.o memory.o filesystem.o ata_pio.o gdt.o gdt_asm.o timer.o keyboard.o irq.o irq_asm.o isr.o isr_asm.o idt.o idt_asm.o logging.o printer.o string.o io.o math.o queue.o list.o utils.o elf.o fs_inter.o
 OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
 
 # Sources for user programs
@@ -118,7 +118,7 @@ ASFLAGS = -f elf
 
 
 
-all: runq
+all: disk
 
 disk: diskq
 
@@ -235,16 +235,18 @@ syncdisk: core mount rsync umount
 
 # Clean targets
 
-clean:
+clean_old:
 	rm -rf $(BUILD_DIR)
 	rm -rf $(EMU_DIR)
 	rm -f $(BOOT_DIR)/kernel.elf
 	rm -rf $(PROGS_ELF_DIR)
 
-cleandisk: clean
+cleandisk: clean_old
 	rm -f $(DISK_IMG)
 
 mrproper: cleandisk
 	rm -f $(GRUB_CONFIG)
 	rm -f $(GRUB2_CONFIG)
 	rm -rf $(DISK_DIR)
+
+clean: mrproper
