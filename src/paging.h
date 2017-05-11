@@ -84,12 +84,13 @@ void paging_install();
 
 /**
  * @name request_virtual_space - Asks for access to a virtual page
+ * @param dir                  - The page directory (usually current_directory)
  * @param virtual_address      - An address in the requested page
  * @param is_kernel            - Whether the page should be in kernel mode
  * @param is_writable          - Whether the page should be writable (only applies in user-mode)
  * @return bool                - Whether the request was successful
  */
-bool request_virtual_space(u_int32 virtual_address, bool is_kernel, bool is_writable);
+bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool is_kernel, bool is_writable);
 
 
 /**

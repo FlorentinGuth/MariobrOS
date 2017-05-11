@@ -292,7 +292,7 @@ bool extend_heap(int nb_pages)
   if (paging_enabled) {
     for (int i = 0; i < nb_pages; i++) {
 
-      if (!request_virtual_space(current_end_of_heap, is_kernel, !is_kernel)) {
+      if (!request_virtual_space(current_directory, current_end_of_heap, is_kernel, !is_kernel)) {
         /* The allocation failed, we need to free everything we requested */
         for (i = i - 1; i >= 0; i--) {
           current_end_of_heap -= 0x1000;

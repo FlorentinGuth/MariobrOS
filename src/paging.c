@@ -181,18 +181,17 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
 }
 
 
-
-bool request_virtual_space(u_int32 virtual_address, bool is_kernel, bool is_writable)
+bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool is_kernel, bool is_writable)
 {
   kloug(100, "Virtual space at %x requested\n", virtual_address);
 
-  if (virtual_address % 0x1000 + 0x1000 > UPPER_MEMORY) {
+  if (virtual_address > floor_multiple(UPPER_MEMORY, 0x1000)) {
     kloug(100, "Virtual address beyond physical memory!\n");
     /* TODO: memory swap */
     return FALSE;
   }
 
-  page_table_entry_t *page = get_page(current_directory, virtual_address);
+  page_table_entry_t *page = get_page(dir, virtual_address);
 
   if (page->present) {
     kloug(100, "Virtual space is already used by someone else\n");
@@ -264,7 +263,7 @@ void page_fault_handler(regs_t *regs)
      * handle paging himself */
 
     /* TODO detect if kernel mode, but the kernel should not page-fault anyway */
-    if (request_virtual_space(faulting_address, FALSE, TRUE)) {
+    if (request_virtual_space(current_directory, faulting_address, FALSE, TRUE)) {
       /* Let's return to the faulting code */
       return;
     }
