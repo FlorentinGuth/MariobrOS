@@ -360,8 +360,11 @@ void malloc_new_state(u_int32 start_of_heap, void **user_first_free_block, void 
 
   void *block = (void *)start_of_heap;
   set_block(block, 0x1000, FALSE);
+  ((header_free_t *)block)->prev = NULL;
+  ((header_free_t *)block)->next = NULL;
+
   *user_first_free_block = block;
-  *user_unallocated_mem  = block + 01000;
+  *user_unallocated_mem  = block + 0x1000;
 
   kloug(100, "Malloc new state installed\n");
 }

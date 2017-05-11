@@ -18,6 +18,7 @@ process_t new_process(pid parent_id, priority prio)
 
   context_t ctx;
   ctx.page_dir = new_page_dir(&ctx.first_free_block, &ctx.unallocated_mem);
+  kloug(100, "Malloc state: %x %x\n", ctx.first_free_block, ctx.unallocated_mem);
   ctx.regs = NULL;
   ctx.esp = NULL;                                  /* Will be set-up by the switching code */
 

@@ -122,6 +122,8 @@ void syscall_handler(regs_t *regs)
 
 void load_code(string program_name, context_t ctx)
 {
+  kloug(100, "Loading %s code\n", program_name);
+
   string temp = str_cat("/progs/", program_name);
   string path = str_cat(temp, ".elf");
   mem_free(temp);
