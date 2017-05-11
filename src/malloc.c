@@ -358,8 +358,8 @@ void malloc_new_state(u_int32 start_of_heap, void **user_first_free_block, void 
 {
   kloug(100, "Creating new malloc state: heap starts at %x\n", start_of_heap);
 
-  void *temp_um = unallocated_mem;
   void *temp_ffb = first_free_block;
+  void *temp_um = unallocated_mem;
   first_free_block = 0;
   unallocated_mem = (void *)start_of_heap;
 
@@ -378,7 +378,11 @@ void malloc_new_state(u_int32 start_of_heap, void **user_first_free_block, void 
 
 void malloc_install()
 {
-  malloc_new_state(START_OF_HEAP, &first_free_block, &unallocated_mem);
+  void *ffb;
+  void *um;
+  malloc_new_state(START_OF_HEAP, &ffb, &um);
+  first_free_block = ffb;
+  unallocated_mem  = um;
 }
 
 
