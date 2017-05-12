@@ -56,17 +56,14 @@ typedef struct page_directory_entry {
 
 typedef struct page_directory
 {
+  /* Array of entries, i.e. contains the physical addresses of the tables */
+  page_directory_entry_t entries[1024];
+
   /* Array of pointers to page tables, i.e. contains their virtual addresses */
   page_table_t *tables[1024];
 
-  /* Array of pointers to the page tables above, but gives their *physical*
-   * address, for loading into the CR3 register. */
-  page_directory_entry_t entries[1024];
-
-  /* The physical address of the entries. This comes into play
-   * when we get our kernel heap allocated and the directory
-   * may be in a different location in virtual memory. */
-  u_int32 physical_address;  /* Unused for now */
+  /* The physical address of the page directory */
+  u_int32 physical_address;
 } __attribute__((packed)) page_directory_t;
 
 

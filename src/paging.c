@@ -16,6 +16,11 @@
  * - a page is an entry in a page table, it refers to virtual memory
  */
 
+/* TODO:
+ * Mark lower memory as usable
+ * Do not map page 0
+ */
+
 
 u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
 {
@@ -240,11 +245,11 @@ void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool fre
 
 void switch_page_directory(page_directory_t *dir)
 {
-  kloug(100, "Switching page directory\n");
+  kloug(100, "Switching page directory to the one at %x\n", dir->physical_address);
 
   /* Loads address of the current directory into cr3 */
   current_directory = dir;
-  asm volatile ("mov %0, %%cr3" : : "r"(&dir->entries));  /* TODO: physical address */
+  asm volatile ("mov %0, %%cr3" : : "r" (dir->physical_address));
 
   /* Reads current cr0 */
   u_int32 cr0;
@@ -408,7 +413,7 @@ void paging_install()
   /* Let's make a page directory */
   kernel_directory = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
   mem_set(kernel_directory, 0, sizeof(page_directory_t));
-  kernel_directory->physical_address = (u_int32)kernel_directory->entries;  /* Will be identity paged */
+  kernel_directory->physical_address = (u_int32)kernel_directory;  /* Will be identity paged */
 
   current_directory = kernel_directory;
 
@@ -451,6 +456,11 @@ void paging_install()
   set_user_addresses();
 
   kloug(100, "Paging installed\n");
+
+  /* Test */
+  switch_page_directory(base_directory);
+  kloug(100, "Everything seems alright\n");
+  switch_page_directory(kernel_directory);
 }
 
 
@@ -493,6 +503,9 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
   free_virtual_space(current_directory, heap_virtual, FALSE);  /* The frame is used by the process */
 
   kloug(100, "New page dir successfully created\n");
+  switch_page_directory(new);
+  kloug(100, "New page dir OK\n");
+  switch_page_directory(kernel_directory);
   return new;
 }
 
