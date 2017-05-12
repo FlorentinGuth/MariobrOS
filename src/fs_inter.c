@@ -41,21 +41,36 @@ fd openfile(string path, u_int8 oflag, u_int16 fperm)
     erase_file_data(inode);
   }
 
+  set_inode(inode, std_inode);
   if(oflag & O_APPEND) {
-    set_inode(inode, std_inode);
     fdt[f].pos = std_inode->size_low;
   } else {
     fdt[f].pos = 0;
   }
+  fdt[f].size = std_inde->size_low;
   fdt[f].inode = inode;
   fdt[f].mode = oflag & 0x3; // Only RDONLY, WRONLY or RDWR
   return f;
 }
 
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-u_int32 read(fd f, u_int16* buffer, u_int32 offset, u_int32 length)
+u_int32 read(fd f, u_int8* buffer, u_int32 offset, u_int32 length)
 {
-  return 0;
+  if(!fdt[f].inode) {
+    return -1; // Invalid file descriptor
+  }
+  if(!(fdt[f].mode & O_RDONLY)) {
+    return -2; // No permission
+  }
+  fdt[f].pos += offset;
+  if(fdt[f].pos >= fdt[f].size) {
+    return 0;
+  }
+  if(fdt[f].pos + length > fdt[f].size) {
+    length = fdt[f].size - fdt[f].pos;
+  }
+  u_int32 done = read_inode_data(fdt[f].inode, buffer, fdt[f].pos, length);
+  fdt[f].pos += done;
+  return done;
 }
 
 void close(fd f)

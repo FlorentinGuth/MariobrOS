@@ -16,6 +16,7 @@ typedef enum open_flag open_flag;
 struct file_description {
   u_int32 inode;
   u_int32 pos;
+  u_int32 size;
   u_int16 mode;
 } __attribute__((packed));
 

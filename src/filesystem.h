@@ -59,8 +59,8 @@ u_int8 unallocate_block(u_int32 block);
  *
  *  @param inode  - The inode number of the file to read
  *  @param buffer - The output buffer
- *  @param offset - Offset within the file, in words (NOT in bytes)
- *  @param length - The length of the data to copy, in words (NOT in bytes)
+ *  @param offset - Offset within the file, in bytes
+ *  @param length - The length of the data to copy, in bytes
  *
  *  @return       - The actually read length of data
  */
@@ -74,8 +74,8 @@ u_int32 read_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
  *
  *  @param inode  - The inode number of the file to write
  *  @param buffer - The input buffer
- *  @param offset - Offset within the file, in words (NOT in bytes)
- *  @param length - The length of the data to copy, in words (NOT in bytes)
+ *  @param offset - Offset within the file, in bytes
+ *  @param length - The length of the data to copy, in bytes
  *
  *  @return       - The actually written length of data
  */
