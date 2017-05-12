@@ -21,6 +21,19 @@
  * Do not map page 0
  */
 
+/**
+ * @name test_page_dir - Tries switching into the given directory
+ * @param dir          -
+ * @return void
+ */
+void test_page_dir(page_directory_t *dir) {
+  log_page_dir(dir);
+  page_directory_t *temp = current_directory;
+  switch_page_directory(dir);
+  kloug(100, "Everything's fine\n");
+  switch_page_directory(temp);
+}
+
 
 u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
 {
@@ -37,7 +50,7 @@ u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
     if (page.present) {
       /* The page is present, everything is alright */
       u_int32 physical_address = 0x1000 * page.address + virtual_address % 0x1000;
-      /* kloug(100, "Physical address of %x is %x\n", virtual_address, physical_address); */
+      /* kloug(100, "Physical address of %X is %X\n", virtual_address, 8, physical_address, 8); */
       return physical_address;
     }
   }
@@ -45,7 +58,7 @@ u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
   /* Either the page table or the page is not present, reading at the
    * supplied address would page_fault
    */
-  kloug(100, "get_physical_address of %x returned NULL\n", virtual_address);
+  /* kloug(100, "get_physical_address of %X returned NULL\n", virtual_address, 8); */
   return NULL;
 }
 
@@ -123,7 +136,7 @@ void free_page(page_table_entry_t *page, bool set_frame_free)
  */
 void make_page_table(page_directory_t *dir, u_int32 table_index, bool is_kernel, bool is_writable)
 {
-  kloug(100, "Making page table %x\n", table_index);
+  /* kloug(100, "Making page table %x\n", table_index); */
 
   if (dir->tables[table_index]) {
     /* Page table already made */
@@ -171,7 +184,7 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
 
   page_table_t *page_table = dir->tables[table_index];
   if (!dir->entries[table_index].present) {
-    kloug(100, "get_page makes a page table\n");
+    /* kloug(100, "get_page makes a page table\n"); */
     make_page_table(dir, table_index, TRUE, FALSE);  /* A page table is kernel-only */
     page_table = dir->tables[table_index];
   }
@@ -204,7 +217,7 @@ u_int32 find_unmapped_page(page_directory_t *dir)
 
 bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool is_kernel, bool is_writable)
 {
-  kloug(100, "Virtual space at %x requested\n", virtual_address);
+  /* kloug(100, "Virtual space at %X requested\n", virtual_address, 8); */
 
   page_table_entry_t *page = get_page(dir, virtual_address);
 
@@ -219,7 +232,7 @@ bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool 
 u_int32 request_physical_space(page_directory_t *dir, u_int32 physical_address, \
                                bool is_kernel, bool is_writable)
 {
-  kloug(100, "Physical space at %x requested\n", physical_address);
+  /* kloug(100, "Physical space at %X requested\n", physical_address, 8); */
 
   u_int32 index = find_unmapped_page(dir);
   if (!index) {
@@ -231,7 +244,7 @@ u_int32 request_physical_space(page_directory_t *dir, u_int32 physical_address, 
   page_table_entry_t *page = get_page(dir, virtual_address);
   map_page_to_frame(page, physical_address / 0x1000, is_kernel, is_writable);
 
-  kloug(100, "Mapped from %x\n", virtual_address);
+  /* kloug(100, "Mapped from %X\n", virtual_address, 8); */
   return virtual_address;
 }
 
@@ -245,15 +258,18 @@ void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool fre
 
 void switch_page_directory(page_directory_t *dir)
 {
-  kloug(100, "Switching page directory to the one at %x\n", dir->physical_address);
+  kloug(100, "Switching page directory to the one at %X\n", dir->physical_address, 8);
 
   /* Loads address of the current directory into cr3 */
   current_directory = dir;
+  kloug(5, "z");
   asm volatile ("mov %0, %%cr3" : : "r" (dir->physical_address));
+  kloug(5, "a");
 
   /* Reads current cr0 */
   u_int32 cr0;
   asm volatile ("mov %%cr0, %0" : "=r"(cr0));
+  kloug(5, "b");
 
   /* Enables paging! */
   cr0 |= 0x80000000;
@@ -321,7 +337,7 @@ page_table_t *clone_page_table(page_table_t *table)
 {
   page_table_t *copy = (page_table_t *)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
   mem_copy(copy, table, sizeof(page_table_t));
-  kloug(100, "Cloned page table at (virtual) %x to %x\n", table, copy);
+  /* kloug(100, "Cloned page table at (virtual) %X to %X\n", table, 8, copy, 8); */
   return copy;
 }
 
@@ -332,7 +348,7 @@ page_table_t *clone_page_table(page_table_t *table)
  */
 page_directory_t *clone_directory(page_directory_t *dir)
 {
-  kloug(100, "Cloning directory\n");
+  /* kloug(100, "Cloning directory\n"); */
   page_directory_t *copy = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
   mem_set(copy, 0, sizeof(page_directory_t));
 
@@ -358,7 +374,7 @@ page_directory_t *clone_directory(page_directory_t *dir)
     }
   } while (!equal);
 
-  kloug(100, "Infernal cloning loop ended\n");
+  /* kloug(100, "Infernal cloning loop ended\n"); */
 
   /* Now the physical addresses, once everything is mapped */
   for (int index = 0; index < 1024; index++) {
@@ -368,7 +384,7 @@ page_directory_t *clone_directory(page_directory_t *dir)
     }
   }
 
-  kloug(100, "Directory cloned\n");
+  test_page_dir(copy);
   return copy;
 }
 
@@ -392,8 +408,8 @@ void set_user_addresses()
   }
   START_OF_USER_HEAP = address;
 
-  kloug(100, "Start of user heap: %x, stack: %x, code: %x\n", \
-        START_OF_USER_HEAP, START_OF_USER_STACK, START_OF_USER_CODE);
+  kloug(100, "Start of user heap: %X, stack: %X, code: %X\n", \
+        START_OF_USER_HEAP, 8, START_OF_USER_STACK, 8, START_OF_USER_CODE, 8);
 }
 
 
@@ -456,17 +472,12 @@ void paging_install()
   set_user_addresses();
 
   kloug(100, "Paging installed\n");
-
-  /* Test */
-  switch_page_directory(base_directory);
-  kloug(100, "Everything seems alright\n");
-  switch_page_directory(kernel_directory);
 }
 
 
 page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem)
 {
-  kloug(100, "New page dir\n");
+  /* kloug(100, "New page dir\n"); */
 
   page_directory_t *new = clone_directory(base_directory);
 
@@ -492,7 +503,8 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
 
   /* Adding malloc: we need to map this user heap page */
   u_int32 heap_physical = get_physical_address(new, START_OF_USER_HEAP);
-  kloug(100, "Start of user heap is %x, mapped at physical %x\n", START_OF_USER_HEAP, heap_physical);
+  /* kloug(100, "Start of user heap is %X, mapped at physical %X\n", \
+     START_OF_USER_HEAP, 8, heap_physical, 8); */
   u_int32 heap_virtual = request_physical_space(current_directory, heap_physical, TRUE, FALSE);
 
   malloc_new_state(heap_virtual, user_first_free_block, user_unallocated_mem);
@@ -503,26 +515,63 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
   free_virtual_space(current_directory, heap_virtual, FALSE);  /* The frame is used by the process */
 
   kloug(100, "New page dir successfully created\n");
-  switch_page_directory(new);
-  kloug(100, "New page dir OK\n");
-  switch_page_directory(kernel_directory);
   return new;
 }
 
 
 void log_page_dir(page_directory_t *dir)
 {
-  kloug(100, "Logging page directory stored at %x\n", dir);
-  for (int table_index = 0; table_index < 1024; table_index++) {
+  kloug(100, "  Logging page directory stored at %X\n", dir->physical_address, 8);
+
+  for (u_int32 table_index = 0; table_index < 1024; table_index++) {
     if (dir->entries[table_index].present) {
-      page_table_t *table = dir->tables[table_index];
-      kloug(100, "Page table %x at %x\n", table_index, table);
-      for (int page_index = 0; page_index < 1024; page_index++) {
-        page_table_entry_t page = table->pages[page_index];
-        if (page.present) {
-          kloug(100, "%x mapped to %x\n", 0x1000*(1024*table_index + page_index), 0x1000*page.address);
-        }
+      kloug(100, "  Page table %X stored at %X\n", \
+            table_index, 3, dir->entries[table_index].address*0x1000, 8);
+    }
+  }
+
+  u_int32 start_of_virtual_block = 0;
+  bool mapped = dir->entries[0].present && dir->tables[0]->pages[0].present;
+  u_int32 start_of_physical_block = get_physical_address(dir, 0);
+  u_int32 virtual_page = 1;
+
+#define FLUSH_MAPPED() {                                                \
+    kloug(100, "  %X-%X mapped to %X-%X\n",                             \
+          start_of_virtual_block, 8,                                    \
+          virtual_page*0x1000 - 1, 8,                                   \
+          start_of_physical_block, 8,                                   \
+          start_of_physical_block + virtual_page*0x1000 - start_of_virtual_block - 1, 8); }
+#define FLUSH_UNMAPPED() {                      \
+    kloug(100, "  %X-%X mapped to NULL\n",      \
+          start_of_virtual_block, 8,            \
+          virtual_page*0x1000 - 1, 8); }
+
+  while (virtual_page < 1024*1024) {
+    u_int32 physical_address = get_physical_address(dir, virtual_page*0x1000);
+    if (mapped) {
+      if (!physical_address) {
+        FLUSH_MAPPED();
+        mapped = FALSE;
+        start_of_virtual_block = virtual_page*0x1000;
+      } else if(physical_address != start_of_physical_block + virtual_page*0x1000 - start_of_virtual_block) {
+        FLUSH_MAPPED();
+        start_of_virtual_block = virtual_page*0x1000;
+        start_of_physical_block = physical_address;
+      }
+    } else {
+      if (physical_address) {
+        FLUSH_UNMAPPED();
+        start_of_virtual_block = virtual_page*0x1000;
+        start_of_physical_block = physical_address;
+        mapped = TRUE;
       }
     }
+    virtual_page++;
+  }
+
+  if (mapped) {
+    FLUSH_MAPPED();
+  } else {
+    FLUSH_UNMAPPED();
   }
 }

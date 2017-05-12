@@ -280,7 +280,7 @@ bool extend_heap(int nb_pages)
   if (nb_pages == 0) {
     throw("Extension of heap by 0 pages");
   }
-  kloug(100, "Extension of heap by %d pages\n", nb_pages);
+  /* kloug(100, "Extension of heap by %d pages\n", nb_pages); */
 
 
   bool is_kernel = current_directory == kernel_directory;
@@ -356,7 +356,7 @@ header_free_t *alloc_pages(size_t size)
 
 void malloc_new_state(u_int32 start_of_heap, void **user_first_free_block, void **user_unallocated_mem)
 {
-  kloug(100, "Creating new malloc state: heap starts at %x\n", start_of_heap);
+  /* kloug(100, "Creating new malloc state: heap starts at %x\n", start_of_heap); */
 
   void *block = (void *)start_of_heap;
   set_block(block, 0x1000, FALSE);
@@ -385,7 +385,7 @@ void malloc_install()
 
 void *mem_alloc_aligned(size_t size, unsigned int alignment)
 {
-  kloug(100, "Allocating a block of size %x, alignment %x\n", size, alignment);
+  /* kloug(100, "Allocating a block of size %x, alignment %x\n", size, alignment); */
   /* log_memory(); */
 
   /* We need:
@@ -488,7 +488,7 @@ void mem_free(void *ptr)
   maybe_header++;
   header_free_t *block = (header_free_t *)(maybe_header - sizeof(header_used_t));
 
-  kloug(100, "Freeing block at %x (supplied %x, maybe %x)\n", block, ptr, maybe_header);
+  /* kloug(100, "Freeing block at %x (supplied %x, maybe %x)\n", block, ptr, maybe_header); */
   /* log_memory(); */
 
   block->used = FALSE;
