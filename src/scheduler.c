@@ -181,11 +181,17 @@ void switch_to_process(pid pid)
   /* Saves kernel context */
   kernel_context.unallocated_mem  = unallocated_mem;
   kernel_context.first_free_block = first_free_block;
+  asm volatile ("mov %%esp, %0" : "=r" (kernel_context.esp));
 
   /* Restores process context */
   context_t ctx = proc.context;
   first_free_block = ctx.first_free_block;
   unallocated_mem  = ctx.unallocated_mem;
+
+  /* Pushes the regs structure on the stack */
+  /* regs_t r = { */
+    /* .gs = 0, */
+  /* }; */
 
   /* Restores process paging */
   switch_page_directory(ctx.page_dir);
