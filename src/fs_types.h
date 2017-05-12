@@ -47,7 +47,7 @@ struct superblock {      // Starting byte
   u_int32 journal_inode;         // 224
   u_int32 journal_device;        // 228
   u_int32 orphan_inode_list_head;// 232
-  /* Unused */                   // 236 - 1023
+  /* Unused */                   // 236 - ...
 }__attribute__((packed));
 
 typedef struct superblock superblock_t;
