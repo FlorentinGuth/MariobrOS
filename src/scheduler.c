@@ -137,10 +137,10 @@ void load_code(string program_name, context_t ctx)
   size_t size = inode_buffer.sectors * 512;  /* Each sector amounts to 512 bytes */
 
   /* Loads ELF file in memory */
-  u_int16 *elf_buffer = (u_int16 *)mem_alloc(size);
-  u_int16 *current = elf_buffer;
-  while (current < elf_buffer + size/2) {
-    current += read_inode_data(inode, current, 0, elf_buffer + size/2 - current);
+  u_int8 *elf_buffer = (u_int8*) mem_alloc(size);
+  u_int8 *current = elf_buffer;
+  while (current < elf_buffer + size) {
+    current += read_inode_data(inode, current, 0, elf_buffer + size - current);
   }
 
   u_int32 nb_pages = (0xFFFFFFFF - START_OF_USER_CODE + 1) / 0x1000;

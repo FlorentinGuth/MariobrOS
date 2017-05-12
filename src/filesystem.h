@@ -54,7 +54,7 @@ u_int8 unallocate_block(u_int32 block);
  *
  *  @return       - The actually read length of data
  */
-u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
+u_int32 read_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
                         u_int32 length);
 
 /**
@@ -69,7 +69,7 @@ u_int32 read_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
  *
  *  @return       - The actually written length of data
  */
-u_int32 write_inode_data(u_int32 inode, u_int16* buffer, u_int32 offset, \
+u_int32 write_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
                          u_int32 length);
 
 

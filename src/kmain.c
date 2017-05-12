@@ -1,9 +1,8 @@
 #include "gdt.h"
 #include "timer.h"
 #include "multiboot.h"
-#include "paging.h"
 #include "malloc.h"
-#include "filesystem.h"
+#include "fs_inter.h"
 #include "shell.h"
 #include "scheduler.h"
 
