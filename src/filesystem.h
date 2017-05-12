@@ -5,9 +5,19 @@
 #include "string.h"
 #include "fs_types.h"
 
+/**
+ *  @name std_buf - The standard buffer, one block wide, used by most functions
+ *  of the filesystem
+ */
+u_int8 *std_buf;
 
 /**
- *  @name set_inode - Sets an inode buffer to the corresponding inode number
+ * @name std_inode - The standard inode container, similar to std_buf for inodes
+ */
+inode_t *std_inode;
+
+/**
+ *  @name set_inode  - Sets an inode buffer to the corresponding inode number
  *  @param inode     - The inode number
  *  @param buffer    - The output buffer of the inode, must be at least 128B wide
  */
@@ -75,7 +85,8 @@ u_int32 write_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
 
 /**
  *  @name find_inode - Opens a file
- *  Also sets up std_inode to the content of the parent inode
+ *  Also sets up std_inode to the content of the parent inode, and std_buf to
+ *  the content of the parent directory data block
  *
  *  @param str_path - The path to the file, relative to root
  *  @param root     - If path begins with '/', this argument is ignored
@@ -114,6 +125,20 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name);
  */
 u_int8 remove_file(u_int32 dir, u_int32 inode);
 
+/**
+ *  @name erase_file_data - Unallocates all the blocks used by a file
+ *  @param inode          - The inode number of the file to erase
+ *  NOTE : the inode will not be unallocated
+ */
+void erase_file_data(u_int32 inode);
+
+/**
+ *  @name delete_file - Deletes a file from the filesystem
+ *  @param dir        - The parent directory
+ *  @param inode      - The inode number of the file to remove
+ *  @return           - Same as remove_file
+ */
+u_int8 delete_file(u_int32 dir, u_int32 inode);
 
 /**
  *  @name create_file - Creates a file
@@ -123,7 +148,7 @@ u_int8 remove_file(u_int32 dir, u_int32 inode);
  *  @param type      - The file type, for the inode (PERM_... | TYPE_...)
  *  @param ftype     - The file type, for the directory (FILE_...)
  *
- *  @return num      - The inode number of the created directory
+ *  @return num      - The inode number of the created file
  */
 u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype);
 

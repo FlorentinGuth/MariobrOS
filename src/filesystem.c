@@ -12,8 +12,8 @@ superblock_t *spb = 0; // Superblock address
 bgp_t *bgpt = 0; // Block group descriptor table
 u_int32 block_factor = 0; // Only used in the definition of the BLOCK macro
 u_int32 block_size = 0; // block size in bytes
-u_int8 *std_buf = 0;
 u_int32 bgpt_size = 0;
+u_int8 *std_buf = 0;
 /* The above standard buffer is set up with the size of a block using mem_alloc.
  * Its purpose is to give access to memory within a function, without a call
  * to mem_alloc each time such a buffer is needed.
@@ -500,6 +500,75 @@ u_int8 remove_file(u_int32 dir, u_int32 inode)
   return 0;
 }
 
+void erase_file_data(u_int32 inode)
+{
+  set_inode(inode, std_inode);
+  if(!std_inode->size_low) {
+    return;
+  }
+  u_int32 blocks = 1 + (std_inode->size_low - 1) / block_size;
+  if(blocks <= 12) {
+    for(u_int8 i = 0; i < blocks; i++) {
+      unallocate_block(std_inode->dbp[i]);
+    }
+    return;
+  }
+  for(u_int8 i = 0; i < 12; i++) {
+    unallocate_block(std_inode->dbp[i]);
+  }
+  readLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
+  blocks -= 12;
+  u_int32 addr_per_block = block_size / 4;
+  if(blocks <= addr_per_block) {
+    for(u_int32 i = 0; i < blocks; i++) {
+      unallocate_block(((u_int32*) std_buf)[i]);
+    }
+    return;
+  }
+  for(u_int32 i = 0; i < addr_per_block; i++) {
+    unallocate_block(((u_int32*) std_buf)[i]);
+  }
+  blocks -= addr_per_block;
+  for(u_int32 i = 0; i < addr_per_block; i++) {
+    readLBA(BLOCK(std_inode->dibp), 4, std_buf);
+    readLBA(BLOCK(((u_int32*) std_buf)[i]), 4, std_buf); 
+    for(u_int32 j = 0; j < addr_per_block; j++) {
+      unallocate_block(((u_int32*) std_buf)[j]);
+      blocks--;
+      if(!blocks) {
+        return;
+      }
+    }
+  }
+  for(u_int32 i = 0; i < addr_per_block; i++) {
+    readLBA(BLOCK(std_inode->tibp), 4, std_buf);
+    readLBA(BLOCK(((u_int32*) std_buf)[i]), 4, std_buf); 
+    for(u_int32 j = 0; j < addr_per_block; j++) {
+      readLBA(BLOCK(((u_int32*) std_buf)[j]), 4, std_buf); 
+      for(u_int32 k = 0; k < addr_per_block; k++) {
+        unallocate_block(((u_int32*) std_buf)[k]);
+        blocks--;
+        if(!blocks) {
+          return;
+        }
+      }
+    }
+  }
+}
+
+u_int8 delete_file(u_int32 dir, u_int32 inode)
+{
+  u_int8 error = remove_file(dir, inode);
+  if(error) {
+    return error; // If the inode is invalid, it should be detected now
+  }
+  erase_file_data(inode);
+  error = unallocate_inode(inode);
+  if(error) {
+    throw("The file to delete was not allocated"); // Corrupted filesystem
+  }
+  return 0;
+}
 
 u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
 {

@@ -3,9 +3,13 @@
 
 #include "filesystem.h"
 
-enum open_flag {
-  O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CREAT, O_TRUNC, O_EXCL
-};
+#define O_RDONLY   0x01
+#define O_WRONLY   0x02
+#define O_RDWR     0x03 // Same as O_RDONLY | O_WRONLY
+#define O_APPEND   0x04
+#define O_CREAT    0x08
+#define O_TRUNC    0x10
+#define O_EXCL     0x20
 
 typedef enum open_flag open_flag;
 
@@ -29,7 +33,7 @@ typedef s_int32 fd;
  *
  *  @return        - The file descriptor for the given file
  */
-fd openfile(string path, open_flag oflag, u_int16 fperm);
+fd openfile(string path, u_int8 oflag, u_int16 fperm);
 
 /**
  *  @name fs_inter_install - Installs the filesystem interface
