@@ -5,6 +5,15 @@
 #include "types.h"
 
 
+u_int32 NULL_SEGMENT;
+u_int32 KERNEL_CODE_SEGMENT;
+u_int32 KERNEL_DATA_SEGMENT;
+u_int32 USER_CODE_SEGMENT;
+u_int32 USER_DATA_SEGMENT;
+u_int32 TSS_SEGMENT;
+/* TODO: stack segments? */
+
+
 /* Defines a GDT entry. We say packed, because it prevents the
  * compiler from doing things that it thinks is best: Prevent
  * compiler "optimization" by packing */

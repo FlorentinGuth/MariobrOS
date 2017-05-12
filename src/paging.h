@@ -140,4 +140,12 @@ void switch_page_directory(page_directory_t *new);
 page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem);
 
 
+/**
+ * @name log_page_dir - Logs all the mapped pages
+ * @param dir         - The page directory to log
+ * @return void
+ */
+void log_page_dir(page_directory_t *dir);
+
+
 #endif

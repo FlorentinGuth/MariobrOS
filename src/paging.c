@@ -495,3 +495,21 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
   kloug(100, "New page dir successfully created\n");
   return new;
 }
+
+
+void log_page_dir(page_directory_t *dir)
+{
+  kloug(100, "Logging page directory stored at %x\n", dir);
+  for (int table_index = 0; table_index < 1024; table_index++) {
+    if (dir->entries[table_index].present) {
+      page_table_t *table = dir->tables[table_index];
+      kloug(100, "Page table %x at %x\n", table_index, table);
+      for (int page_index = 0; page_index < 1024; page_index++) {
+        page_table_entry_t page = table->pages[page_index];
+        if (page.present) {
+          kloug(100, "%x mapped to %x\n", 0x1000*(1024*table_index + page_index), 0x1000*page.address);
+        }
+      }
+    }
+  }
+}

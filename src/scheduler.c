@@ -189,14 +189,60 @@ void switch_to_process(pid pid)
   unallocated_mem  = ctx.unallocated_mem;
 
   /* Pushes the regs structure on the stack */
-  /* regs_t r = { */
-    /* .gs = 0, */
-  /* }; */
+  asm volatile ("push %0" : : "r" (ctx.regs->ss));
+  asm volatile ("push %0" : : "r" (ctx.regs->useresp));
+  asm volatile ("push %0" : : "r" (ctx.regs->eflags));
+  asm volatile ("push %0" : : "r" (ctx.regs->cs));
+  asm volatile ("push %0" : : "r" (ctx.regs->eip));
+  asm volatile ("push %0" : : "r" (ctx.regs->err_code));
+  asm volatile ("push %0" : : "r" (ctx.regs->int_no));
+  asm volatile ("push %0" : : "r" (ctx.regs->eax));
+  asm volatile ("push %0" : : "r" (ctx.regs->ecx));
+  asm volatile ("push %0" : : "r" (ctx.regs->edx));
+  asm volatile ("push %0" : : "r" (ctx.regs->ebx));
+  asm volatile ("push %0" : : "r" (ctx.regs->esp));
+  asm volatile ("push %0" : : "r" (ctx.regs->ebp));
+  asm volatile ("push %0" : : "r" (ctx.regs->esi));
+  asm volatile ("push %0" : : "r" (ctx.regs->edi));
+  asm volatile ("push %0" : : "r" (ctx.regs->ds));
+  asm volatile ("push %0" : : "r" (ctx.regs->es));
+  asm volatile ("push %0" : : "r" (ctx.regs->fs));
+  asm volatile ("push %0" : : "r" (ctx.regs->gs));
 
   /* Restores process paging */
+  kloug(100, "Oh god\n");
+  log_page_dir(ctx.page_dir);
   switch_page_directory(ctx.page_dir);
+  kloug(100, "Are we still here?\n");
 
-  /* TODO */
+  /* Let's go! */
+  asm volatile ("pop %gs");
+  asm volatile ("pop %fs");
+  asm volatile ("pop %es");
+  asm volatile ("pop %ds");
+  asm volatile ("popal");       /* 8 registers */
+  asm volatile ("add 8, %esp"); /* Pops err_code and int_no */
+  asm volatile ("iret");        /* Pops the 5 last things */
+}
+
+
+void run_program(string name)
+{
+  pid pid = 0;
+  while (pid < NUM_PROCESSES && state->processes[pid].state != Free) {
+    pid++;
+  }
+
+  if (pid == NUM_PROCESSES) {
+    writef("%frun;%f\tUnable to create a new process\n", LightRed, White);
+    return;
+  }
+
+  process_t *proc = &state->processes[pid];
+  *proc = new_process(pid, 1);  /* User processes have a priority of 1 */
+  load_code(name, proc->context);
+
+  switch_to_process(pid);
 }
 
 
