@@ -15,7 +15,7 @@ typedef int priority;           /* 0 indicates a weak priority, MAX_PRIORITY the
 
 /* The state of the process */
 typedef enum process_state {
-  Free,     /* The process does not refer to actual code */
+  Free = 0, /* The process does not refer to actual code */
   Waiting,  /* The process is waiting for onf of his child processes to die */
   Runnable, /* The process does not wait for any result and can be executed */
   Zombie,   /* The process returned, and his parent process has not yet called wait */

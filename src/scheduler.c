@@ -1,5 +1,6 @@
 #include "scheduler.h"
 #include "malloc.h"
+#include "memory.h"
 #include "queue.h"
 #include "timer.h"
 #include "irq.h"
@@ -228,7 +229,7 @@ void run_program(string name)
   }
 
   if (pid == NUM_PROCESSES) {
-    writef("%frun;%f\tUnable to create a new process\n", LightRed, White);
+    writef("%frun:%f\tUnable to create a new process\n", LightRed, White);
     return;
   }
 
@@ -242,7 +243,8 @@ void run_program(string name)
 
 void scheduler_install()
 {
-  state = mem_alloc(sizeof(scheduler_state_t));
+  state = (scheduler_state_t *)mem_alloc(sizeof(scheduler_state_t));
+  mem_set(state, 0, sizeof(scheduler_state_t));
 
   /* Creating idle process */
   pid idle_pid = 0;
