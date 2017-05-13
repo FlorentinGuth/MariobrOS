@@ -141,13 +141,15 @@ void load_code(string program_name, context_t ctx)
   size_t size = inode_buffer.size_low;
 
   /* Loads ELF file in memory */
-  u_int8 *elf_buffer = (u_int8 *)mem_alloc(size);
   kloug(100, "After set_inode\n");
+  log_memory();
+  u_int8 *elf_buffer = (u_int8 *)mem_alloc(size);
+  kloug(100, "After mem_alloc %x\n", size);
   log_memory();
 
   u_int8 *current = elf_buffer;
   while (current < elf_buffer + size) {
-    current += read_inode_data(inode, current, elf_buffer - current, elf_buffer + size - current);
+    current += read_inode_data(inode, current, current - elf_buffer, elf_buffer + size - current);
   }
 
   kloug(100, "After read_inode_data\n");
