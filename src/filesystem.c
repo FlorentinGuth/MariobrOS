@@ -312,7 +312,7 @@ u_int32 write_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
 
 u_int32 find_inode(string str_path, u_int32 root)
 {
-  list_t path = str_split(str_path, '/', TRUE);
+  list_t path = str_split(str_path + !!(str_path[0]=='/'), '/', TRUE);
   /* mem_free((void*) path->head); path = path->tail; */
 
   u_int32 inode;
