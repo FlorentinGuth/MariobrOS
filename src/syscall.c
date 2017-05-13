@@ -2,6 +2,7 @@
 #include "error.h"
 #include "scheduler.h"
 #include "queue.h"
+#include "logging.h"
 
 
 /* Possible speed enhancements:
@@ -78,6 +79,8 @@ void resolve_exit_wait(pid parent, pid child)
 
 void syscall_exit()
 {
+  kloug(100, "Syscall exit\n");
+
   pid id = state->curr_pid;
   state->processes[id].state= Zombie;
 
