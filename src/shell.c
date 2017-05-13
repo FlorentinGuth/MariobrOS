@@ -122,7 +122,7 @@ command_t echo_cmd = {
 };
 
 /* The ls command */
-void ls_handler(list_t args) // FIXME
+void ls_handler(list_t args)
 {
   if (args) {
     list_t *curr_arg = &args;
@@ -194,7 +194,9 @@ command_t cd_cmd = {
   .handler = *cd_handler,
 };
 
-
+/**
+ *  @name get_pwd - Sets the global variable "path" according to "curr_dir"
+ */
 void get_pwd()
 {
   mem_free(path);
@@ -356,6 +358,7 @@ command_t run_cmd = {
   .handler = *run_handler,
 };
 
+/* The mkdir command */
 void mkdir_handler(list_t args)
 {
   if (is_empty_list(&args)) {
@@ -377,6 +380,37 @@ command_t mkdir_cmd = {
   .handler = *mkdir_handler,
 };
 
+/* The rm command */
+void rm_handler(list_t args)
+{
+  if (is_empty_list(&args)) {
+    writef("%frun:%f\tNo arguments given\n", LightRed, White);
+  } else {
+    while(!(is_empty_list(&args))) {
+      string file = (string) pop(&args);
+      u_int32 inode = find_inode(file, curr_dir);
+      u_int32 dir = ((dir_entry*) std_buf)->inode; // std_buf set by find_inode
+      if(!inode) {
+        writef("File %s does not exist\n", file);
+        continue;
+      }
+      set_inode(inode, std_inode);
+      if(std_inode->type & TYPE_DIR) {
+        writef("%s is not a file but a directory\n", file);
+        continue;
+      }
+      if(delete_file(dir, inode)) {
+        writef("An error was encountered while deleting %s\n", file);
+      }
+    }
+  }
+}
+command_t rm_cmd = {
+  .name = "rm",
+  .help = "Deletes a file (not a directory)",
+  .handler = *rm_handler,
+};
+
 void shell_install()
 {
   path = (string)mem_alloc(sizeof("/"));
@@ -391,6 +425,7 @@ void shell_install()
   register_command(pwd_cmd);
   register_command(ascii_cmd);
   register_command(mkdir_cmd);
+  register_command(rm_cmd);
 
   /* display_ascii(); */
   splash_screen(NULL);
