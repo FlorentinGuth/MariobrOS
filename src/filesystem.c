@@ -1,5 +1,4 @@
 #include "filesystem.h"
-#include "logging.h"
 
 /* lba n means sector n, with sector_size = 0x200 = 512 bytes. The volume starts
  * at 1M = 0x10000 in memory. Thus, lba n is the address 512 * n from the 
@@ -98,6 +97,7 @@ u_int32 allocate_inode()
   spb->unalloc_inode_num--;
   set_bit(b, pos, 1);
   writeLBA(BLOCK(address), block_factor, std_buf);
+
   bgpt[(ret-1) / spb->inode_per_group].unalloc_inode--;
   flush_bgpt();
 
@@ -187,7 +187,6 @@ u_int32 allocate_block(u_int32 prec)
   if(prec == 1) {
     throw("Superblock corrupted, no free block found");
   } else {
-    writef("??");
     return allocate_block(1); // Restart from the beginning
   }
 }
@@ -208,7 +207,6 @@ u_int8 unallocate_block(u_int32 block)
 
   writeLBA(BLOCK(address), block_factor, std_buf);
   flush_bgpt(); flush_spb();
-  writef("EN: %u, ", get_bit(b, block % spb->block_per_group));
   return 0;
 }
 
@@ -278,6 +276,7 @@ u_int32 write_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
 
   if(to_write < 12) {
     update_block(buffer, ofs, length, BLOCK(std_inode->dbp[to_write]));
+    
   } else {
     u_int32 address;
     to_write -= 12;
@@ -594,51 +593,49 @@ u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use)
   u_int32 count = 0; // Total number of allocated blocks
   u_int32 addr = 1;
 
-  if(used < 12) { //  DBP
-    for(; used < 12; used++) {
-      addr = allocate_block(addr);
-      if(!addr) {
-        update_inode(inode, std_inode);
-        return count;
-      }
-      count++;
-      std_inode->dbp[used] = addr;
-      if(used == to_use) {
-        update_inode(inode, std_inode);
-        return count;
-      }
+  while(used < 12) { // DBP
+    writef("Allocating dbp (%u), ", count);
+    addr = allocate_block(addr);
+    if(!addr) {
+      update_inode(inode, std_inode);
+      return count;
+    }
+    std_inode->dbp[used] = addr;
+    used++; count++;
+    if(used== to_use) {
+      update_inode(inode, std_inode);
+      writef("Return with count %u\n", count);
+      return count;
     }
   }
   update_inode(inode, std_inode);
 
   used -= 12; to_use -=12;
-  if(used < addr_per_block) { // SIBP
-
-    if(!used) { // creation of inode.sibp
-      addr = allocate_block(addr);
-      if(!addr) {
-        return count;
-      }
-      std_inode->sibp = addr;
+  if(!used) { // creation of inode.sibp
+    addr = allocate_block(addr);
+    if(!addr) {
+      return count;
     }
+    std_inode->sibp = addr;
     update_inode(inode, std_inode);
-
-    readLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
-    for(; used < addr_per_block; used++) {
-      addr = allocate_block(addr);
-      if(!addr) {
-        writeLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
-        return count;
-      }
-      ((u_int32*) std_buf)[used] = addr;
-      count++;
-      if(used == to_use) {
-        writeLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
-        return count;
-      }
-    }
-    writeLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
   }
+
+  readLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
+  while(used < addr_per_block) {
+    addr = allocate_block(addr);
+    if(!addr) {
+      writeLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
+      return count;
+    }
+    ((u_int32*) std_buf)[used] = addr;
+    used++; count++;
+    if(used == to_use) {
+      writeLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
+      return count;
+    }
+  }
+  writeLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
+
   used -= addr_per_block; to_use -= addr_per_block;
 
   u_int32 curr_block;
@@ -764,35 +761,34 @@ u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
   if(!num) {
     return 0;
   }
-  u_int32 block = allocate_block(1);
-  if(!block) {
-    unallocate_inode(num);
-    return 0;
-  }
   u_int8 error = add_file(father, num, ftype, name);
   if(error) {
     unallocate_inode(num);
-    unallocate_block(block);
     return 0;
   }
   u_int8 is_a_dir = !!(type & TYPE_DIR);
   std_inode->type = type;
-  std_inode->hard_links = 2; // Father (+ itself)
-  std_inode->sectors = block_factor;
-  std_inode->dbp[0] = block;
+  std_inode->hard_links = 1 + is_a_dir; // Father (+ itself)
+  std_inode->sectors = block_factor * is_a_dir;
   std_inode->size_low = block_size * is_a_dir;
-  for(u_int8 i = 1; i < 12; i++) {
+  for(u_int8 i = 0; i < 12; i++) {
     std_inode->dbp[i] = 0;
   }
   std_inode->sibp = 0; std_inode->dibp = 0; std_inode->tibp = 0;
-  update_inode(num, std_inode);
 
   if(is_a_dir) {
+    u_int32 block = allocate_block(1);
+    if(!block) {
+      unallocate_inode(num);
+      return 0;
+    }
+    std_inode->dbp[0] = block;
     u_int16 size = set_dir_entry((void*) std_buf, num, FILE_DIR, ".", 0);
     set_dir_entry((void*) ((u_int32) std_buf + size), father, FILE_DIR, "..",\
                   block_size - size);
     writeLBA(BLOCK(block), 1, std_buf);
   }
+  update_inode(num, std_inode);
 
   return num;
 }
@@ -868,5 +864,5 @@ void filesystem_install()
 
   add_file(test2, filetest, FILE_REGULAR, "filetest");
 
-  kloug(100, "Filesystem installed\n");
+  ls_dir(2);
 }

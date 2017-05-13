@@ -22,6 +22,13 @@ inode_t *std_inode;
 u_int32 block_size;
 
 /**
+ *  @name update_inode - Flushes changes about an inode
+ *  @param inode       - The inode number of the inode to update
+ *  @param buffer      - The inode contents to flush
+ */
+void update_inode(u_int32 inode, inode_t *buffer);
+
+/**
  *  @name set_inode  - Sets an inode buffer to the corresponding inode number
  *  @param inode     - The inode number
  *  @param buffer    - The output buffer of the inode, must be at least 128B wide
