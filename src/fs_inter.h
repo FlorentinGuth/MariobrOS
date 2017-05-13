@@ -33,7 +33,11 @@ typedef s_int32 fd;
  *  @param oflag   - The open flags
  *  @param perm    - The file access rights
  *
- *  @return        - The file descriptor for the given file
+ *  @return        - The file descriptor for the given file or
+ *                   -1: Inode does not exist
+ *                   -2: File already exists but O_EXCL was set
+ *                   -3: No room in the file descriptor table
+ *                   -4: File creation failed
  */
 fd openfile(string path, u_int8 oflag, u_int16 fperm);
 

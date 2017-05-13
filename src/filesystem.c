@@ -275,15 +275,14 @@ u_int32 write_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
   }
 
   if(to_write < 12) {
-    update_block(buffer, ofs, length, BLOCK(std_inode->dbp[to_write]));
-    
+    update_block(buffer, ofs, width, BLOCK(std_inode->dbp[to_write]));
   } else {
     u_int32 address;
     to_write -= 12;
     if(to_write < block_size / 4) {
       readPIO(BLOCK(std_inode->sibp), 0, block_size, std_buf);
       address = BLOCK(((u_int32*)std_buf)[to_write]);
-      update_block(buffer, ofs, length, address);
+      update_block(buffer, ofs, width, address);
     } else {
       to_write -= block_size / 4;
       u_int32 dbsize = block_size*block_size;
@@ -292,7 +291,7 @@ u_int32 write_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
         readPIO(BLOCK(((u_int32*)std_buf)[to_write/block_size]), 0,  \
                 block_size, std_buf);
         address = BLOCK(((u_int32*)std_buf)[to_write % block_size]);
-        update_block(buffer, ofs, length, address);
+        update_block(buffer, ofs, width, address);
       } else {
         to_write -= dbsize / 16;
         if(to_write >= dbsize*block_size / 64) {
@@ -304,7 +303,7 @@ u_int32 write_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
         readPIO(BLOCK(((u_int32*)std_buf)[(to_write%dbsize)/block_size]), 0, \
                 block_size, std_buf);
         address = BLOCK(((u_int32*)std_buf)[to_write % block_size]);
-        update_block(buffer, ofs, length, address);
+        update_block(buffer, ofs, width, address);
       }
     }
   }
@@ -863,6 +862,4 @@ void filesystem_install()
   u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR);
 
   add_file(test2, filetest, FILE_REGULAR, "filetest");
-
-  ls_dir(2);
 }
