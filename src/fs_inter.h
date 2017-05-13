@@ -25,6 +25,13 @@ typedef struct file_description fdt_e;
 
 typedef s_int32 fd;
 
+typedef struct stats {
+  u_int32 st_ino;
+  u_int8 st_kind;
+  u_int16 st_perm;
+  u_int16 st_nlink;
+  u_int32 st_size;
+} stats;
 
 /**
  *  @name openfile - Opens a file given flags and permissions
@@ -41,6 +48,13 @@ typedef s_int32 fd;
  */
 fd openfile(string path, u_int8 oflag, u_int16 fperm);
 
+/**
+ *  @name openker - Opens a file in read/write with maximum rights
+ *  @param path   - The path to the file
+ *  @return       - Same as openfile
+ */
+fd openker(string path);
+  
 /**
  *  @name read    - Reads from a file
  *
@@ -76,6 +90,13 @@ u_int32 write(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
  *  WARNING: a closed file descriptor may refer to another fd...
  */
 void close(fd f);
+
+/**
+ *  @name fstat - Sets stats of a file
+ *  @param f    - The file descriptor
+ *  @param s    - A pointer to a stats structure
+ */
+void fstat(fd f, stats* s);
 
 /**
  *  @name fs_inter_install - Installs the filesystem interface

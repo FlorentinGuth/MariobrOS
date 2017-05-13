@@ -607,7 +607,6 @@ u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use)
   u_int32 addr = 1;
 
   while(used < 12) { // DBP
-    writef("Allocating dbp (%u), ", count);
     addr = allocate_block(addr);
     if(!addr) {
       update_inode(inode, std_inode);
@@ -617,7 +616,6 @@ u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use)
     used++; count++;
     if(used== to_use) {
       update_inode(inode, std_inode);
-      writef("Return with count %u\n", count);
       return count;
     }
   }
@@ -868,11 +866,11 @@ void filesystem_install()
 
   std_inode = mem_alloc(sizeof(inode_t));
 
-  /* allocate_inode(); */
-  /* u_int32 test1 =create_dir(2, "test1"); */
-  /* u_int32 test2 = create_dir(2, "test2"); */
-  /* /\* u_int32 subtest =  *\/create_dir(test1, "subtest"); */
-  /* u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR); */
+  allocate_inode();
+  u_int32 test1 =create_dir(2, "test1");
+  u_int32 test2 = create_dir(2, "test2");
+  /* u_int32 subtest =  */create_dir(test1, "subtest");
+  u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR);
 
-  /* add_file(test2, filetest, FILE_REGULAR, "filetest"); */
+  add_file(test2, filetest, FILE_REGULAR, "filetest");
 }

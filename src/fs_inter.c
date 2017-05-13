@@ -57,6 +57,11 @@ fd openfile(string path, u_int8 oflag, u_int16 fperm)
   return f;
 }
 
+fd openker(string path)
+{
+  return openfile(path, O_RDWR, 0xffff);
+}
+
 u_int32 read(fd f, u_int8* buffer, u_int32 offset, u_int32 length)
 {
   if(!fdt[f].inode) {
@@ -131,6 +136,16 @@ u_int32 write(fd f, u_int8* buffer, u_int32 offset, u_int32 length)
 void close(fd f)
 {
   fdt[f].inode = 0;
+}
+
+void fstat(fd f, stats* s)
+{
+  set_inode(fdt[f].inode, std_inode);
+  s->st_ino = fdt[f].inode;
+  s->st_kind = std_inode->type >> 12;
+  s->st_perm = std_inode->type & 0x0FFF;
+  s->st_nlink = std_inode->hard_links;
+  s->st_size = std_inode->size_low;
 }
 
 void fs_inter_install()
