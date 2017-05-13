@@ -261,6 +261,8 @@ u_int32 request_physical_space(page_directory_t *dir, u_int32 physical_address, 
 
 void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool free_frame)
 {
+  kloug(100, "Free virtual space at %X\n", virtual_address, 8);
+
   page_table_entry_t *page = get_page(dir, virtual_address);
 
   free_page(page, free_frame);

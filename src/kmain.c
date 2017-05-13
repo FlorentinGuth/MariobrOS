@@ -46,6 +46,8 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   filesystem_install();
   fs_inter_install();
 
+  /* log_memory(); */
+
   scheduler_install();
 
   /* Last but not least, the shell */

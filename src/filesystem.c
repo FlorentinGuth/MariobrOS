@@ -868,11 +868,11 @@ void filesystem_install()
 
   std_inode = mem_alloc(sizeof(inode_t));
 
-  allocate_inode();
-  u_int32 test1 =create_dir(2, "test1");
-  u_int32 test2 = create_dir(2, "test2");
-  /* u_int32 subtest =  */create_dir(test1, "subtest");
-  u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR);
+  /* allocate_inode(); */
+  /* u_int32 test1 =create_dir(2, "test1"); */
+  /* u_int32 test2 = create_dir(2, "test2"); */
+  /* /\* u_int32 subtest =  *\/create_dir(test1, "subtest"); */
+  /* u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR); */
 
-  add_file(test2, filetest, FILE_REGULAR, "filetest");
+  /* add_file(test2, filetest, FILE_REGULAR, "filetest"); */
 }

@@ -126,6 +126,7 @@ void syscall_handler(regs_t *regs)
 void load_code(string program_name, context_t ctx)
 {
   kloug(100, "Loading %s code\n", program_name);
+  log_memory();
 
   string temp = str_cat("/progs/", program_name);
   string path = str_cat(temp, ".elf");
@@ -137,14 +138,20 @@ void load_code(string program_name, context_t ctx)
   /* TODO: read until EOF or something */
   inode_t inode_buffer;
   set_inode(inode, &inode_buffer);
-  size_t size = inode_buffer.sectors * 512;  /* Each sector amounts to 512 bytes */
+  size_t size = inode_buffer.size_low;
 
   /* Loads ELF file in memory */
   u_int8 *elf_buffer = (u_int8 *)mem_alloc(size);
+  kloug(100, "After set_inode\n");
+  log_memory();
+
   u_int8 *current = elf_buffer;
   while (current < elf_buffer + size) {
-    current += read_inode_data(inode, current, 0, elf_buffer + size - current);
+    current += read_inode_data(inode, current, elf_buffer - current, elf_buffer + size - current);
   }
+
+  kloug(100, "After read_inode_data\n");
+  log_memory();
 
   u_int32 nb_pages = (0xFFFFFFFF - START_OF_USER_CODE + 1) / 0x1000;
   /* kloug(100, "%d pages of user code\n", nb_pages); */
@@ -160,10 +167,16 @@ void load_code(string program_name, context_t ctx)
     }
   }
 
+  kloug(100, "After virtuals\n");
+  log_memory();
+
   log_page_dir(current_directory);
 
   /* Loads actual code and data at the right place, and set up eip */
   ctx.regs->eip = check_and_load(elf_buffer, virtuals);
+
+  kloug(100, "After check_and_load\n");
+  log_memory();
 
   /* Free! */
   mem_free(elf_buffer);
@@ -262,6 +275,10 @@ void scheduler_install()
   process_t *init = &(state->processes[init_pid]);
   *init = new_process(init_pid, MAX_PRIORITY);
   load_code("init", init->context);
+  kloug(100 ,"So far so good\n");
+
+  log_page_dir(current_directory);
+  log_memory();
 
   /* Initialization of the state */
   state->curr_pid = init_pid;  /* We start with the init process */
@@ -269,7 +286,9 @@ void scheduler_install()
     state->runqueues[prio] = empty_queue();
   }
   /* Adds idle and init in the runqueues */
+  kloug(100, "b-----------------\n");
   enqueue(state->runqueues[0],            idle_pid);
+  kloug(100,"a------------------\n");
   enqueue(state->runqueues[MAX_PRIORITY], init_pid);
 
   /* Adds handlers for timer and syscall interruptions */
