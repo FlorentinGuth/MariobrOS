@@ -29,7 +29,7 @@ typedef struct page_table_entry {
   bool    accessed       :  1;  /* 1 if the page has been accessed since last refresh */
   bool    dirty          :  1;  /* 1 if the page been written to since last refresh? */
   bool    pta_index      :  1;  /* Page Table Attribute index, I have no idea what this is */
-  bool    global_page    :  1;  /* I have no idea what this is */
+  bool    global_page    :  1;  /* Prevents the TLB to be flushed */
   u_int8  available      :  3;  /* Available for us! */
   u_int32 address        : 20;  /* Page address (physical address, shifted right 12 bits) */
 } __attribute__((packed)) page_table_entry_t;
@@ -49,7 +49,7 @@ typedef struct page_directory_entry {
   bool    accessed       :  1;  /* 1 if the page has been accessed since last refresh */
   bool    reserved       :  1;  /* Reserved by the processor, set to 0 */
   bool    page_size      :  1;  /* 0 if 4KB, I don't know what size if 1 */
-  bool    global_page    :  1;  /* Ignored */
+  bool    global_page    :  1;  /* Prevents the TLB to be flushed */
   u_int8  available      :  3;  /* Available for us! */
   u_int32 address        : 20;  /* Page table address (physical address, shifted right 12 bits) */
 } __attribute__((packed)) page_directory_entry_t;

@@ -43,15 +43,15 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   isrs_install();
   irq_install();
 
-  /* filesystem_install(); */
+  filesystem_install();
 
-  /* Enables interruptions */
-  __asm__ __volatile__ ("sti");
   scheduler_install();
 
   /* Last but not least, the shell */
   shell_install();
 
+  /* Enables interruptions */
+  __asm__ __volatile__ ("sti");
   for(;;)
     __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;

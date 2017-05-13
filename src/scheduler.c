@@ -254,13 +254,13 @@ void scheduler_install()
   pid idle_pid = 0;
   process_t *idle = &state->processes[idle_pid];
   *idle = new_process(idle_pid, 0);
-  /* load_code("idle", idle->context); */
+  load_code("idle", idle->context);
 
   /* Creating init process */
   pid init_pid = 1;
   process_t *init = &(state->processes[init_pid]);
   *init = new_process(init_pid, MAX_PRIORITY);
-  /* load_code("init", init->context); */
+  load_code("init", init->context);
 
   /* Initialization of the state */
   state->curr_pid = init_pid;  /* We start with the init process */

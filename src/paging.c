@@ -82,6 +82,10 @@ void map_page_to_frame(page_table_entry_t *page, u_int32 frame, bool is_kernel, 
     throw("Invalid frame");
   }
 
+  if (page->present) {
+    throw("Page already mapped");
+  }
+
   /* Marks the physical frame as used, if not already */
   set_bit(frames, frame, TRUE);  /* TODO: reference counting? */
 
@@ -124,6 +128,11 @@ void free_page(page_table_entry_t *page, bool set_frame_free)
     set_bit(frames, page->address, FALSE);
   }
   page->present = FALSE;
+
+  /* Flush the TLB */
+  /* asm volatile ("mov %cr3, %eax"); */
+  /* asm volatile ("mov %eax, %cr3");  /\* Writing to cr3 causes a flush *\/ */
+  asm volatile ("invlpg (%0)" : : "r" (page));
 }
 
 
@@ -261,23 +270,27 @@ void switch_page_directory(page_directory_t *dir)
 {
   kloug(100, "Switching page directory to the one at %X\n", dir->physical_address, 8);
   kloug(100, "dir %X phys %X entries %X\n", dir, 8, dir->physical_address, 8, dir->entries, 8);
-  /* u_int32 esp; */
-  /* asm volatile ("mov %%esp, %0" : "=r" (esp)); */
-  /* kloug(100, "ESP at %x\n", esp, 8); */
+
+  /* Disables paging */
+  u_int32 cr0;
+  asm volatile ("mov %%cr0, %0" : "=r" (cr0));
+  /* cr0 &= ~0x80000000; */
+  /* asm volatile ("mov %0, %%cr0" : : "r" (cr0)); */
 
   /* Loads address of the current directory into cr3 */
   current_directory = dir;
-  kloug(5, "Before writing to cr3\n");
-  asm volatile ("mov %0, %%cr3"  : : "r" (dir->physical_address));
-  kloug(5, "Wrote to cr3\n");
-
-  /* Reads current cr0 */
-  u_int32 cr0;
-  asm volatile ("mov %%cr0, %0" : "=r"(cr0));
+  u_int32 to_write = dir->physical_address;
+  /* kloug(100, "Before writing %X to cr3\n", to_write, 8); */
+  asm volatile ("mov %0, %%cr3"  : : "r" (to_write));
+  u_int32 cr3;
+  asm volatile ("mov %%cr3, %0" : "=r" (cr3));
+  /* kloug(100, "Wrote %X to cr3\n", cr3, 8); */
 
   /* Enables paging! */
   cr0 |= 0x80000000;
-  asm volatile ("mov %0, %%cr0" : : "r"(cr0));
+  /* kloug(100, "Before writing to cr0\n"); */
+  asm volatile ("mov %0, %%cr0" : : "r" (cr0));
+  /* kloug(100, "Wrote to cr0\n"); */
 }
 
 
@@ -388,7 +401,7 @@ page_directory_t *clone_directory(page_directory_t *dir)
     }
   }
 
-  test_page_dir(copy);
+  /* test_page_dir(copy); */
   return copy;
 }
 
