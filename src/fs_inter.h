@@ -26,6 +26,13 @@ typedef struct file_description fdt_e;
 typedef s_int32 fd;
 
 /**
+ *  @name update_inode - Flushes changes about an inode
+ *  @param inode       - The inode number of the inode to update
+ *  @param buffer      - The inode contents to flush
+ */
+void update_inode(u_int32 inode, inode_t *buffer);
+
+/**
  *  @name openfile - Opens a file given flags and permissions
  *
  *  @param path    - The path to the file
@@ -35,6 +42,25 @@ typedef s_int32 fd;
  *  @return        - The file descriptor for the given file
  */
 fd openfile(string path, u_int8 oflag, u_int16 fperm);
+
+/**
+ *  @name read    - Reads from a file
+ *
+ *  @param f      - The file descriptor
+ *  @param buffer - The output buffer
+ *  @param offset - The starting offset in the output buffer
+ *  @param length - The number of bytes to read
+ *
+ *  @return       - The number of bytes actually read
+ */
+u_int32 read(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
+
+/**
+ *  @name close - Closes a file descriptor
+ *  @param f    - The file descriptor to close
+ *  WARNING: a closed file descriptor may refer to another fd...
+ */
+void close(fd f);
 
 /**
  *  @name fs_inter_install - Installs the filesystem interface

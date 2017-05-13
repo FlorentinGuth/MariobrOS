@@ -506,7 +506,11 @@ void erase_file_data(u_int32 inode)
   if(!std_inode->size_low) {
     return;
   }
+
   u_int32 blocks = 1 + (std_inode->size_low - 1) / block_size;
+  std_inode->size_low = 0;
+  update_inode(inode, std_inode);
+
   if(blocks <= 12) {
     for(u_int8 i = 0; i < blocks; i++) {
       unallocate_block(std_inode->dbp[i]);
@@ -516,6 +520,7 @@ void erase_file_data(u_int32 inode)
   for(u_int8 i = 0; i < 12; i++) {
     unallocate_block(std_inode->dbp[i]);
   }
+
   readLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
   blocks -= 12;
   u_int32 addr_per_block = block_size / 4;
@@ -523,37 +528,216 @@ void erase_file_data(u_int32 inode)
     for(u_int32 i = 0; i < blocks; i++) {
       unallocate_block(((u_int32*) std_buf)[i]);
     }
+    unallocate_block(BLOCK(std_inode->sibp));
     return;
   }
+  unallocate_block(BLOCK(std_inode->sibp));
+
+  u_int32 curr_block;
   for(u_int32 i = 0; i < addr_per_block; i++) {
     unallocate_block(((u_int32*) std_buf)[i]);
   }
   blocks -= addr_per_block;
   for(u_int32 i = 0; i < addr_per_block; i++) {
     readLBA(BLOCK(std_inode->dibp), 4, std_buf);
-    readLBA(BLOCK(((u_int32*) std_buf)[i]), 4, std_buf); 
+    curr_block = BLOCK(((u_int32*) std_buf)[i]);
+    readLBA(curr_block, 4, std_buf); 
     for(u_int32 j = 0; j < addr_per_block; j++) {
       unallocate_block(((u_int32*) std_buf)[j]);
       blocks--;
       if(!blocks) {
+        unallocate_block(curr_block);
+        unallocate_block(BLOCK(std_inode->dibp));
         return;
       }
     }
+    unallocate_block(curr_block);
   }
+  unallocate_block(BLOCK(std_inode->dibp));
+
+  u_int32 curr_sq_block;
   for(u_int32 i = 0; i < addr_per_block; i++) {
     readLBA(BLOCK(std_inode->tibp), 4, std_buf);
-    readLBA(BLOCK(((u_int32*) std_buf)[i]), 4, std_buf); 
+    curr_sq_block = BLOCK(((u_int32*) std_buf)[i]);
+    readLBA(curr_sq_block, 4, std_buf); 
     for(u_int32 j = 0; j < addr_per_block; j++) {
-      readLBA(BLOCK(((u_int32*) std_buf)[j]), 4, std_buf); 
+      curr_block = BLOCK(((u_int32*) std_buf)[j]);
+      readLBA(curr_block, 4, std_buf); 
       for(u_int32 k = 0; k < addr_per_block; k++) {
         unallocate_block(((u_int32*) std_buf)[k]);
         blocks--;
         if(!blocks) {
+          unallocate_block(curr_block);
+          unallocate_block(curr_sq_block);
+          unallocate_block(BLOCK(std_inode->tibp));
           return;
         }
       }
+      unallocate_block(curr_block);
+    }
+    unallocate_block(curr_sq_block);
+  }
+  unallocate_block(BLOCK(std_inode->tibp));
+}
+
+u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use)
+{
+  if(to_use <= used) {
+    return 0;
+  }
+  u_int32 addr_per_block = block_size / 4;
+  if(to_use > addr_per_block * addr_per_block * addr_per_block +    \
+     addr_per_block * addr_per_block + addr_per_block + 12) {
+    return 0;
+  }
+  u_int32 count = 0; // Total number of allocated blocks
+  u_int32 addr = 1;
+
+  if(used < 12) { //  DBP
+    for(; used < 12; used++) {
+      addr = allocate_block(addr);
+      if(!addr) {
+        update_inode(inode, std_inode);
+        return count;
+      }
+      count++;
+      std_inode->dbp[used] = addr;
+      if(used == to_use) {
+        update_inode(inode, std_inode);
+        return count;
+      }
     }
   }
+  update_inode(inode, std_inode);
+
+  used -= 12; to_use -=12;
+  if(used < addr_per_block) { // SIBP
+
+    if(!used) { // creation of inode.sibp
+      addr = allocate_block(addr);
+      if(!addr) {
+        return count;
+      }
+      std_inode->sibp = addr;
+    }
+    update_inode(inode, std_inode);
+
+    readLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
+    for(; used < addr_per_block; used++) {
+      addr = allocate_block(addr);
+      if(!addr) {
+        writeLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
+        return count;
+      }
+      ((u_int32*) std_buf)[used] = addr;
+      count++;
+      if(used == to_use) {
+        writeLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
+        return count;
+      }
+    }
+    writeLBA(BLOCK(std_inode->sibp), block_factor, std_buf);
+  }
+  used -= addr_per_block; to_use -= addr_per_block;
+
+  u_int32 curr_block;
+  if(used < addr_per_block * addr_per_block) { // DIBP
+
+    if(!used) { // Creation of inode.dibp
+      addr = allocate_block(addr);
+      if(!addr) {
+        return count;
+      }
+      std_inode->dibp = addr;
+    }
+    update_inode(inode, std_inode);
+
+    for(u_int32 i = used / addr_per_block; i < addr_per_block; i++) {
+      readLBA(BLOCK(std_inode->dibp), 4, std_buf);
+      if(!(used % addr_per_block)) { // New sub address block to create
+        addr = allocate_block(addr);
+        if(!addr) {
+          return count;
+        }
+        ((u_int32*) std_buf)[i] = addr;
+        writeLBA(BLOCK(std_inode->dibp), 4, std_buf);
+      }
+      curr_block = BLOCK(((u_int32*) std_buf)[i]);
+      readLBA(curr_block, 4, std_buf);
+      for(u_int32 j = used % addr_per_block; j < addr_per_block; j++) {
+        addr = allocate_block(addr);
+        if(!addr) {
+          writeLBA(curr_block, 4, std_buf);
+          return count;
+        }
+        ((u_int32*) std_buf)[j] = addr;
+        used ++; count++;
+        if(used == to_use) {
+          writeLBA(curr_block, 4, std_buf);
+          return count;
+        }
+      }
+      writeLBA(curr_block, 4, std_buf);
+    }
+  }
+
+  u_int32 sq_addr_per_block = addr_per_block * addr_per_block;
+  u_int32 curr_sq_block;
+  // TIBP
+  used -= sq_addr_per_block; to_use -= sq_addr_per_block;
+
+  if(!used) { // Creation of inode.tibp
+    addr = allocate_block(addr);
+    if(!addr) {
+      update_inode(inode, std_inode);
+      return count;
+    }
+    std_inode->tibp = addr;
+  }
+  update_inode(inode, std_inode);
+
+  for(u_int32 i = used / sq_addr_per_block; i < addr_per_block; i++) {
+    readLBA(BLOCK(std_inode->tibp), 4, std_buf);
+    if(! (used % sq_addr_per_block)) {
+      addr = allocate_block(addr);
+      if(!addr) {
+        return count;
+      }
+      ((u_int32*) std_buf)[i] = addr;
+      writeLBA(BLOCK(std_inode->tibp), 4, std_buf);
+    }
+    curr_sq_block = BLOCK(((u_int32*) std_buf)[i]);
+    readLBA(curr_sq_block, 4, std_buf); 
+    for(u_int32 j = (used % sq_addr_per_block) / addr_per_block; \
+        j < addr_per_block; j++) {
+      if(! (used % addr_per_block)) {
+        addr = allocate_block(addr);
+        if(!addr) {
+          return count;
+        }
+        ((u_int32*) std_buf)[j] = addr;
+        writeLBA(curr_sq_block, 4, std_buf);
+      }
+      curr_block = BLOCK(((u_int32*) std_buf)[j]);
+      readLBA(curr_block, 4, std_buf);
+      for(u_int32 k = used % addr_per_block; k < addr_per_block; k++) {
+        addr = allocate_block(addr);
+        if(!addr) {
+          writeLBA(curr_block, 4, std_buf);
+          return count;
+        }
+        ((u_int32*) std_buf)[k] = addr;
+        used++; count++;
+        if(used == to_use) {
+          writeLBA(curr_block, 4, std_buf);
+          return count;
+        }
+      }
+      writeLBA(curr_block, 4, std_buf);
+    }
+  }
+
+  return count;
 }
 
 u_int8 delete_file(u_int32 dir, u_int32 inode)
@@ -579,7 +763,7 @@ u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
   if(!num) {
     return 0;
   }
-  u_int32 block = allocate_block(0);
+  u_int32 block = allocate_block(1);
   if(!block) {
     unallocate_inode(num);
     return 0;

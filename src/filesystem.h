@@ -17,6 +17,11 @@ u_int8 *std_buf;
 inode_t *std_inode;
 
 /**
+ *  @name block_size - The size of a block, in bytes
+ */
+u_int32 block_size;
+
+/**
  *  @name set_inode  - Sets an inode buffer to the corresponding inode number
  *  @param inode     - The inode number
  *  @param buffer    - The output buffer of the inode, must be at least 128B wide
@@ -160,6 +165,19 @@ u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype);
  */
 u_int32 create_dir(u_int32 father, string name);
 
+/**
+ *  @name prepare_blocks - Allocates data blocks to use for a file
+ *
+ *  @param inode         - The inode number of the file
+ *  @param used          - The number of blocks currently used by the file
+ *  @param to_use        - The expected final number of blocks to be used
+ *
+ *  @return count        - The number of blocks actually allocated
+ *
+ *  NOTE: At return, the inode data is correctly set in order to use 
+ *  erase_file_data without block loss, even if count != to_use - used
+ */
+u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use);
 
 /**
  *  @name  ls_dir - Prints to the screen the contents of a directory
