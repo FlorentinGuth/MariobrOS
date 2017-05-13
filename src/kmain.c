@@ -51,8 +51,6 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   /* Last but not least, the shell */
   shell_install();
 
-  scheduler_install();
-
   /* Enables interruptions */
   __asm__ __volatile__ ("sti");
   for(;;)
