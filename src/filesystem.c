@@ -313,7 +313,7 @@ u_int32 write_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
 u_int32 find_inode(string str_path, u_int32 root)
 {
   list_t path = str_split(str_path, '/', TRUE);
-  mem_free((void*) path->head); path = path->tail;
+  /* mem_free((void*) path->head); path = path->tail; */
 
   u_int32 inode;
   if(str_path[0]=='/') {
@@ -324,20 +324,21 @@ u_int32 find_inode(string str_path, u_int32 root)
   dir_entry *entry = 0;
   int i; char* a; char* b;
   u_int32 endpos = (u_int32)std_buf + block_size;
+
   while(path->tail || ! (*((char*) path->head) == '\0') ) {
     read_inode_data(inode, std_buf, 0, block_size);
     entry = (void*) std_buf;
     while(entry->inode && (u_int32)entry < endpos) {
       a = (char*) path->head;
       b = (char*) &(entry->name);
-
       for(i=0; a[i] != '\0' && b[i] != '\0' && a[i]==b[i]; i++);
+
       // The difference with str_cmp is that b may not end with '\0'
       if(a[i] == b[i] || (a[i] == '\0' && i == entry->name_length)) {
         inode = entry->inode;
         break;
       }
-      entry = (dir_entry*) (((u_int32)entry) + entry->size);
+      entry = (void*) (((u_int32)entry) + entry->size);
     }
     if((u_int32)entry == endpos) {
       while(path) {
@@ -354,11 +355,24 @@ u_int32 find_inode(string str_path, u_int32 root)
     mem_free((void*) path->head);
     pop(&path);
   }
+
   mem_free((void*) path->head);
   pop(&path);
   return inode;
 }
 
+u_int32 find_dir(string str_path, u_int32 root)
+{
+  u_int32 inode = find_inode(str_path, root);
+  if(!inode) {
+    return 0;
+  }
+  set_inode(inode, std_inode);
+  if(std_inode->type & TYPE_DIR) {
+    return inode;
+  }
+  return 0; // Not a directory
+}
 
 u_int16 set_dir_entry(dir_entry* e, u_int32 inode, u_int8 file_type, \
                       string name, u_int16 size)
@@ -810,15 +824,14 @@ void ls_dir(u_int32 inode)
   u_int32 endpos = (u_int32)std_buf + block_size;
 
   while(entry->size && (u_int32)entry < endpos) {
-    writef("\n%c ", 195);
+    writef("%c ", 195);
     for(u_int32 i = 0 ; i < entry->name_length ; i++) {
       writef("%c", ((u_int8*) &(entry->name))[i]);
     }
     set_inode(entry->inode, std_inode);
-    writef("\t<-- inode = %u", entry->inode);
+    writef("\t<-- inode = %u\n", entry->inode);
     entry = (dir_entry*) (((u_int32)entry) + entry->size);
   }
-  writef("\n");
 }
 
 

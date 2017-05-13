@@ -102,14 +102,19 @@ u_int32 write_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
 
 /**
  *  @name find_inode - Opens a file
- *  Also sets up std_inode to the content of the parent inode, and std_buf to
- *  the content of the parent directory data block
  *
  *  @param str_path - The path to the file, relative to root
  *  @param root     - If path begins with '/', this argument is ignored
  *  @return inode   - The inode number of the file
  */
 u_int32 find_inode(string str_path, u_int32 root);
+
+/**
+ *  @name find_dir - Same as find_inode, but returns 0 if target is not a dir
+ *  Also sets up std_inode to the content of the target
+ */
+u_int32 find_dir(string str_path, u_int32 root);
+
 
 /**
  *  @name add_file - Adds a file to a directory

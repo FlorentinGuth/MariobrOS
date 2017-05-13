@@ -11,6 +11,7 @@ typedef struct command {
   void (*handler)(list_t args);
 } command_t;
 
+void get_pwd();
 
 void shell_install();
 

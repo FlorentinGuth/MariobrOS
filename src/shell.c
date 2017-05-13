@@ -2,7 +2,7 @@
 #include "printer.h"
 #include "malloc.h"
 #include "logging.h"
-#include "filesystem.h"
+#include "fs_inter.h"
 #include "scheduler.h"
 
 
@@ -18,6 +18,8 @@ pos_t start_of_command;
 string history[history_size] = {0};
 int history_length = 0, history_pos = 0;
 bool modified_since_history = FALSE;
+
+u_int32 curr_dir = 2; // root directory
 
 /* String and cursor handling */
 void set_pos()
@@ -120,23 +122,22 @@ command_t echo_cmd = {
 };
 
 /* The ls command */
-void ls_handler(list_t args)
+void ls_handler(list_t args) // FIXME
 {
   if (args) {
     list_t *curr_arg = &args;
     while(!is_empty_list(curr_arg)) {
-      string relative_path = (string)pop(curr_arg);
-      string absolute_path = str_cat(path, relative_path);
-
-      writef("%s:\n", relative_path);
-      ls_dir(find_inode(absolute_path, 2)); // FIXME with current inode
-      writef("\n");
-
-      mem_free(absolute_path);
-      mem_free(relative_path);
+      string s = (void*) pop(curr_arg);
+      writef("%s:\n", s);
+      if(s[0] == '/') {
+        ls_dir(find_inode(s + 1, 2));
+      } else {
+        ls_dir(find_inode(s, curr_dir));
+      }
+      mem_free(s);
     }
   } else {
-    ls_dir(find_inode(path, 2)); // FIXME with current inode
+    ls_dir(curr_dir);
   }
 }
 command_t ls_cmd = {
@@ -150,34 +151,125 @@ void cd_handler(list_t args)
 {
   if (args) {
     string new_path = (string)args->head;
+    u_int32 i = 1;
+    for(; new_path[i] != '\0'; i++);
+    if(i!=1 && new_path[i-1] == '/') {
+      new_path[i-1] = '\0';
+    }
 
     if (args->tail) {
-      writef("Too many arguments for %fcd%f\n", LightRed, White);
-    } else {
-      if (new_path[0] == '/') {
-        /* Absolute path */
-        mem_free(path);
-        path = new_path;
-      } else {
-        /* Relative path */
-        string new_new_path = str_cat(path, new_path);  /* TODO: /? */
-        mem_free(path);
-        mem_free(new_path);
-        path = new_new_path;
+      while(args->tail) {
+        mem_free((void*)args->head);
+        pop(&args);
       }
+      writef("Too many arguments for %fcd%f\n", LightRed, White);
+      return;
+    }
+    if (new_path[0] == '/') {
+      /* Absolute path */
+      u_int32 inode = find_dir(new_path + 1, 2);
+      if(!inode) {
+        writef("No such directory\n");
+        return;
+      }
+      curr_dir = inode;
+    } else {
+      /* Relative path */
+      u_int32 inode = find_dir(new_path, curr_dir);
+      if(!inode) {
+        writef("No such directory\n");
+        return;
+      }
+      curr_dir = inode;
     }
   } else {
     /* New path defaults to root */
-    mem_free(path);
-    string new_path = (string)mem_alloc(sizeof("/"));
-    new_path[0] = '/'; new_path[1] = '\0';
-    path = new_path;
+    curr_dir = 2;
   }
+  get_pwd();
 }
 command_t cd_cmd = {
   .name = "cd",
   .help = "Go to the given absolute or relative path",
   .handler = *cd_handler,
+};
+
+
+void get_pwd()
+{
+  mem_free(path);
+  u_int32 inode = curr_dir;
+  if(inode == 2) {
+    path = (void*) mem_alloc(sizeof("/"));
+    path[0] = '/'; path[1] = '\0';
+    return;
+  }
+  string tmp;
+  u_int32 size = 0;
+  u_int32 parent = 0;
+  dir_entry* entry;
+  u_int32 endpos = (u_int32) std_buf + block_size;
+
+  read_inode_data(inode, std_buf, 0, 512);
+  parent = ((dir_entry*) ((u_int32)std_buf + 12))->inode;
+  read_inode_data(parent, std_buf, 0, block_size);
+  entry = (void*) ((u_int32) std_buf + 24);
+  while((u_int32) entry < endpos && entry->inode != inode) {
+    entry = (void*) (((u_int32) entry) + entry->size);
+  }
+  if((u_int32) entry >= endpos) {
+    writef("Error while accessing current directory\n");
+    mem_free(path); path = (void*) mem_alloc(sizeof("/"));
+    path[0] = '/'; path[1] = '\0'; curr_dir = 2;
+    return;
+  }
+  path = (void*) mem_alloc(entry->name_length + 1);
+  for(int i = 0; i < entry->name_length; i++) {
+    path[i] = ((char*) ((u_int32) entry + 8))[i];
+  }
+  path[entry->name_length] = '\0';
+  size += entry->name_length + 1;
+  inode = parent;
+
+  while(inode != 2) {
+    parent = ((dir_entry*) ((u_int32)std_buf + 12))->inode;
+    read_inode_data(parent, std_buf, 0, block_size);
+    entry = (void*) ((u_int32) std_buf + 24);
+    while((u_int32) entry < endpos && entry->inode != inode) {
+      entry = (void*) (((u_int32) entry) + entry->size);
+    }
+    if((u_int32) entry >= endpos) {
+      writef("Error accessing current directory\n");
+      mem_free(path); path = (void*) mem_alloc(sizeof("/"));
+      path[0] = '/'; path[1] = '\0'; curr_dir = 2;
+      return;
+    }
+    tmp = (void*) mem_alloc(entry->name_length + 1 + size);
+    for(int i = 0; i < entry->name_length; i++) {
+      tmp[i] = ((char*) ((u_int32) entry + 8))[i];
+    }
+    tmp[entry->name_length] = '/';
+    str_copy(path, (void*) ((u_int32) tmp + entry->name_length + 1));
+    mem_free(path); path = tmp; size += entry->name_length + 1;
+    inode = parent;
+  }
+  tmp = (void*) mem_alloc(size + 1);
+  tmp[0] = '/';
+  str_copy(path, (void*) ((u_int32) tmp + 1));
+  mem_free(path); path = tmp;
+}
+
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void pwd_handler(list_t args)
+{
+  get_pwd();
+  writef("%s\n", path);
+}
+#pragma GCC diagnostic pop
+command_t pwd_cmd = {
+  .name = "pwd",
+  .help = "Prints the path to the current directory",
+  .handler = *pwd_handler,
 };
 
 
@@ -276,6 +368,7 @@ void shell_install()
   register_command(help_cmd);
   register_command(echo_cmd);
   register_command(cd_cmd);
+  register_command(pwd_cmd);
   register_command(ascii_cmd);
 
   /* display_ascii(); */
