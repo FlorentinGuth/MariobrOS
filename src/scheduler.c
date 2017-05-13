@@ -140,7 +140,7 @@ void load_code(string program_name, context_t ctx)
   size_t size = inode_buffer.sectors * 512;  /* Each sector amounts to 512 bytes */
 
   /* Loads ELF file in memory */
-  u_int8 *elf_buffer = (u_int8*) mem_alloc(size);
+  u_int8 *elf_buffer = (u_int8 *)mem_alloc(size);
   u_int8 *current = elf_buffer;
   while (current < elf_buffer + size) {
     current += read_inode_data(inode, current, 0, elf_buffer + size - current);
@@ -159,6 +159,8 @@ void load_code(string program_name, context_t ctx)
       throw("Unable to load user code");
     }
   }
+
+  log_page_dir(current_directory);
 
   /* Loads actual code and data at the right place, and set up eip */
   ctx.regs->eip = check_and_load(elf_buffer, virtuals);
@@ -209,10 +211,11 @@ void switch_to_process(pid pid)
   asm volatile ("push %0" : : "r" (ctx.regs->gs));
 
   /* Restores process paging */
-  kloug(100, "Oh god\n");
+  u_int32 *code = (u_int32 *)ctx.regs->eip;
+  /* kloug(100, "Oh god\n"); */
   log_page_dir(ctx.page_dir);
   switch_page_directory(ctx.page_dir);
-  kloug(100, "Are we still here?\n");
+  kloug(100, "Instruction at %X: %X\n", code, 8, *code, 8);
 
   /* Let's go! */
   asm volatile ("pop %gs");
@@ -273,7 +276,7 @@ void scheduler_install()
   extern void *timer_phase(int hz);  /* Defined in timer.c */
   timer_phase(SWITCH_FREQ);
   /* irq_install_handler(0, timer_handler); */
-  /* isr_install_handler(SYSCALL_ISR, syscall_handler); */
+  isr_install_handler(SYSCALL_ISR, syscall_handler);
 
   kloug(100, "Scheduler installed\n");
 }

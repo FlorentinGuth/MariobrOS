@@ -50,7 +50,7 @@ void log_string(const char *string, log_level_t lvl)
     serial_configure_buffers(SERIAL_COM1_BASE);
     serial_configure_modem(SERIAL_COM1_BASE);
 
-    configured= TRUE;
+    configured = TRUE;
   }
 
   char level[9];
@@ -69,9 +69,9 @@ void log_string(const char *string, log_level_t lvl)
   }
   }
 
-  for (int i = 0; level[i] != '\0'; i++) {
-    outb(SERIAL_COM1_BASE, level[i]);
-  }
+  /* for (int i = 0; level[i] != '\0'; i++) { */
+  /*   outb(SERIAL_COM1_BASE, level[i]); */
+  /* } */
   for (int i = 0; string[i] != '\0'; i++) {
     outb(SERIAL_COM1_BASE, string[i]);
     write_char('\0'); // Truly terrible hack used to slow down the output pace

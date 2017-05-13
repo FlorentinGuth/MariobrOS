@@ -194,6 +194,9 @@ int format_to_string(char buf[], char s[], va_list* ap)
         }
         write += u_int_to_string((char*) (buf+write), hex, 16) - 1;
         break; }
+      case 'h': {
+        write += u_int_to_string((char*) (buf+write), va_arg(param,u_int32), 16) - 1;
+        break; }
       case 'c': {
         buf[write]=va_arg(param,int); write++; break; }
       case 's': {
