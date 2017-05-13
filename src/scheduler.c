@@ -144,7 +144,7 @@ void load_code(string program_name, context_t ctx)
   }
 
   u_int32 nb_pages = (0xFFFFFFFF - START_OF_USER_CODE + 1) / 0x1000;
-  kloug(100, "%d pages of user code\n", nb_pages);
+  /* kloug(100, "%d pages of user code\n", nb_pages); */
   u_int32 virtuals[nb_pages];
   for (u_int32 page = 0; page < nb_pages; page++) {
     u_int32 physical = get_physical_address(ctx.page_dir, START_OF_USER_CODE + page*0x1000);

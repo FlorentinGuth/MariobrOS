@@ -129,10 +129,11 @@ void free_page(page_table_entry_t *page, bool set_frame_free)
   }
   page->present = FALSE;
 
-  /* Flush the TLB */
-  /* asm volatile ("mov %cr3, %eax"); */
-  /* asm volatile ("mov %eax, %cr3");  /\* Writing to cr3 causes a flush *\/ */
-  asm volatile ("invlpg (%0)" : : "r" (page));
+  /* Flush the TLB entry relevant to the page */
+  /* asm volatile ("invlpg (%0)" : : "r" (page->address * 0x1000)); */
+  /* Flush the entire TLB, because it works better (and only god knows why) */
+  asm volatile ("mov %cr3, %eax");
+  asm volatile ("mov %eax, %cr3");
 }
 
 
