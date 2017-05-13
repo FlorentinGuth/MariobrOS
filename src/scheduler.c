@@ -189,21 +189,17 @@ void switch_to_process(pid pid)
   unallocated_mem  = ctx.unallocated_mem;
 
   /* Pushes the regs structure on the stack */
+  kloug(100, "Pushing, kernel ESP %X user ESP %X EIP %X\n",       \
+        kernel_context.esp, 8, ctx.regs->useresp, 8, ctx.regs->eip, 8);
+
+  /* Simulate an interruption stack frame */
   asm volatile ("push %0" : : "r" (ctx.regs->ss));
   asm volatile ("push %0" : : "r" (ctx.regs->useresp));
   asm volatile ("push %0" : : "r" (ctx.regs->eflags));
   asm volatile ("push %0" : : "r" (ctx.regs->cs));
   asm volatile ("push %0" : : "r" (ctx.regs->eip));
-  asm volatile ("push %0" : : "r" (ctx.regs->err_code));
-  asm volatile ("push %0" : : "r" (ctx.regs->int_no));
-  asm volatile ("push %0" : : "r" (ctx.regs->eax));
-  asm volatile ("push %0" : : "r" (ctx.regs->ecx));
-  asm volatile ("push %0" : : "r" (ctx.regs->edx));
-  asm volatile ("push %0" : : "r" (ctx.regs->ebx));
-  asm volatile ("push %0" : : "r" (ctx.regs->esp));
-  asm volatile ("push %0" : : "r" (ctx.regs->ebp));
-  asm volatile ("push %0" : : "r" (ctx.regs->esi));
-  asm volatile ("push %0" : : "r" (ctx.regs->edi));
+
+  /* The user segments */
   asm volatile ("push %0" : : "r" (ctx.regs->ds));
   asm volatile ("push %0" : : "r" (ctx.regs->es));
   asm volatile ("push %0" : : "r" (ctx.regs->fs));
@@ -220,8 +216,6 @@ void switch_to_process(pid pid)
   asm volatile ("pop %fs");
   asm volatile ("pop %es");
   asm volatile ("pop %ds");
-  asm volatile ("popal");       /* 8 registers */
-  asm volatile ("add 8, %esp"); /* Pops err_code and int_no */
   asm volatile ("iret");        /* Pops the 5 last things */
 }
 
