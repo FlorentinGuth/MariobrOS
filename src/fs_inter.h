@@ -13,17 +13,18 @@
 
 typedef enum open_flag open_flag;
 
+typedef u_int32* fd;
+
 struct file_description {
   u_int32 inode;
   u_int32 pos;
   u_int32 size;
   u_int16 mode;
+  fd      this; // Its own file descriptor
 } __attribute__((packed));
 
 typedef struct file_description fdt_e;
 
-
-typedef s_int32 fd;
 
 typedef struct stats {
   u_int32 st_ino;
@@ -40,11 +41,8 @@ typedef struct stats {
  *  @param oflag   - The open flags
  *  @param perm    - The file access rights
  *
- *  @return        - The file descriptor for the given file or
- *                   -1: Inode does not exist
- *                   -2: File already exists but O_EXCL was set
- *                   -3: No room in the file descriptor table
- *                   -4: File creation failed
+ *  @return        - The file descriptor for the given file or 0 if an error
+ *                   occured
  */
 fd openfile(string path, u_int8 oflag, u_int16 fperm);
 
