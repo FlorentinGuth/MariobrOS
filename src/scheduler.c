@@ -131,7 +131,7 @@ void load_code(string program_name, context_t ctx)
   string path = str_cat(temp, ".elf");
   mem_free(temp);
 
-  u_int32 inode = find_inode(path, 0);
+  u_int32 inode = find_inode(path, 2);
   mem_free(path);
 
   /* TODO: read until EOF or something */

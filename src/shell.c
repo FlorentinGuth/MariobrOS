@@ -130,7 +130,7 @@ void ls_handler(list_t args) // FIXME
       string s = (void*) pop(curr_arg);
       writef("%s:\n", s);
       if(s[0] == '/') {
-        ls_dir(find_inode(s + 1, 2));
+        ls_dir(find_inode(s, 2));
       } else {
         ls_dir(find_inode(s, curr_dir));
       }
@@ -356,6 +356,26 @@ command_t run_cmd = {
   .handler = *run_handler,
 };
 
+void mkdir_handler(list_t args)
+{
+  if (is_empty_list(&args)) {
+    writef("%frun:%f\tNo arguments given\n", LightRed, White);
+  } else {
+    u_int32 inode;
+    while(!(is_empty_list(&args))) {
+      string dir = (string) pop(&args);
+      inode = create_dir(curr_dir, dir);
+      if(!inode) {
+        writef("Impossible to create directory %s\n", dir);
+      }
+    }
+  }
+}
+command_t mkdir_cmd = {
+  .name = "mkdir",
+  .help = "Creates a new directory",
+  .handler = *mkdir_handler,
+};
 
 void shell_install()
 {
@@ -370,6 +390,7 @@ void shell_install()
   register_command(cd_cmd);
   register_command(pwd_cmd);
   register_command(ascii_cmd);
+  register_command(mkdir_cmd);
 
   /* display_ascii(); */
   splash_screen(NULL);
