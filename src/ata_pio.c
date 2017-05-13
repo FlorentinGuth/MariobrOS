@@ -18,11 +18,13 @@ char poll()
   }
   if(status & ATA_ERR) { return 1; }
   if(status & ATA_DF ) { return 2; }
-  while(!(status & ATA_DRQ)) {
-    if(status & ATA_ERR) { return 1; }
-    if(status & ATA_DF ) { return 2; }
-    status = inb(ATA_COMMAND);
-  }
+
+  // if using BOCHS, comment out the next 5 lines
+  /* while(!(status & ATA_DRQ)) { */
+  /*   if(status & ATA_ERR) { return 1; } */
+  /*   if(status & ATA_DF ) { return 2; } */
+  /*   status = inb(ATA_COMMAND); */
+  /* } */
   return 0;
 }
 
