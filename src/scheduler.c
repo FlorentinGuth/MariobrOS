@@ -92,7 +92,9 @@ void timer_handler(regs_t *regs)
  */
 void syscall_handler(regs_t *regs)
 {
+  kloug(100, "Syscall\n");
   SWITCH_BEFORE();  /* Save context + kernel paging */
+  kloug(100, "Context restored\n");
 
   switch (regs->eax) { /* Syscall number */
 
