@@ -146,7 +146,7 @@ $(GRUB2_CONFIG):
 
 
 runb: $(OS_ISO) $(BOCHS_CONFIG_CD) $(BOCHS_CONFIG_DEBUGGER)
-	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_CD) -rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
+	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_CD) #-rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
 
 diskb: syncdisk $(BOCHS_CONFIG_DEBUGGER) #bochs
 	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_DISK) #-rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
@@ -249,4 +249,4 @@ mrproper: cleandisk
 	rm -f $(GRUB2_CONFIG)
 	rm -rf $(DISK_DIR)
 
-clean: mrproper
+clean: clean_old
