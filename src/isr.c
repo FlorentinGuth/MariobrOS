@@ -109,7 +109,7 @@ void illegal_opcode_handler(struct regs *r)
 
 void double_fault_handler(struct regs *r)
 {
-  writef("Double fault! EIP at %X, ESP at %X, USERESP at %X\n", r->eip, r->esp, r->useresp);
+  writef("Double fault! EIP at %X, ESP at %X, USERESP at %X\n", r->eip, 8, r->esp, 8, r->useresp, 8);
   throw("System halted");
 }
 
