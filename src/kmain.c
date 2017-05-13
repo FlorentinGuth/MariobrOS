@@ -16,7 +16,7 @@ u_int32 START_OF_KERNEL_STACK, END_OF_KERNEL_STACK;
 
 int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
 {
-  kloug(100, "----------Successfully booted-----------\n");
+  kloug(100, "-----------Successfully booted----------\n");
 
   /* Setting the memory limits (which are given in number of 1024 bytes) */
   LOWER_MEMORY = 1024 * mbd->mem_lower;
@@ -50,6 +50,8 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
 
   /* Last but not least, the shell */
   shell_install();
+
+  scheduler_install();
 
   /* Enables interruptions */
   __asm__ __volatile__ ("sti");

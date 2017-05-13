@@ -27,6 +27,8 @@ OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
 
 # Sources for user programs
 LINKER_PROG = $(PROGS_SRC_DIR)/link_prog.ld
+LOADER_PROG_S = $(PROGS_SRC_DIR)/loader_prog.s
+LOADER_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.s,$(BUILD_DIR)/%.o,$(LOADER_PROG_S))
 LIB_PROG_C = $(PROGS_SRC_DIR)/lib.c
 LIB_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(LIB_PROG_C))
 PROGS_C   = $(filter-out $(LIB_PROG_C),$(wildcard $(PROGS_SRC_DIR)/*.c))
@@ -117,6 +119,9 @@ AS =      nasm
 ASFLAGS = -f elf
 
 
+# Useful for debugging
+print-%  : ; @echo $* = $($*)
+
 
 all: disk
 
@@ -169,8 +174,11 @@ $(BUILD_DIR)/%.o: src/%.s $(BUILD_DIR)
 $(BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.c $(BUILD_DIR)
 	@$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
 
-$(PROGS_ELF_DIR)/%.elf: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_ELF_DIR) $(LINKER_PROG)
-	@$(LD) $(LDFLAGS) -T $(LINKER_PROG) $(LIB_PROG_O) $< -o $@
+$(BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.s $(BUILD_DIR)
+	@$(AS) $< -o $@ $(ASFLAGS)
+
+$(PROGS_ELF_DIR)/%.elf: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_ELF_DIR) $(LINKER_PROG) $(LOADER_PROG_O)
+	@$(LD) $(LDFLAGS) -T $(LINKER_PROG) $(LIB_PROG_O) $(LOADER_PROG_O) $< -o $@
 
 
 $(OS_ISO):	$(GRUB_CONFIG) core

@@ -1,4 +1,4 @@
-ENTRY(main)         /* Programs start at the main function */
+ENTRY(loader)               /* Our custom entry point */
 
 /* Every section is page-aligned (4KB, i.e. 0x1000) */
 SECTIONS {
