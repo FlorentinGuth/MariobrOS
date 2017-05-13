@@ -249,7 +249,9 @@ void merge_with_next(header_free_t *block)
     if (f)
       f->prev = e;
 
-    set_size(a, get_size(a) + get_size(b));  /* Actual merging */
+    size_t new_size = get_size(a) + get_size(b);
+    set_size(a, new_size);
+    set_size(get_end_header(a), new_size);
   }
 }
 /**
@@ -438,6 +440,7 @@ void *mem_alloc_aligned(size_t size, unsigned int alignment)
   }
   if (!block) {
     block = alloc_pages(size);
+    /* log_memory(); */
 
     if (!block) {  /* #Unlucky */
       kloug(100, "Malloc returned NULL\n");

@@ -141,19 +141,12 @@ void load_code(string program_name, context_t ctx)
   size_t size = inode_buffer.size_low;
 
   /* Loads ELF file in memory */
-  kloug(100, "After set_inode\n");
-  log_memory();
   u_int8 *elf_buffer = (u_int8 *)mem_alloc(size);
-  kloug(100, "After mem_alloc %x\n", size);
-  log_memory();
 
   u_int8 *current = elf_buffer;
   while (current < elf_buffer + size) {
     current += read_inode_data(inode, current, current - elf_buffer, elf_buffer + size - current);
   }
-
-  kloug(100, "After read_inode_data\n");
-  log_memory();
 
   u_int32 nb_pages = (0xFFFFFFFF - START_OF_USER_CODE + 1) / 0x1000;
   /* kloug(100, "%d pages of user code\n", nb_pages); */
@@ -169,16 +162,10 @@ void load_code(string program_name, context_t ctx)
     }
   }
 
-  kloug(100, "After virtuals\n");
-  log_memory();
-
   log_page_dir(current_directory);
 
   /* Loads actual code and data at the right place, and set up eip */
   ctx.regs->eip = check_and_load(elf_buffer, virtuals);
-
-  kloug(100, "After check_and_load\n");
-  log_memory();
 
   /* Free! */
   mem_free(elf_buffer);
@@ -280,7 +267,6 @@ void scheduler_install()
   kloug(100 ,"So far so good\n");
 
   log_page_dir(current_directory);
-  log_memory();
 
   /* Initialization of the state */
   state->curr_pid = init_pid;  /* We start with the init process */
