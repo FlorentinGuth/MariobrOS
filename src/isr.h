@@ -9,6 +9,7 @@ void isr_install_handler(int srq, void (*handler)(struct regs *r));
 void isr_uninstall_handler(int isr);
 
 void illegal_opcode_handler(struct regs *r);
+void double_fault_handler(struct regs *r);
 
 void isrs_install();
 

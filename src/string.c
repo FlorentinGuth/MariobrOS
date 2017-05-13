@@ -1,6 +1,7 @@
 #include "string.h"
 #include "malloc.h"
 #include "printer.h"
+#include "utils.h"
 
 
 int str_copy(string source, string dest)
@@ -178,7 +179,20 @@ int format_to_string(char buf[], char s[], va_list* ap)
         buf[write]   = '0';
         buf[write+1] = 'x';
         write += 2;
-        write += u_int_to_string((char*) (buf+write), va_arg(param,int), 16) - 1;
+        write += u_int_to_string((char*) (buf+write), va_arg(param,u_int32), 16) - 1;
+        break; }
+      case 'X': {
+        buf[write]   = '0';
+        buf[write+1] = 'x';
+        write += 2;
+        u_int32 hex = va_arg(param,u_int32);
+        u_int32 min_length = va_arg(param,u_int32);
+        u_int32 length = u_int_to_string(NULL, hex, 16) - 1;
+        for (u_int32 i = 0; i < max(0, min_length - length); i++) {
+          buf[write] = '0';
+          write++;
+        }
+        write += u_int_to_string((char*) (buf+write), hex, 16) - 1;
         break; }
       case 'c': {
         buf[write]=va_arg(param,int); write++; break; }

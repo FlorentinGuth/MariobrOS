@@ -3,6 +3,7 @@
 #include "malloc.h"
 #include "logging.h"
 #include "filesystem.h"
+#include "scheduler.h"
 
 
 /* TODO: free unused args */
@@ -33,7 +34,7 @@ void update_max_length()
 
 
 /* Prompt */
-char user[] = "MarcPouzet";
+char user[] = "TimPouzet";
 char machine[] = "MarioBrOS";
 string path;
 void echo_thingy()
@@ -239,12 +240,38 @@ command_t ascii_cmd = {
 };
 
 
+/* The run command */
+void run_handler(list_t args)
+{
+  if (is_empty_list(&args)) {
+    writef("%frun:%f\tNo arguments given\n", LightRed, White);
+  } else {
+    string prog = (string)pop(&args);
+
+    if (is_empty_list(&args)) {
+      run_program(prog);
+    } else {
+      writef("%frun:%f\tToo many arguments\n", LightRed, White);
+    }
+
+    mem_free(prog);
+    delete_list(&args, TRUE);
+  }
+}
+command_t run_cmd = {
+  .name = "run",
+  .help = "Runs the given program",
+  .handler = *run_handler,
+};
+
+
 void shell_install()
 {
   path = (string)mem_alloc(sizeof("/"));
   path[0] = '/'; path[1] = '\0';
 
   register_command(splash_cmd);
+  register_command(run_cmd);
   register_command(ls_cmd);
   register_command(help_cmd);
   register_command(echo_cmd);

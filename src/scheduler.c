@@ -122,6 +122,8 @@ void syscall_handler(regs_t *regs)
 
 void load_code(string program_name, context_t ctx)
 {
+  kloug(100, "Loading %s code\n", program_name);
+
   string temp = str_cat("/progs/", program_name);
   string path = str_cat(temp, ".elf");
   mem_free(temp);
@@ -133,16 +135,6 @@ void load_code(string program_name, context_t ctx)
   inode_t inode_buffer;
   set_inode(inode, &inode_buffer);
   size_t size = inode_buffer.sectors * 512;  /* Each sector amounts to 512 bytes */
-  if (size > 0xFFFFFFFF - START_OF_USER_CODE + 1) {
-    throw("Binary file too large");
-  }
-
-  /* Entering process context */
-  kernel_context.unallocated_mem  = unallocated_mem;
-  kernel_context.first_free_block = first_free_block;
-  first_free_block = ctx.first_free_block;
-  unallocated_mem  = ctx.unallocated_mem;
-  switch_page_directory(ctx.page_dir);
 
   /* Loads ELF file in memory */
   u_int8 *elf_buffer = (u_int8*) mem_alloc(size);
@@ -151,18 +143,28 @@ void load_code(string program_name, context_t ctx)
     current += read_inode_data(inode, current, 0, elf_buffer + size - current);
   }
 
+  u_int32 nb_pages = (0xFFFFFFFF - START_OF_USER_CODE + 1) / 0x1000;
+  /* kloug(100, "%d pages of user code\n", nb_pages); */
+  u_int32 virtuals[nb_pages];
+  for (u_int32 page = 0; page < nb_pages; page++) {
+    u_int32 physical = get_physical_address(ctx.page_dir, START_OF_USER_CODE + page*0x1000);
+    u_int32 virtual = request_physical_space(current_directory, physical, TRUE, FALSE);
+    if (virtual) {
+      virtuals[page] = virtual;
+    } else {
+      /* TODO: free properly */
+      throw("Unable to load user code");
+    }
+  }
+
   /* Loads actual code and data at the right place, and set up eip */
-  ctx.regs->eip = check_and_load(elf_buffer);
+  ctx.regs->eip = check_and_load(elf_buffer, virtuals);
 
   /* Free! */
   mem_free(elf_buffer);
-
-  /* Leaving process context */
-  switch_page_directory(kernel_directory);
-  ctx.first_free_block = first_free_block;
-  ctx.unallocated_mem  = unallocated_mem;
-  first_free_block = kernel_context.first_free_block;
-  unallocated_mem  = kernel_context.unallocated_mem;
+  for (u_int32 page = 0; page < nb_pages; page++) {
+    free_virtual_space(current_directory, virtuals[page], FALSE);  /* Frame also mapped for the proc */
+  }
 }
 
 
@@ -179,20 +181,72 @@ void switch_to_process(pid pid)
   /* Saves kernel context */
   kernel_context.unallocated_mem  = unallocated_mem;
   kernel_context.first_free_block = first_free_block;
+  asm volatile ("mov %%esp, %0" : "=r" (kernel_context.esp));
 
   /* Restores process context */
   context_t ctx = proc.context;
   first_free_block = ctx.first_free_block;
   unallocated_mem  = ctx.unallocated_mem;
 
-  /* Restores process paging */
-  switch_page_directory(ctx.page_dir);
+  /* Pushes the regs structure on the stack */
+  asm volatile ("push %0" : : "r" (ctx.regs->ss));
+  asm volatile ("push %0" : : "r" (ctx.regs->useresp));
+  asm volatile ("push %0" : : "r" (ctx.regs->eflags));
+  asm volatile ("push %0" : : "r" (ctx.regs->cs));
+  asm volatile ("push %0" : : "r" (ctx.regs->eip));
+  asm volatile ("push %0" : : "r" (ctx.regs->err_code));
+  asm volatile ("push %0" : : "r" (ctx.regs->int_no));
+  asm volatile ("push %0" : : "r" (ctx.regs->eax));
+  asm volatile ("push %0" : : "r" (ctx.regs->ecx));
+  asm volatile ("push %0" : : "r" (ctx.regs->edx));
+  asm volatile ("push %0" : : "r" (ctx.regs->ebx));
+  asm volatile ("push %0" : : "r" (ctx.regs->esp));
+  asm volatile ("push %0" : : "r" (ctx.regs->ebp));
+  asm volatile ("push %0" : : "r" (ctx.regs->esi));
+  asm volatile ("push %0" : : "r" (ctx.regs->edi));
+  asm volatile ("push %0" : : "r" (ctx.regs->ds));
+  asm volatile ("push %0" : : "r" (ctx.regs->es));
+  asm volatile ("push %0" : : "r" (ctx.regs->fs));
+  asm volatile ("push %0" : : "r" (ctx.regs->gs));
 
-  /* TODO */
+  /* Restores process paging */
+  kloug(100, "Oh god\n");
+  log_page_dir(ctx.page_dir);
+  switch_page_directory(ctx.page_dir);
+  kloug(100, "Are we still here?\n");
+
+  /* Let's go! */
+  asm volatile ("pop %gs");
+  asm volatile ("pop %fs");
+  asm volatile ("pop %es");
+  asm volatile ("pop %ds");
+  asm volatile ("popal");       /* 8 registers */
+  asm volatile ("add 8, %esp"); /* Pops err_code and int_no */
+  asm volatile ("iret");        /* Pops the 5 last things */
 }
 
 
-void init()
+void run_program(string name)
+{
+  pid pid = 0;
+  while (pid < NUM_PROCESSES && state->processes[pid].state != Free) {
+    pid++;
+  }
+
+  if (pid == NUM_PROCESSES) {
+    writef("%frun;%f\tUnable to create a new process\n", LightRed, White);
+    return;
+  }
+
+  process_t *proc = &state->processes[pid];
+  *proc = new_process(pid, 1);  /* User processes have a priority of 1 */
+  load_code(name, proc->context);
+
+  switch_to_process(pid);
+}
+
+
+void scheduler_install()
 {
   state = mem_alloc(sizeof(scheduler_state_t));
 
@@ -222,4 +276,6 @@ void init()
   timer_phase(SWITCH_FREQ);
   /* irq_install_handler(0, timer_handler); */
   /* isr_install_handler(SYSCALL_ISR, syscall_handler); */
+
+  kloug(100, "Scheduler installed\n");
 }

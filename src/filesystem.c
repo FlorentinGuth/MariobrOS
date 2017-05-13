@@ -1,4 +1,5 @@
 #include "filesystem.h"
+#include "logging.h"
 
 /* lba n means sector n, with sector_size = 0x200 = 512 bytes. The volume starts
  * at 1M = 0x10000 in memory. Thus, lba n is the address 512 * n from the 
@@ -866,4 +867,6 @@ void filesystem_install()
   u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR);
 
   add_file(test2, filetest, FILE_REGULAR, "filetest");
+
+  kloug(100, "Filesystem installed\n");
 }

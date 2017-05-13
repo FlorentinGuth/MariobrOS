@@ -2,6 +2,7 @@
 #define SCHEDULER_H
 
 #include "types.h"
+#include "string.h"
 #include "queue.h"
 #include "process.h"
 
@@ -28,6 +29,13 @@ void scheduler_install();
  * @return void
  */
 void select_new_process();
+
+/**
+ * @name run_program - Runs the given program
+ * @param name       - The name of the program, /progs/name.elf must exist
+ * @return void
+ */
+void run_program(string name);
 
 
 #endif /* SCHEDULER_H */

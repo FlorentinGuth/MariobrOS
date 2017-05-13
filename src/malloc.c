@@ -280,7 +280,7 @@ bool extend_heap(int nb_pages)
   if (nb_pages == 0) {
     throw("Extension of heap by 0 pages");
   }
-  kloug(100, "Extension of heap by %d pages\n", nb_pages);
+  /* kloug(100, "Extension of heap by %d pages\n", nb_pages); */
 
 
   bool is_kernel = current_directory == kernel_directory;
@@ -292,11 +292,11 @@ bool extend_heap(int nb_pages)
   if (paging_enabled) {
     for (int i = 0; i < nb_pages; i++) {
 
-      if (!request_virtual_space(current_end_of_heap, is_kernel, !is_kernel)) {
+      if (!request_virtual_space(current_directory, current_end_of_heap, is_kernel, !is_kernel)) {
         /* The allocation failed, we need to free everything we requested */
         for (i = i - 1; i >= 0; i--) {
           current_end_of_heap -= 0x1000;
-          free_virtual_space(current_end_of_heap);
+          free_virtual_space(current_directory, current_end_of_heap, TRUE);
         }
 
         kloug(100, "Heap extension aborted\n");
@@ -354,40 +354,38 @@ header_free_t *alloc_pages(size_t size)
 }
 
 
+void malloc_new_state(u_int32 start_of_heap, void **user_first_free_block, void **user_unallocated_mem)
+{
+  /* kloug(100, "Creating new malloc state: heap starts at %x\n", start_of_heap); */
+
+  void *block = (void *)start_of_heap;
+  set_block(block, 0x1000, FALSE);
+  ((header_free_t *)block)->prev = NULL;
+  ((header_free_t *)block)->next = NULL;
+
+  *user_first_free_block = block;
+  *user_unallocated_mem  = block + 0x1000;
+
+  kloug(100, "Malloc new state installed\n");
+}
+
+
 void malloc_install()
 {
-  unallocated_mem = (void *)START_OF_HEAP;
   first_free_block = 0;
+  unallocated_mem = (void *)START_OF_HEAP;
 
-  extend_heap(1);
+  if (!extend_heap(1)) {
+    throw("Unable to install new malloc state");
+  }
 
   kloug(100, "Malloc installed\n");
 }
 
 
-void malloc_new_state(page_directory_t *dir, u_int32 start_of_heap, \
-                      void **user_first_free_block, void **user_unallocated_mem)
-{
-  switch_page_directory(dir);
-
-  void *temp_um = unallocated_mem, *temp_ffb = first_free_block;
-  first_free_block = 0;
-  unallocated_mem = (void *)start_of_heap;
-
-  extend_heap(1);
-
-  *user_unallocated_mem = unallocated_mem;
-  *user_first_free_block = first_free_block;
-  unallocated_mem = temp_um;
-  first_free_block = temp_ffb;
-
-  switch_page_directory(kernel_directory);
-}
-
-
 void *mem_alloc_aligned(size_t size, unsigned int alignment)
 {
-  kloug(100, "Allocating a block of size %x, alignment %x\n", size, alignment);
+  /* kloug(100, "Allocating a block of size %x, alignment %x\n", size, alignment); */
   /* log_memory(); */
 
   /* We need:
@@ -490,7 +488,7 @@ void mem_free(void *ptr)
   maybe_header++;
   header_free_t *block = (header_free_t *)(maybe_header - sizeof(header_used_t));
 
-  kloug(100, "Freeing block at %x (supplied %x, maybe %x)\n", block, ptr, maybe_header);
+  /* kloug(100, "Freeing block at %x (supplied %x, maybe %x)\n", block, ptr, maybe_header); */
   /* log_memory(); */
 
   block->used = FALSE;

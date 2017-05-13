@@ -1,3 +1,4 @@
+#include "paging.h"
 #include "gdt.h"
 #include "timer.h"
 #include "multiboot.h"
@@ -15,7 +16,7 @@ u_int32 START_OF_KERNEL_STACK, END_OF_KERNEL_STACK;
 
 int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
 {
-  kloug(100, "Successfully booted\n");
+  kloug(100, "----------Successfully booted-----------\n");
 
   /* Setting the memory limits (which are given in number of 1024 bytes) */
   LOWER_MEMORY = 1024 * mbd->mem_lower;
@@ -36,7 +37,8 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   init_pic();
   /* timer_install(); */
   keyboard_install(TRUE);
-  /* isr_install_handler(6, illegal_opcode_handler); */
+  isr_install_handler(6, illegal_opcode_handler);
+  isr_install_handler(8, double_fault_handler);
   idt_install();
   isrs_install();
   irq_install();
@@ -44,10 +46,10 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   filesystem_install();
   fs_inter_install();
 
+  scheduler_install();
+
   /* Last but not least, the shell */
   shell_install();
-
-  /* scheduler_install(); */
 
   /* Enables interruptions */
   __asm__ __volatile__ ("sti");

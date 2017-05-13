@@ -16,13 +16,26 @@
  * - a page is an entry in a page table, it refers to virtual memory
  */
 
+/* TODO:
+ * Mark lower memory as usable
+ * Do not map page 0
+ */
 
 /**
- * @name get_physical_address - Returns the physical address corresponding to the given virtual one
- * @param dir                 - The paging directory
- * @param virtual_address     - The virtual address
- * @return u_int32            - The physical address
+ * @name test_page_dir - Tries switching into the given directory
+ * @param dir          -
+ * @return void
  */
+void test_page_dir(page_directory_t *dir) {
+  log_page_dir(current_directory);
+  log_page_dir(dir);
+  page_directory_t *temp = current_directory;
+  switch_page_directory(dir);
+  kloug(100, "Everything's fine\n");
+  switch_page_directory(temp);
+}
+
+
 u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
 {
   /**
@@ -33,14 +46,12 @@ u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
   u_int32 page_index    = frame_address % 1024;
   u_int32 table_index   = frame_address / 1024;
 
-  page_table_t *page_table = dir->tables[table_index];
-  if (page_table) {
-    /* The page table exists - it implies its flag present is set in the corresponding page dir entry */
-    page_table_entry_t page = page_table->pages[page_index];
+  if (dir->entries[table_index].present) {
+    page_table_entry_t page = dir->tables[table_index]->pages[page_index];
     if (page.present) {
       /* The page is present, everything is alright */
       u_int32 physical_address = 0x1000 * page.address + virtual_address % 0x1000;
-      /* kloug(100, "Physical address of %x is %x\n", virtual_address, physical_address); */
+      /* kloug(100, "Physical address of %X is %X\n", virtual_address, 8, physical_address, 8); */
       return physical_address;
     }
   }
@@ -48,7 +59,7 @@ u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
   /* Either the page table or the page is not present, reading at the
    * supplied address would page_fault
    */
-  kloug(100, "get_physical_address returned NULL\n");
+  /* kloug(100, "get_physical_address of %X returned NULL\n", virtual_address, 8); */
   return NULL;
 }
 
@@ -69,6 +80,10 @@ void map_page_to_frame(page_table_entry_t *page, u_int32 frame, bool is_kernel, 
     /* We're referencing physical space beyond 0x1000 * 0x100000 = 0xFFFFFFFF + 1 = 4GB */
     writef("Invalid frame: %x", frame);
     throw("Invalid frame");
+  }
+
+  if (page->present) {
+    throw("Page already mapped");
   }
 
   /* Marks the physical frame as used, if not already */
@@ -113,6 +128,12 @@ void free_page(page_table_entry_t *page, bool set_frame_free)
     set_bit(frames, page->address, FALSE);
   }
   page->present = FALSE;
+
+  /* Flush the TLB entry relevant to the page */
+  /* asm volatile ("invlpg (%0)" : : "r" (page->address * 0x1000)); */
+  /* Flush the entire TLB, because it works better (and only god knows why) */
+  asm volatile ("mov %cr3, %eax");
+  asm volatile ("mov %eax, %cr3");
 }
 
 
@@ -137,7 +158,7 @@ void make_page_table(page_directory_t *dir, u_int32 table_index, bool is_kernel,
   u_int32 page_table_address = (u_int32)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
   u_int32 physical_address;
   if (paging_enabled) {
-    physical_address = get_physical_address(dir, page_table_address);
+    physical_address = get_physical_address(current_directory, page_table_address);
   } else {
     physical_address = page_table_address;  /* Will be identity mapped anyway */
   }
@@ -173,8 +194,8 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
   u_int32 table_index   = frame_address / 1024;
 
   page_table_t *page_table = dir->tables[table_index];
-
-  if (!page_table) {
+  if (!dir->entries[table_index].present) {
+    /* kloug(100, "get_page makes a page table\n"); */
     make_page_table(dir, table_index, TRUE, FALSE);  /* A page table is kernel-only */
     page_table = dir->tables[table_index];
   }
@@ -183,50 +204,94 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
 }
 
 
-
-bool request_virtual_space(u_int32 virtual_address, bool is_kernel, bool is_writable)
+/**
+ * @name find_unmapped_page - Finds the first unmapped page
+ * This might lead to the creation of a page table
+ * @param dir               - The page directory
+ * @return                  - The index (1024 * index_table + index_page) of a free page
+ */
+u_int32 find_unmapped_page(page_directory_t *dir)
 {
-  kloug(100, "Virtual space at %x requested\n", virtual_address);
-
-  if (virtual_address % 0x1000 + 0x1000 > UPPER_MEMORY) {
-    /* Virtual address beyond physical memory! */
-    /* TODO: memory swap */
-    return FALSE;
+  /* Start at second page, because physical_address(0) = 0... */
+  for (u_int32 page = 1; page < 1024 * 1024; page++) {
+    if (!get_physical_address(dir, 0x1000 * page)) {
+      return page;
+    }
   }
 
-  page_table_entry_t *page = get_page(current_directory, virtual_address);
+  /* All pages are mapped */
+  kloug(100, "find_unmapped_page returned NULL\n");
+  return NULL;
+}
+
+
+
+bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool is_kernel, bool is_writable)
+{
+  /* kloug(100, "Virtual space at %X requested\n", virtual_address, 8); */
+
+  page_table_entry_t *page = get_page(dir, virtual_address);
 
   if (page->present) {
-    /* Virtual space is already used by someone else */
+    kloug(100, "Virtual space is already used by someone else\n");
     return FALSE;
   }
 
   return map_page(page, is_kernel, is_writable);
 }
 
-void free_virtual_space(u_int32 virtual_address)
+u_int32 request_physical_space(page_directory_t *dir, u_int32 physical_address, \
+                               bool is_kernel, bool is_writable)
 {
-  page_table_entry_t *page = get_page(current_directory, virtual_address);
+  /* kloug(100, "Physical space at %X requested\n", physical_address, 8); */
 
-  free_page(page, FALSE);  /* TODO: check when we can free the frame as well as the page */
+  u_int32 index = find_unmapped_page(dir);
+  if (!index) {
+    kloug(100, "All pages are mapped\n");
+    return NULL;
+  }
+
+  u_int32 virtual_address = index * 0x1000 + physical_address % 0x1000;
+  page_table_entry_t *page = get_page(dir, virtual_address);
+  map_page_to_frame(page, physical_address / 0x1000, is_kernel, is_writable);
+
+  /* kloug(100, "Mapped from %X\n", virtual_address, 8); */
+  return virtual_address;
+}
+
+void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool free_frame)
+{
+  page_table_entry_t *page = get_page(dir, virtual_address);
+
+  free_page(page, free_frame);
 }
 
 
 void switch_page_directory(page_directory_t *dir)
 {
-  kloug(100, "Switching page directory\n");
+  kloug(100, "Switching page directory to the one at %X\n", dir->physical_address, 8);
+  kloug(100, "dir %X phys %X entries %X\n", dir, 8, dir->physical_address, 8, dir->entries, 8);
+
+  /* Disables paging */
+  u_int32 cr0;
+  asm volatile ("mov %%cr0, %0" : "=r" (cr0));
+  /* cr0 &= ~0x80000000; */
+  /* asm volatile ("mov %0, %%cr0" : : "r" (cr0)); */
 
   /* Loads address of the current directory into cr3 */
   current_directory = dir;
-  asm volatile ("mov %0, %%cr3" : : "r"(&dir->entries));  /* TODO: physical address */
-
-  /* Reads current cr0 */
-  u_int32 cr0;
-  asm volatile ("mov %%cr0, %0" : "=r"(cr0));
+  u_int32 to_write = dir->physical_address;
+  /* kloug(100, "Before writing %X to cr3\n", to_write, 8); */
+  asm volatile ("mov %0, %%cr3"  : : "r" (to_write));
+  u_int32 cr3;
+  asm volatile ("mov %%cr3, %0" : "=r" (cr3));
+  /* kloug(100, "Wrote %X to cr3\n", cr3, 8); */
 
   /* Enables paging! */
   cr0 |= 0x80000000;
-  asm volatile ("mov %0, %%cr0" : : "r"(cr0));
+  /* kloug(100, "Before writing to cr0\n"); */
+  asm volatile ("mov %0, %%cr0" : : "r" (cr0));
+  /* kloug(100, "Wrote to cr0\n"); */
 }
 
 
@@ -266,7 +331,7 @@ void page_fault_handler(regs_t *regs)
      * handle paging himself */
 
     /* TODO detect if kernel mode, but the kernel should not page-fault anyway */
-    if (request_virtual_space(faulting_address, FALSE, TRUE)) {
+    if (request_virtual_space(current_directory, faulting_address, FALSE, TRUE)) {
       /* Let's return to the faulting code */
       return;
     }
@@ -290,6 +355,7 @@ page_table_t *clone_page_table(page_table_t *table)
 {
   page_table_t *copy = (page_table_t *)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
   mem_copy(copy, table, sizeof(page_table_t));
+  /* kloug(100, "Cloned page table at (virtual) %X to %X\n", table, 8, copy, 8); */
   return copy;
 }
 
@@ -300,49 +366,43 @@ page_table_t *clone_page_table(page_table_t *table)
  */
 page_directory_t *clone_directory(page_directory_t *dir)
 {
+  /* kloug(100, "Cloning directory\n"); */
   page_directory_t *copy = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
-  mem_copy(copy, dir, sizeof(page_directory_t));
+  mem_set(copy, 0, sizeof(page_directory_t));
 
   copy->physical_address = get_physical_address(current_directory, (u_int32)copy);
 
   /* Now, iterate the copy until both directories are equal */
-  bool equal = TRUE;
+  bool equal;
   do {
+    equal = TRUE;
     /* Search the whole directories for a difference */
     for (u_int32 table_index = 0; table_index < 1024; table_index++) {
       if (dir->entries[table_index].present) {
         if (!copy->entries[table_index].present) {
           /* Add the page table */
           copy->tables[table_index] = clone_page_table(dir->tables[table_index]);
+          /* Copy the entry as well, the address will be updated at the end */
+          copy->entries[table_index] = dir->entries[table_index];
 
           equal = FALSE;
         }
-
-        /* Now the table is present in both directories, let's compare it */
-        for (u_int32 page_index = 0; page_index < 1024; page_index++) {
-          page_table_entry_t *dir_page  = &dir->tables[table_index]->pages[page_index];
-          page_table_entry_t *copy_page = &copy->tables[table_index]->pages[page_index];
-
-          if (dir_page->present && !copy_page->present) {
-            copy_page->present = TRUE;
-            copy_page->rw      = dir_page->rw;
-            copy_page->user    = dir_page->user;
-            copy_page->address = dir_page->address;  /* Same physical address: we just link here */
-
-            equal = FALSE;
-          }
-        }
+        /* Since we link the pages to the same frame, there's nothing else to do! */
       }
     }
   } while (!equal);
 
+  /* kloug(100, "Infernal cloning loop ended\n"); */
+
   /* Now the physical addresses, once everything is mapped */
   for (int index = 0; index < 1024; index++) {
     if (dir->entries[index].present) {
-      copy->entries[index].address = get_physical_address(copy, (u_int32)copy->tables[index]) / 0x1000;
+      copy->entries[index].address = \
+        get_physical_address(current_directory, (u_int32)copy->tables[index]) / 0x1000;
     }
   }
 
+  /* test_page_dir(copy); */
   return copy;
 }
 
@@ -357,7 +417,7 @@ void set_user_addresses()
   /* The code is linked at the higher end of virtual memory */
   START_OF_USER_CODE = 0xFFFF0000;               /* 64KB is enough */
   /* The stack starts at the same address, going downward */
-  START_OF_USER_STACK = START_OF_USER_CODE - 1;
+  START_OF_USER_STACK = START_OF_USER_CODE - 4;
 
   /* We search for the first unmapped page in memory */
   u_int32 address = 0x1000;
@@ -366,8 +426,8 @@ void set_user_addresses()
   }
   START_OF_USER_HEAP = address;
 
-  kloug(100, "Start of user heap: %x, start of user stack: %x\n", \
-        START_OF_USER_HEAP, START_OF_USER_STACK);
+  kloug(100, "Start of user heap: %X, stack: %X, code: %X\n", \
+        START_OF_USER_HEAP, 8, START_OF_USER_STACK, 8, START_OF_USER_CODE, 8);
 }
 
 
@@ -387,7 +447,7 @@ void paging_install()
   /* Let's make a page directory */
   kernel_directory = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
   mem_set(kernel_directory, 0, sizeof(page_directory_t));
-  kernel_directory->physical_address = (u_int32)kernel_directory->entries;  /* Will be identity paged */
+  kernel_directory->physical_address = (u_int32)kernel_directory;  /* Will be identity paged */
 
   current_directory = kernel_directory;
 
@@ -433,29 +493,105 @@ void paging_install()
 }
 
 
-page_directory_t *new_page_dir()
+page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem)
 {
+  kloug(100, "New page dir\n");
+
   page_directory_t *new = clone_directory(base_directory);
 
   /* Add pages for the code, until the end of virtual memory (address will loop to 0) */
   for (u_int32 address = START_OF_USER_CODE; address != 0; address += 0x1000) {
-    if (!map_page(get_page(new, address), FALSE, TRUE)) {
+    if (!request_virtual_space(new, address, FALSE, TRUE)) {
       throw("Unable to add user code!");
       /* TODO: free and return NULL */
     }
   }
 
   /* Add one page of user stack */
-  if (!map_page(get_page(new, START_OF_USER_STACK), FALSE, TRUE)) {
+  if (!request_virtual_space(new, START_OF_USER_STACK, FALSE, TRUE)) {
     throw("Unable to add user stack!");
     /* TODO: free and return NULL */
   }
 
   /* And one page of user heap */
-  if (!map_page(get_page(new, START_OF_USER_HEAP), FALSE, TRUE)) {
+  if (!request_virtual_space(new, START_OF_USER_HEAP, FALSE, TRUE)) {
     throw("Unable to add user heap!");
     /* TODO: free and return NULL */
   }
 
+  /* Adding malloc: we need to map this user heap page */
+  u_int32 heap_physical = get_physical_address(new, START_OF_USER_HEAP);
+  /* kloug(100, "Start of user heap is %X, mapped at physical %X\n", \
+     START_OF_USER_HEAP, 8, heap_physical, 8); */
+  u_int32 heap_virtual = request_physical_space(current_directory, heap_physical, TRUE, FALSE);
+
+  malloc_new_state(heap_virtual, user_first_free_block, user_unallocated_mem);
+  /* Setting the user addresses, inaccurate because of relocation */
+  *user_first_free_block = (void *)START_OF_USER_HEAP;
+  *user_unallocated_mem  = (void *)START_OF_USER_HEAP + 0x1000;
+
+  free_virtual_space(current_directory, heap_virtual, FALSE);  /* The frame is used by the process */
+
+  kloug(100, "New page dir successfully created\n");
   return new;
+}
+
+
+void log_page_dir(page_directory_t *dir)
+{
+  kloug(100, "  Logging page dir stored at %X (virtual %X)\n", \
+        dir->physical_address, 8, dir, 8);
+
+  for (u_int32 table_index = 0; table_index < 1024; table_index++) {
+    if (dir->entries[table_index].present) {
+      kloug(100, "  Page table %X stored at %X (virtual %X)\n", \
+            table_index, 3, dir->entries[table_index].address*0x1000, 8, \
+            dir->tables[table_index], 8);
+    }
+  }
+
+  u_int32 start_of_virtual_block = 0;
+  bool mapped = dir->entries[0].present && dir->tables[0]->pages[0].present;
+  u_int32 start_of_physical_block = get_physical_address(dir, 0);
+  u_int32 virtual_page = 1;
+
+#define FLUSH_MAPPED() {                                                \
+    kloug(100, "  %X-%X mapped to %X-%X\n",                             \
+          start_of_virtual_block, 8,                                    \
+          virtual_page*0x1000 - 1, 8,                                   \
+          start_of_physical_block, 8,                                   \
+          start_of_physical_block + virtual_page*0x1000 - start_of_virtual_block - 1, 8); }
+#define FLUSH_UNMAPPED() {                      \
+    kloug(100, "  %X-%X mapped to NULL\n",      \
+          start_of_virtual_block, 8,            \
+          virtual_page*0x1000 - 1, 8); }
+
+  while (virtual_page < 1024*1024) {
+    u_int32 physical_address = get_physical_address(dir, virtual_page*0x1000);
+    if (mapped) {
+      if (!physical_address) {
+        FLUSH_MAPPED();
+        mapped = FALSE;
+        start_of_virtual_block = virtual_page*0x1000;
+      } else if(physical_address != start_of_physical_block + virtual_page*0x1000 - start_of_virtual_block) {
+        FLUSH_MAPPED();
+        start_of_virtual_block = virtual_page*0x1000;
+        start_of_physical_block = physical_address;
+      }
+    } else {
+      if (physical_address) {
+        FLUSH_UNMAPPED();
+        start_of_virtual_block = virtual_page*0x1000;
+        start_of_physical_block = physical_address;
+        mapped = TRUE;
+      }
+    }
+    virtual_page++;
+  }
+
+  if (mapped) {
+    FLUSH_MAPPED();
+  } else {
+    FLUSH_UNMAPPED();
+  }
 }
