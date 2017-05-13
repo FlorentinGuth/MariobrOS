@@ -1,0 +1,78 @@
+\documentclass[a4paper, 10pt, french]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[frenchb]{babel}
+\usepackage{lmodern}
+\usepackage[autolanguage]{numprint}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tabularx} \newcolumntype{C}{>{\centering}X}
+\usepackage{multirow}
+\usepackage{hhline}
+\usepackage{collcell}
+\usepackage{subcaption}
+\usepackage[stable]{footmisc}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{multicol}
+\usepackage[10pt]{moresize}
+\usepackage{pdflscape}
+
+
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{amsopn}
+\usepackage{stmaryrd}
+
+\DeclareCaptionLabelFormat{listing}{Listing #2}
+\DeclareCaptionSubType*[arabic]{table}
+\captionsetup[subtable]{labelformat=simple}
+
+\usepackage[langlinenos=true,newfloat=true]{minted}
+\newcommand{\source}[5]{
+  \begin{table}[H]
+    \centering
+    \inputminted[frame=lines,linenos,style=colorful,fontfamily=tt,breaklines,autogobble,firstline=#3,firstnumber=#3,lastline=#4,label={#2[#3--#4]}]{#1}{../src/#2}
+    \captionsetup{name=Listing,labelformat=listing,labelsep=endash,labelfont={sc}}
+    \caption{#5}
+  \end{table}
+  }
+
+\newcommand{\codeC}[1]{\mintinline[style=colorful,fontfamily=tt]{C}{#1}}
+\newcommand{\codeASM}[1]{\mintinline[style=colorful,fontfamily=tt]{nasm}{#1}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\foreign}[1]{\emph{#1}}
+
+\newcommand{\mariobros}{\foreign{MarioBrOS}}
+
+
+
+\title{Projet Rock'n Roll : \mariobros}
+\author{Florentin \bsc{Guth} \and Lionel \bsc{Zoubritzky}}
+
+\begin{document}
+
+\maketitle
+
+
+\tableofcontents
+
+\clearpage
+
+
+\section{Truc}
+
+\subsection{Truc2}
+
+On a du code \codeC{int main() { return 0; }}
+
+
+\source{C}{ata\string_pio.c}{0}{20}{Disque}
+
+\source{nasm}{loader.s}{0}{50}{Loader}
+
+
+\end{document}
