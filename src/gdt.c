@@ -34,7 +34,7 @@ void add_segment(u_int32 *address, u_int32 base, u_int32 limit, bool code)
 
   /* Setup the descriptor limit */
   gdt[current_entry].limit_low = (limit & 0xFFFF);
-  gdt[current_entry].granularity = ((limit >> 16) & 0x0F);
+  gdt[current_entry].limit_high = (limit >> 16) & 0xF;
 
   /* Code or data segment stuff */
   if (code) {

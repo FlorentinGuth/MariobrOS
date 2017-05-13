@@ -27,6 +27,7 @@
  * @return void
  */
 void test_page_dir(page_directory_t *dir) {
+  log_page_dir(current_directory);
   log_page_dir(dir);
   page_directory_t *temp = current_directory;
   switch_page_directory(dir);
@@ -259,17 +260,20 @@ void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool fre
 void switch_page_directory(page_directory_t *dir)
 {
   kloug(100, "Switching page directory to the one at %X\n", dir->physical_address, 8);
+  kloug(100, "dir %X phys %X entries %X\n", dir, 8, dir->physical_address, 8, dir->entries, 8);
+  /* u_int32 esp; */
+  /* asm volatile ("mov %%esp, %0" : "=r" (esp)); */
+  /* kloug(100, "ESP at %x\n", esp, 8); */
 
   /* Loads address of the current directory into cr3 */
   current_directory = dir;
-  kloug(5, "z");
-  asm volatile ("mov %0, %%cr3" : : "r" (dir->physical_address));
-  kloug(5, "a");
+  kloug(5, "Before writing to cr3\n");
+  asm volatile ("mov %0, %%cr3"  : : "r" (dir->physical_address));
+  kloug(5, "Wrote to cr3\n");
 
   /* Reads current cr0 */
   u_int32 cr0;
   asm volatile ("mov %%cr0, %0" : "=r"(cr0));
-  kloug(5, "b");
 
   /* Enables paging! */
   cr0 |= 0x80000000;
@@ -477,7 +481,7 @@ void paging_install()
 
 page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem)
 {
-  /* kloug(100, "New page dir\n"); */
+  kloug(100, "New page dir\n");
 
   page_directory_t *new = clone_directory(base_directory);
 
@@ -521,12 +525,14 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
 
 void log_page_dir(page_directory_t *dir)
 {
-  kloug(100, "  Logging page directory stored at %X\n", dir->physical_address, 8);
+  kloug(100, "  Logging page dir stored at %X (virtual %X)\n", \
+        dir->physical_address, 8, dir, 8);
 
   for (u_int32 table_index = 0; table_index < 1024; table_index++) {
     if (dir->entries[table_index].present) {
-      kloug(100, "  Page table %X stored at %X\n", \
-            table_index, 3, dir->entries[table_index].address*0x1000, 8);
+      kloug(100, "  Page table %X stored at %X (virtual %X)\n", \
+            table_index, 3, dir->entries[table_index].address*0x1000, 8, \
+            dir->tables[table_index], 8);
     }
   }
 

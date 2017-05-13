@@ -152,10 +152,10 @@ diskb: syncdisk $(BOCHS_CONFIG_DEBUGGER) #bochs
 	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_DISK) #-rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
 
 runq: $(OS_ISO)
-	qemu-system-i386 -cdrom build/os.iso
+	qemu-system-i386 -cdrom build/os.iso -m $(GUEST_MEMORY) -s -serial file:$(EMU_DIR)/logq.txt
 
 diskq: syncdisk #qemu
-	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m 512 -s -serial file:$(EMU_DIR)/logq.txt
+	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m $(GUEST_MEMORY) -s -serial file:$(EMU_DIR)/logq.txt
 
 
 # Kernel .c and .s compilation into .o

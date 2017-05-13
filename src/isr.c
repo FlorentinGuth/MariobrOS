@@ -107,6 +107,12 @@ void illegal_opcode_handler(struct regs *r)
   throw("Exception. System Halted");
 }
 
+void double_fault_handler(struct regs *r)
+{
+  writef("Double fault! EIP at %X, ESP at %X, USERESP at %X\n", r->eip, r->esp, r->useresp);
+  throw("System halted");
+}
+
 /* All of our Exception handling Interrupt Service Routines will
  * point to this function. This will tell us what exception has
  * happened! Right now, we simply halt the system by hitting an
