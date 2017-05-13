@@ -22,6 +22,11 @@ inode_t *std_inode;
 u_int32 block_size;
 
 /**
+ *  @name bgpt - Block Group Descriptor Table
+ */
+bgp_t *bgpt;
+
+/**
  *  @name update_inode - Flushes changes about an inode
  *  @param inode       - The inode number of the inode to update
  *  @param buffer      - The inode contents to flush
