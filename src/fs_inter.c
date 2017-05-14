@@ -150,6 +150,53 @@ u_int32 write(fd f, u_int8* buffer, u_int32 offset, u_int32 length)
   return written;
 }
 
+void fstat(fd f, stats* s)
+{
+  if(!f) {
+    writef("Invalid file descriptor\n");
+  }
+  set_inode(fdt[*f].inode, std_inode);
+  s->st_ino = fdt[*f].inode;
+  s->st_kind = std_inode->type >> 12;
+  s->st_perm = std_inode->type & 0x0FFF;
+  s->st_nlink = std_inode->hard_links;
+  s->st_size = std_inode->size_low;
+}
+
+u_int32 lseek(fd f, s_int32 offset, u_int8 seek)
+{
+  if(seek != SEEK_SET && seek != SEEK_CUR && seek != SEEK_END) {
+    writef("Invalid seek command\n");
+    return 0;
+  }
+  if(seek & SEEK_SET) {
+    if(offset < 0) {
+      fdt[*f].pos = 0;
+    } else if((u_int32) offset > fdt[*f].size) {
+      fdt[*f].pos = fdt[*f].size;
+    } else {
+      fdt[*f].pos = (u_int32) offset;
+    }
+  } else if(seek & SEEK_CUR) {
+    if(offset < 0 && (u_int32) (-offset) > fdt[*f].pos) {
+      fdt[*f].pos = 0;
+    } else if(offset > 0 && (u_int32) offset + fdt[*f].pos > fdt[*f].size) {
+      fdt[*f].pos = fdt[*f].size;
+    } else {
+      fdt[*f].pos += (u_int32) offset;
+    }
+  } else { // seek == SEEK_END
+    if(offset < 0) {
+      fdt[*f].pos = fdt[*f].size;
+    } else if((u_int32) offset > fdt[*f].size) {
+      fdt[*f].pos = 0;
+    } else {
+      fdt[*f].pos -= (u_int32) offset;
+    }
+  }
+  return fdt[*f].pos;
+}
+
 void close(fd f)
 {
   if(!f) {
@@ -183,19 +230,6 @@ void close(fd f)
     fdt = tmp;
     fdt_size /= 2;
   }
-}
-
-void fstat(fd f, stats* s)
-{
-  if(!f) {
-    writef("Invalid file descriptor\n");
-  }
-  set_inode(fdt[*f].inode, std_inode);
-  s->st_ino = fdt[*f].inode;
-  s->st_kind = std_inode->type >> 12;
-  s->st_perm = std_inode->type & 0x0FFF;
-  s->st_nlink = std_inode->hard_links;
-  s->st_size = std_inode->size_low;
 }
 
 void fs_inter_install()

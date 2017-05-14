@@ -3,6 +3,7 @@
 
 #include "filesystem.h"
 
+/* Open flags */
 #define O_RDONLY   0x01
 #define O_WRONLY   0x02
 #define O_RDWR     0x03 // Same as O_RDONLY | O_WRONLY
@@ -11,7 +12,10 @@
 #define O_TRUNC    0x10
 #define O_EXCL     0x20
 
-typedef enum open_flag open_flag;
+/* Seek commands */
+#define SEEK_SET   0x1
+#define SEEK_CUR   0x2
+#define SEEK_END   0x4 
 
 typedef u_int32* fd;
 
@@ -82,11 +86,6 @@ u_int32 read(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
  */
 u_int32 write(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
 
-/**
- *  @name close - Closes a file descriptor, ensuring it is no more valid
- *  @param f    - The file descriptor to close
- */
-void close(fd f);
 
 /**
  *  @name fstat - Sets stats of a file
@@ -94,6 +93,25 @@ void close(fd f);
  *  @param s    - A pointer to a stats structure
  */
 void fstat(fd f, stats* s);
+
+/**
+ *  @name lseek   - Set the current position for a file descriptor
+ *
+ *  @param f      - The file descriptor
+ *  @param offset - The new offset (according to the seek command)
+ *  @param seek   - The seek command, SEEK_SET, SEEK_CUR or SEEK_END
+ *
+ *  @return       - The new actual offset from the beginning of the file
+ */
+u_int32 lseek(fd f, s_int32 offset, u_int8 seek);
+
+
+/**
+ *  @name close - Closes a file descriptor, ensuring it is no more valid
+ *  @param f    - The file descriptor to close
+ */
+void close(fd f);
+
 
 /**
  *  @name fs_inter_install - Installs the filesystem interface
