@@ -113,6 +113,13 @@ void double_fault_handler(struct regs *r)
   throw("System halted");
 }
 
+void gpf_handler(struct regs *r)
+{
+  writef("General Protection Fault!\n");
+  writef("Useresp: %x, ss: %x, eip:%x, errcode: %x\n", r->useresp, r->ss, r->eip, r->err_code);
+  throw("System halted");
+}
+
 /* All of our Exception handling Interrupt Service Routines will
  * point to this function. This will tell us what exception has
  * happened! Right now, we simply halt the system by hitting an

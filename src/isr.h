@@ -10,6 +10,7 @@ void isr_uninstall_handler(int isr);
 
 void illegal_opcode_handler(struct regs *r);
 void double_fault_handler(struct regs *r);
+void gpf_handler(struct regs *r);
 
 void isrs_install();
 

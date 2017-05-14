@@ -10,6 +10,7 @@
 
 /* Reference for paging directory structure: http://valhalla.bofh.pl/~l4mer/WDM/secureread/pde-pte.htm */
 
+u_int32 START_OF_USER_STACK, START_OF_USER_HEAP, START_OF_USER_CODE;
 
 /* Whether the paging is enabled */
 bool paging_enabled;  /* This must be set to FALSE by kmain before anything */
