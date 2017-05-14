@@ -4,7 +4,7 @@
 #include "scheduler.h"
 
 
-#define SYSCALL_ISR 20
+#define SYSCALL_ISR 0x80
 
 typedef enum syscall {
   Exit   = 0,    /* The process is finished and returns a value */

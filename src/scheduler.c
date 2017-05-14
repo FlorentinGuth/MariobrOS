@@ -272,7 +272,6 @@ void scheduler_install()
   timer_phase(SWITCH_FREQ);
   /* irq_install_handler(0, timer_handler); */
   syscall_install();
-  isr_install_handler(SYSCALL_ISR, syscall_handler);
 
   kloug(100, "Scheduler installed\n");
 
