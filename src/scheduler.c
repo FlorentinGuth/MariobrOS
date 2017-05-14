@@ -205,6 +205,9 @@ void switch_to_process(pid pid)
   /* u_int32 *code = (u_int32 *)ctx.regs->eip; */
   kloug(100, "Oh god\n");
   log_page_dir(ctx.page_dir);
+  /* kloug(100, "%u %u\n", ctx.page_dir->tables[0x3FF]->pages[0x400 - 16].user, \ */
+        /* ctx.page_dir->tables[0x3FF]->pages[0x400 - 16].rw); */
+
   switch_page_directory(ctx.page_dir);
   /* kloug(100, "Instruction at %X: %X\n", code, 8, *code, 8); */
   /* Let's go! */

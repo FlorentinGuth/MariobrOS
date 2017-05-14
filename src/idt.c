@@ -32,8 +32,8 @@ void idt_install()
   idtp.base = (unsigned int) &idt;
 
   /* Clear out the entire IDT, initializing it to zeros */
-  for (int i=0; i<256; i++) {
-    idt_set_gate(i,0,0,0);
+  for (int i = 0; i < 256; i++) {
+    idt_set_gate(i, 0, 0, 0);
   }
 
   /* Add any new ISRs to the IDT here using idt_set_gate */

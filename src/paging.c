@@ -7,6 +7,7 @@
 #include "irq.h"
 #include "malloc.h"
 #include "process.h"
+#include "scheduler.h"
 
 /* Source material: http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html */
 
@@ -34,6 +35,15 @@ void test_page_dir(page_directory_t *dir) {
   kloug(100, "Everything's fine\n");
   switch_page_directory(temp);
 }
+
+
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void flush_tlb(u_int32 address)
+{
+  /* asm volatile ("invlpg (%0)" : : "r" (address)); */
+  asm volatile ("mov %cr3, %eax; mov %eax, %cr3");
+}
+#pragma GCC diagnostic pop
 
 
 u_int32 get_physical_address(page_directory_t *dir, u_int32 virtual_address)
@@ -93,6 +103,8 @@ void map_page_to_frame(page_table_entry_t *page, u_int32 frame, bool is_kernel, 
   page->rw      = is_writable;
   page->user    = !is_kernel;
   page->address = frame;
+
+  flush_tlb((u_int32)page);
 }
 
 /**
@@ -132,8 +144,7 @@ void free_page(page_table_entry_t *page, bool set_frame_free)
   /* Flush the TLB entry relevant to the page */
   /* asm volatile ("invlpg (%0)" : : "r" (page->address * 0x1000)); */
   /* Flush the entire TLB, because it works better (and only god knows why) */
-  asm volatile ("mov %cr3, %eax");
-  asm volatile ("mov %eax, %cr3");
+  flush_tlb((u_int32)page);
 }
 
 
@@ -174,6 +185,8 @@ void make_page_table(page_directory_t *dir, u_int32 table_index, bool is_kernel,
   entry->user      = !is_kernel;
   entry->page_size = FALSE;        /* Should already be 0, but ensures 4KB size */
   entry->address   = physical_address / 0x1000;
+
+  flush_tlb((u_int32)dir->tables[table_index]);
 }
 
 
@@ -195,7 +208,7 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
 
   page_table_t *page_table = dir->tables[table_index];
   if (!dir->entries[table_index].present) {
-    /* kloug(100, "get_page makes a page table\n"); */
+    kloug(100, "get_page makes a page table\n");
     make_page_table(dir, table_index, TRUE, FALSE);  /* A page table is kernel-only */
     page_table = dir->tables[table_index];
   }
@@ -295,6 +308,7 @@ void switch_page_directory(page_directory_t *dir)
 }
 
 
+extern scheduler_state_t *state;
 void page_fault_handler(regs_t *regs)
 {
   /* The faulting address is stored in the CR2 register. */
@@ -322,8 +336,12 @@ void page_fault_handler(regs_t *regs)
    */
 
   /* Temporary, TODO remove */
-  writef("Page fault at %x, present %u rw %u user-mode %u reserved %u instruction fetch %u", \
+  writef("Page fault at %x, present %u r %u user-mode %u reserved %u instruction fetch %u", \
          faulting_address, present, rw, us, reserved, id);
+  /* writef("Err_code: %x\n", regs->err_code); */
+  /* page_table_entry_t *page = get_page(state->processes[state->curr_pid].context.page_dir, faulting_address); */
+  /* writef("Entry: %x\n", *page); */
+  /* writef("cs %x ss %x ds %x eip %x esp %x\n", regs->cs, regs->ss, regs->ds, regs->eip, regs->useresp); */
   throw("PAGE_FAULT");
 
   if (!present) {

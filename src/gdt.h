@@ -27,7 +27,7 @@ typedef struct gdt_entry
   bool    read_write  :  1;  /* Readable bit for code sector (write never allowed),
                                 Writable bit for data sector (read always allowed) */
   bool    dir_conform :  1;  /* If data sector: direction,  0 for growing up and 1 for growing down
-                              * If code sector: conforming, 0 for executable only by kernel */
+                              * If code sector: conforming, 0 for executable only by kernel + triggers CPL change */
   bool    executable  :  1;  /* 1 for code sector, 0 for data sector */
   bool    always_one  :  1;  /* Always set to 1 */
   bool    privilege   :  2;  /* 0 for kernel, 3 for user */

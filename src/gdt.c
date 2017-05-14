@@ -39,8 +39,8 @@ void add_segment(u_int32 *address, u_int32 base, u_int32 limit, bool code, int r
 
   /* Code or data segment stuff */
   if (code) {
-    gdt[current_entry].executable  = TRUE;  /* Code segment */
-    gdt[current_entry].dir_conform = TRUE;  /* Code executable by anyone */
+    gdt[current_entry].executable  = TRUE;   /* Code segment */
+    gdt[current_entry].dir_conform = FALSE;  /* Code executable by anyone */
   } else {
     /* Data segment */
     gdt[current_entry].executable  = FALSE; /* Data segment */
@@ -130,13 +130,13 @@ void gdt_install()
   add_segment(&KERNEL_DATA_SEGMENT,  0, 0xFFFFF, FALSE, 0);
 
   add_segment(&KERNEL_STACK_SEGMENT, 0, 0xFFFFF, FALSE, 0);
-  gdt[KERNEL_STACK_SEGMENT].dir_conform = 1;
+  /* gdt[KERNEL_STACK_SEGMENT].dir_conform = 1; */
 
   /* Now the user segments - just the same as the kernel ones */
   add_segment(&USER_CODE_SEGMENT,  0, 0xFFFFF, TRUE,  3);
   add_segment(&USER_DATA_SEGMENT,  0, 0xFFFFF, FALSE, 3);
   add_segment(&USER_STACK_SEGMENT, 0, 0xFFFFF, FALSE, 3);
-  gdt[USER_STACK_SEGMENT].dir_conform = 1;
+  /* gdt[USER_STACK_SEGMENT].dir_conform = 1; */
 
   write_tss(&gdt[current_entry]);
   /* Flush out the old GDT and install the new changes! */

@@ -75,7 +75,7 @@ const char *exception_messages[] = {
   "Alignment Check",
   "Machine Check",
   "Reserved(19)",
-  "SysCall",
+  "Reserved(20)",
   "Reserved(21)",
   "Reserved(22)",
   "Reserved(23)",
