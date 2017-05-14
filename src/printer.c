@@ -255,7 +255,7 @@ void write_box(pos_t upper_left, pos_t lower_right)
   int upper_row = ROW(upper_left), lower_row = ROW(lower_right);
   int left_col  = COL(upper_left), right_col = COL(lower_right);
 
-  kloug(100, "%d %d %d %d %d %d\n", upper_left, lower_right, upper_row, lower_row, left_col, right_col);
+  /* kloug(100, "%d %d %d %d %d %d\n", upper_left, lower_right, upper_row, lower_row, left_col, right_col); */
 
   for (int row = lower_row; row >= upper_row; row += upper_row - lower_row) {
     for (int col = left_col + 1; col < right_col; col++) {

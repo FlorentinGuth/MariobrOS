@@ -21,7 +21,7 @@ tss_t tss;
  * @param code       - TRUE for a code segment, FALSE for a data segment
  * @return void
  */
-void add_segment(u_int32 *address, u_int32 base, u_int32 limit, bool code)
+void add_segment(u_int32 *address, u_int32 base, u_int32 limit, bool code, int ring)
 {
   if (current_entry == GDT_SIZE) {
     throw("Too many segments!");
@@ -55,8 +55,7 @@ void add_segment(u_int32 *address, u_int32 base, u_int32 limit, bool code)
   gdt[current_entry].granularity = TRUE;           /* Page granularity */
 
   /* Privilege stuff */
-  /* TODO: for now, everything is in kernel mode */
-  gdt[current_entry].privilege   = 0;
+  gdt[current_entry].privilege   = ring;
   gdt[current_entry].read_write  = TRUE;
 
   *address = current_entry * sizeof(gdt_entry_t);
@@ -81,23 +80,23 @@ void gdt_install()
   tss.ss0 = 0x18;
 
   /* Our NULL descriptor */
-  add_segment(&NULL_SEGMENT, 0, 0, FALSE);
+  add_segment(&NULL_SEGMENT, 0, 0, FALSE, 0);
 
   /* The second entry is our Code Segment. The base address
    * is 0, the limit is 4GBytes, it uses 4KByte granularity,
    * uses 32-bit opcodes, and is a Code Segment descriptor.
    * Please check the table above in the tutorial in order
    * to see exactly what each value means */
-  add_segment(&KERNEL_CODE_SEGMENT, 0, 0xFFFFFFFF, TRUE);
+  add_segment(&KERNEL_CODE_SEGMENT, 0, 0xFFFFFFFF, TRUE, 0);
 
   /* The third entry is our Data Segment. It's EXACTLY the
    * same as our code segment, but the descriptor type in
    * this entry's access byte says it's a Data Segment */
-  add_segment(&KERNEL_DATA_SEGMENT, 0, 0xFFFFFFFF, FALSE);
+  add_segment(&KERNEL_DATA_SEGMENT, 0, 0xFFFFFFFF, FALSE, 0);
 
   /* The TSS segment. Not sure if this are the right parameters */
   /* access = 0xE9 = 11101001, granularity = 0x00 = 00000000 */
-  add_segment(&TSS_SEGMENT, (u_int32)&tss, 0x67, FALSE);
+  /* add_segment(&TSS_SEGMENT, (u_int32)&tss, 0x67, FALSE); */
   /* gdt[tss_seg].access      = 1; */
   /* gdt[tss_seg].read_write  = 0; */
   /* gdt[tss_seg].dir_conform = 0; */
@@ -110,8 +109,8 @@ void gdt_install()
   /* gdt[tss_seg].granularity = 1; */
 
   /* Now the user segments - just the same as the kernel ones */
-  add_segment(&USER_CODE_SEGMENT, 0, 0xFFFFFFFF, TRUE);
-  add_segment(&USER_DATA_SEGMENT, 0, 0xFFFFFFFF, FALSE);
+  add_segment(&USER_CODE_SEGMENT, 0, 0xFFFFFFFF, TRUE,  3);
+  add_segment(&USER_DATA_SEGMENT, 0, 0xFFFFFFFF, FALSE, 3);
 
   /* Flush out the old GDT and install the new changes! */
   gdt_flush();

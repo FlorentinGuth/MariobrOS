@@ -96,6 +96,11 @@ void syscall_handler(regs_t *regs)
   kloug(100, "Syscall %d\n", regs->eax);
   SWITCH_BEFORE();  /* Save context + kernel paging */
   kloug(100, "Context restored\n");
+  u_int32 esp;
+  asm volatile ("mov %%esp, %0" : "=r" (esp));
+  kloug(100, "Regs structure at %X and esp at %X\n", regs, 8, esp, 8);
+  kloug(100, "Useresp %X ss %x esp %X\n", regs->useresp, 8, regs->ss, regs->esp, 8);
+
 
   syscall(regs->eax);
 
