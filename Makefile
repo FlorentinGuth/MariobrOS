@@ -106,7 +106,8 @@ CFLAGS =-m32 \
         -funsigned-char -funsigned-bitfields \
         -Wall -Wextra -Werror \
         -O0 \
-        -c
+        -c \
+        -g
 # Compiles in 32 bits mode, without any std, with all warnings (and treating warning as errors) \
   and with no linking (and disable optimizations)
 
@@ -160,7 +161,7 @@ runq: $(OS_ISO)
 	qemu-system-i386 -cdrom build/os.iso -m $(GUEST_MEMORY) -s -serial file:$(EMU_DIR)/logq.txt
 
 diskq: syncdisk #qemu
-	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m $(GUEST_MEMORY) -s -serial file:$(EMU_DIR)/logq.txt
+	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m $(GUEST_MEMORY) -s -serial file:$(EMU_DIR)/logq.txt -d cpu_reset
 
 
 # Kernel .c and .s compilation into .o

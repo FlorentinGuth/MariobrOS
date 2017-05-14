@@ -31,7 +31,7 @@ process_t new_process(pid parent_id, priority prio)
   regs->cs = USER_CODE_SEGMENT | 0x3;
   regs->eflags = 0;
   regs->useresp = START_OF_USER_STACK;
-  regs->ss = USER_DATA_SEGMENT | 0x3;
+  regs->ss = USER_STACK_SEGMENT | 0x3;
 
   ctx.regs = regs;
   ctx.esp = NULL;                                  /* Will be set-up by the switching code */

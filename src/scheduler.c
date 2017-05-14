@@ -191,7 +191,7 @@ void switch_to_process(pid pid)
   /* Simulate an interruption stack frame */
   asm volatile ("push %0" : : "r" (ctx.regs->ss));
   asm volatile ("push %0" : : "r" (ctx.regs->useresp));
-  asm volatile ("pushf");
+  asm volatile ("pushf; mov (%esp), %eax; or $0x200, %eax; mov %eax, (%esp)");
   asm volatile ("push %0" : : "r" (ctx.regs->cs));
   asm volatile ("push %0" : : "r" (ctx.regs->eip));
 

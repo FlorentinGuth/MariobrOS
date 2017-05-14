@@ -3,9 +3,9 @@
 ; far jump. A jump that includes a segment as well as an offset.
 ; This is declared in C as 'extern void gdt_flush();'
 
-global tss_flush    
+global tss_flush
 tss_flush:
-  mov ax, 0x2B
+  mov ax, 0x3B
   ltr ax
   ret
 
@@ -31,10 +31,10 @@ flush2:
 ;; jump_usermode:
 ;;      mov ax,0x23
 ;;      mov ds,ax
-;;      mov es,ax 
-;;      mov fs,ax 
+;;      mov es,ax
+;;      mov fs,ax
 ;;      mov gs,ax ; we don't need to worry about SS. it's handled by iret
- 
+
 ;;      mov eax,esp
 ;;      push 0x23 ; user data segment with bottom 2 bits set for ring 3
 ;;      push eax ; push our current stack just for the heck of it

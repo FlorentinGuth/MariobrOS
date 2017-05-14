@@ -1,5 +1,6 @@
 #include "isr.h"
 #include "error.h"
+#include "gdt.h"
 
 /* This is a very repetitive function... it's not hard, it's
  *  just annoying. As you can see, we set the first 32 entries
@@ -12,38 +13,38 @@
  *  hex. */
 void isrs_install()
 {
-  idt_set_gate(0,  (unsigned)isr0,  0x08, 0x8E);
-  idt_set_gate(1,  (unsigned)isr1,  0x08, 0x8E);
-  idt_set_gate(2,  (unsigned)isr2,  0x08, 0x8E);
-  idt_set_gate(3,  (unsigned)isr3,  0x08, 0x8E);
-  idt_set_gate(4,  (unsigned)isr4,  0x08, 0x8E);
-  idt_set_gate(5,  (unsigned)isr5,  0x08, 0x8E);
-  idt_set_gate(6,  (unsigned)isr6,  0x08, 0x8E);
-  idt_set_gate(7,  (unsigned)isr7,  0x08, 0x8E);
-  idt_set_gate(8,  (unsigned)isr8,  0x08, 0x8E);
-  idt_set_gate(9,  (unsigned)isr9,  0x08, 0x8E);
-  idt_set_gate(10, (unsigned)isr10, 0x08, 0x8E);
-  idt_set_gate(11, (unsigned)isr11, 0x08, 0x8E);
-  idt_set_gate(12, (unsigned)isr12, 0x08, 0x8E);
-  idt_set_gate(13, (unsigned)isr13, 0x08, 0x8E);
-  idt_set_gate(14, (unsigned)isr14, 0x08, 0x8E);
-  idt_set_gate(15, (unsigned)isr15, 0x08, 0x8E);
-  idt_set_gate(16, (unsigned)isr16, 0x08, 0x8E);
-  idt_set_gate(17, (unsigned)isr17, 0x08, 0x8E);
-  idt_set_gate(18, (unsigned)isr18, 0x08, 0x8E);
-  idt_set_gate(19, (unsigned)isr19, 0x08, 0x8E);
-  idt_set_gate(20, (unsigned)isr20, 0x08, 0x8E);
-  idt_set_gate(21, (unsigned)isr21, 0x08, 0x8E);
-  idt_set_gate(21, (unsigned)isr22, 0x08, 0x8E);
-  idt_set_gate(23, (unsigned)isr23, 0x08, 0x8E);
-  idt_set_gate(24, (unsigned)isr24, 0x08, 0x8E);
-  idt_set_gate(25, (unsigned)isr25, 0x08, 0x8E);
-  idt_set_gate(26, (unsigned)isr26, 0x08, 0x8E);
-  idt_set_gate(27, (unsigned)isr27, 0x08, 0x8E);
-  idt_set_gate(28, (unsigned)isr28, 0x08, 0x8E);
-  idt_set_gate(29, (unsigned)isr29, 0x08, 0x8E);
-  idt_set_gate(30, (unsigned)isr30, 0x08, 0x8E);
-  idt_set_gate(31, (unsigned)isr31, 0x08, 0x8E);
+  idt_set_gate(0,  (unsigned)isr0,  KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(1,  (unsigned)isr1,  KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(2,  (unsigned)isr2,  KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(3,  (unsigned)isr3,  KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(4,  (unsigned)isr4,  KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(5,  (unsigned)isr5,  KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(6,  (unsigned)isr6,  KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(7,  (unsigned)isr7,  KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(8,  (unsigned)isr8,  KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(9,  (unsigned)isr9,  KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(10, (unsigned)isr10, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(11, (unsigned)isr11, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(12, (unsigned)isr12, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(13, (unsigned)isr13, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(14, (unsigned)isr14, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(15, (unsigned)isr15, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(16, (unsigned)isr16, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(17, (unsigned)isr17, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(18, (unsigned)isr18, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(19, (unsigned)isr19, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(20, (unsigned)isr20, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(21, (unsigned)isr21, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(21, (unsigned)isr22, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(23, (unsigned)isr23, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(24, (unsigned)isr24, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(25, (unsigned)isr25, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(26, (unsigned)isr26, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(27, (unsigned)isr27, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(28, (unsigned)isr28, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(29, (unsigned)isr29, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(30, (unsigned)isr30, KERNEL_CODE_SEGMENT, 0);
+  idt_set_gate(31, (unsigned)isr31, KERNEL_CODE_SEGMENT, 0);
 
   kloug(100, "ISR installed\n");
 }

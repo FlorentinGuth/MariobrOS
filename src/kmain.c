@@ -56,6 +56,11 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
 
   /* Enables interruptions */
   asm volatile ("sti");
+
+  string s = mem_alloc(sizeof("div"));
+  str_copy("div", s);
+  run_program(s);
+
   for(;;)
     asm volatile("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;

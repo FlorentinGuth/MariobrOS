@@ -8,17 +8,20 @@
  * If any undefined IDT entry is hit, it normally will cause an "Unhandled
  * Interrupt" exception. Any descriptor for which the 'presence' bit is cleared
  * (0) will generate an "Unhandled Interrupt" exception */
-idt_e idt[256];
+idt_entry_t idt[256];
 idt_ptr idtp;
 
 /* Use this function to set an entry in the IDT. */
-void idt_set_gate(unsigned char num, unsigned long base, unsigned short sel, unsigned char flags)
+void idt_set_gate(u_int8 num, u_int32 address, u_int16 selector, u_int8 privilege)
 {
-  idt[num].base_lo = base & 0xFFFF;
-  idt[num].base_hi = (base >> 16) & 0xFFFF;
+  idt[num].address_low = address & 0xFFFF;
+  idt[num].address_high = (address >> 16) & 0xFFFF;
   idt[num].always0 = 0;
-  idt[num].sel = sel;
-  idt[num].flags = flags;
+  idt[num].selector = selector;
+  idt[num].gate_type = 0xE;
+  idt[num].storage = 0;
+  idt[num].dpl = privilege;
+  idt[num].present = TRUE;
 }
 
 /* Installs and loads the IDT */

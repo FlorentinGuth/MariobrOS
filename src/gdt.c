@@ -6,7 +6,7 @@
 
 /* Source : http://www.osdever.net/bkerndev/Docs/gdt.htm */
 
-#define GDT_SIZE 6
+#define GDT_SIZE 8
 int current_entry = 0;
 
 /* Our GDT, with 6 entries, and finally our special GDT pointer */
@@ -69,7 +69,7 @@ void write_tss(gdt_entry_t* g)
    // Firstly, let's compute the base and limit of our entry into the GDT.
    u_int32 base = (u_int32) &TSS_ENTRY;
    u_int32 limit = sizeof(TSS_ENTRY);
- 
+
    // Now, add our TSS descriptor's address to the GDT.
    g->limit_low = limit & 0xFFFF;
    g->base_low = base & 0xFFFF;
@@ -87,11 +87,11 @@ void write_tss(gdt_entry_t* g)
    g->size = 0; //should leave zero according to manuals. No effect
    g->granularity = 0; //so that our computed GDT limit is in bytes, not pages
    g->base_high = (base >> 24) & 0xFF; //isolate top byte.
- 
+
    // Ensure the TSS is initially zero'd.
    mem_set(&TSS_ENTRY, 0, sizeof(TSS_ENTRY));
- 
-   TSS_ENTRY.ss0  = KERNEL_DATA_SEGMENT;  // Set the kernel stack segment.
+
+   TSS_ENTRY.ss0  = KERNEL_STACK_SEGMENT;  // Set the kernel stack segment.
    TSS_ENTRY.esp0 = START_OF_KERNEL_STACK; // Set the kernel stack pointer.
    //note that CS is loaded from the IDT entry and should be the regular kernel code segment
    current_entry++;
@@ -122,18 +122,23 @@ void gdt_install()
    * uses 32-bit opcodes, and is a Code Segment descriptor.
    * Please check the table above in the tutorial in order
    * to see exactly what each value means */
-  add_segment(&KERNEL_CODE_SEGMENT, 0, 0xFFFFF, TRUE, 0);
+  add_segment(&KERNEL_CODE_SEGMENT,  0, 0xFFFFF, TRUE, 0);
 
   /* The third entry is our Data Segment. It's EXACTLY the
    * same as our code segment, but the descriptor type in
    * this entry's access byte says it's a Data Segment */
-  add_segment(&KERNEL_DATA_SEGMENT, 0, 0xFFFFF, FALSE, 0);
+  add_segment(&KERNEL_DATA_SEGMENT,  0, 0xFFFFF, FALSE, 0);
+
+  add_segment(&KERNEL_STACK_SEGMENT, 0, 0xFFFFF, FALSE, 0);
+  gdt[KERNEL_STACK_SEGMENT].dir_conform = 1;
 
   /* Now the user segments - just the same as the kernel ones */
-  add_segment(&USER_CODE_SEGMENT, 0, 0xFFFFF, TRUE,  3);
-  add_segment(&USER_DATA_SEGMENT, 0, 0xFFFFF, FALSE, 3);
+  add_segment(&USER_CODE_SEGMENT,  0, 0xFFFFF, TRUE,  3);
+  add_segment(&USER_DATA_SEGMENT,  0, 0xFFFFF, FALSE, 3);
+  add_segment(&USER_STACK_SEGMENT, 0, 0xFFFFF, FALSE, 3);
+  gdt[USER_STACK_SEGMENT].dir_conform = 1;
 
-  write_tss(&gdt[5]);
+  write_tss(&gdt[current_entry]);
   /* Flush out the old GDT and install the new changes! */
   gdt_flush();
 
