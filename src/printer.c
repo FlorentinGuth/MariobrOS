@@ -1,6 +1,7 @@
 #include "printer.h"
 #include "error.h"
 #include "logging.h"
+#include "utils.h"
 
 
 char * const framebuffer = (char *)FRAMEBUFFER_LOCATION;
@@ -196,6 +197,17 @@ void writef(char s[], ...)
       case 'x': { // Hexadecimal
         u_int_to_string(buffer, va_arg(param,int), 16);
         write_string("0x"); write_string(buffer); break; }
+      case 'X': {
+        u_int32 hex = va_arg(param,u_int32);
+        u_int32 length = u_int_to_string(0, hex, 16);
+        u_int32 min_length = va_arg(param, u_int32);
+        write_string("0x");
+        for (unsigned int i = 0; i < max(0, min_length - length); i++) {  /* FIXME: max signed... */
+          write_char('0');
+        }
+        u_int_to_string(buffer, hex, 16);
+        write_string(buffer); break;
+      }
       case 'h': { // Hexadecimal (without "0x")
         u_int_to_string(buffer, va_arg(param,int), 16);
         write_string(buffer); break; }

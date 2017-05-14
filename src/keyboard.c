@@ -263,6 +263,12 @@ void keyboard_handler(struct regs *r)
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void keyboard_shell_handler(struct regs *r)
 {
+  u_int32 esp;
+  asm volatile ("mov %%esp, %0" : "=r" (esp));
+  kloug(100, "Regs structure at %X and esp at %X\n,", r, 8, esp, 8);
+  kloug(100)
+    /* kloug(100, "Useresp %X ss %x esp %X\n", 0, 8, 0, r->esp); */
+
   int scancode;
 
   /* Read from the keyboard's data buffer */

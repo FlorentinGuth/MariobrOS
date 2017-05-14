@@ -4,10 +4,11 @@
 u_int32 syscall_fork(u_int32 priority, u_int32 *pid)
 {
   u_int32 ret;
-  asm volatile ("mov $1, %eax");  /* Fork is syscall number 1 */
-  asm volatile ("mov %0, %%ebx" : : "r" (priority));
-
-  asm volatile ("int $20");       /* Interruption 20 is syscall */
+  asm volatile ("\
+mov $1, %%eax;                                  \
+mov %0, %%ebx;                                  \
+int $20;                                        \
+" : : "r" (priority));
 
   asm volatile ("mov %%eax, %0" : "=r" (ret));
   if (ret) {
@@ -18,23 +19,27 @@ u_int32 syscall_fork(u_int32 priority, u_int32 *pid)
 
 void syscall_exit(u_int32 return_value)
 {
-  asm volatile ("mov $0, %eax");  /* Exit is syscall number 0 */
-  asm volatile ("mov %0, %%ebx" : : "r" (return_value));
-
-  asm volatile ("int $20");       /* Interruption 20 is syscall */
+  asm volatile ("\
+mov $0, %%eax;                                  \
+mov %0, %%ebx;                                  \
+int $20;                                        \
+" : : "r" (return_value));
 }
 
 bool syscall_wait(u_int32 *pid, u_int32 *return_value)
 {
   u_int32 ret;
-  asm volatile ("mov $2, %eax");  /* Wait is syscall number 2 */
-
-  asm volatile ("int $20");       /* Interruption 20 is syscall */
+  asm volatile ("\
+mov $2, %eax;    \
+int $20;         \
+");
 
   asm volatile ("mov %%eax, %0" : "=r" (ret));
   if (ret) {
-    asm volatile ("mov %%ebx, %0" : "=r" (*pid));
-    asm volatile ("mov %%ecx, %0" : "=r" (*return_value));
+    asm volatile ("\
+mov %%ebx, %0;                                              \
+mov %%ecx, %1;                                              \
+" : "=r" (*pid), "=r" (*return_value) : : "ebx", "ecx");
   }
   return ret;
 }
@@ -42,8 +47,9 @@ bool syscall_wait(u_int32 *pid, u_int32 *return_value)
 
 void syscall_printf(string s, ...)
 {
-  asm volatile ("mov $3, %eax");  /* Printf is syscall number 3 */
-  asm volatile ("mov %0, %%ebx" : : "r" (s));
-
-  asm volatile ("int $20");       /* Interruption 20 is syscall */
+  asm volatile ("\
+mov $3, %%eax;    \
+mov %0, %%ebx;    \
+int $20;          \
+" : : "r" (s) : "eax", "ebx");
 }

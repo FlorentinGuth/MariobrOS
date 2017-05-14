@@ -11,6 +11,7 @@ typedef enum syscall {
   Fork   = 1,    /* Creates a new child process, with the same context at first */
   Wait   = 2,    /* Waits for a child to return a value */
   Printf = 3,    /* Prints to the framebuffer */
+  Invalid,       /* /!\ This need to be the last syscall */
 } syscall_t;
 
 /**
@@ -51,4 +52,20 @@ void syscall_wait();
 void syscall_printf();
 
 void syscall_invalid();
+
+
+/**
+ * @name syscall_install - Installs the syscall table
+ * @return void
+ */
+void syscall_install();
+
+
+/**
+ * @name syscall - Decodes and performs syscall
+ * @param sc     -
+ * @return void
+ */
+void syscall(syscall_t sc);
+
 #endif

@@ -79,6 +79,7 @@ void select_new_process()
 
 void timer_handler(regs_t *regs)
 {
+  kloug(100, "Timer\n");
   SWITCH_BEFORE();       /* Save context + kernel paging */
   select_new_process();
   SWITCH_AFTER();        /* Paging set-up + restore the stack and the context */
@@ -92,27 +93,11 @@ void timer_handler(regs_t *regs)
  */
 void syscall_handler(regs_t *regs)
 {
-  kloug(100, "Syscall\n");
+  kloug(100, "Syscall %d\n", regs->eax);
   SWITCH_BEFORE();  /* Save context + kernel paging */
   kloug(100, "Context restored\n");
 
-  switch (regs->eax) { /* Syscall number */
-
-  case Exit:
-    syscall_exit();
-    break;
-
-  case Fork:
-    syscall_fork();
-    break;
-
-  case Wait:
-    syscall_wait();
-    break;
-
-  default:
-    syscall_invalid();
-  }
+  syscall(regs->eax);
 
   /* Check if the syscall has not ended, and if it is the case select a new process */
   if (state->processes[state->curr_pid].state != Runnable) {
@@ -240,9 +225,10 @@ void run_program(string name)
   }
 
   process_t *proc = &state->processes[pid];
-  *proc = new_process(pid, 1);  /* User processes have a priority of 1 */
+  *proc = new_process(1, 1);  /* User processes have a priority of 1 */
   load_code(name, proc->context);
 
+  state->curr_pid = pid;
   switch_to_process(pid);
 }
 
@@ -273,16 +259,17 @@ void scheduler_install()
     state->runqueues[prio] = empty_queue();
   }
   /* Adds idle and init in the runqueues */
-  kloug(100, "b-----------------\n");
   enqueue(state->runqueues[0],            idle_pid);
-  kloug(100,"a------------------\n");
   enqueue(state->runqueues[MAX_PRIORITY], init_pid);
 
   /* Adds handlers for timer and syscall interruptions */
   extern void *timer_phase(int hz);  /* Defined in timer.c */
   timer_phase(SWITCH_FREQ);
   /* irq_install_handler(0, timer_handler); */
+  syscall_install();
   isr_install_handler(SYSCALL_ISR, syscall_handler);
 
   kloug(100, "Scheduler installed\n");
+
+  /* switch_to_process(init_pid); */
 }

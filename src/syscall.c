@@ -8,7 +8,6 @@
 /* Possible speed enhancements:
  * - List of child processes for each process
  * - Stack of free processes
- * - Syscall table, like idts
  */
 
 extern scheduler_state_t *state;  /* Defined in scheduler.c */
@@ -54,6 +53,7 @@ void syscall_fork()
  */
 void resolve_exit_wait(pid parent, pid child)
 {
+  kloug(100, "Resolve exit wait %d %d\n", parent, child);
   /* Freeing the child from zombie state */
   state->processes[child].state= Free;
 
@@ -100,6 +100,8 @@ void syscall_exit()
 
 void syscall_wait()
 {
+  kloug(100, "Syscall wait\n");
+
   state->processes[state->curr_pid].state = Waiting;
   pid parent_id = state->curr_pid;
   bool has_children = FALSE;
@@ -127,21 +129,27 @@ extern unsigned char utf8_c2[], utf8_c3[];  /* Defined in printer.c */
 extern color_t foreground, background;      /* Defined in printer.c */
 
 #define POP(type)                                                       \
-  type param = *(type *)(ctx.regs->useresp + 4*nb_args);                \
+  type param = *(type *)(esp + 12 + 4*nb_args);           \
   nb_args++;
 
 
 void syscall_printf()
 {
   context_t ctx = state->processes[state->curr_pid].context;
+  u_int32 esp = ctx.regs->useresp;
+  kloug(100, "User esp %X\n", esp, 8);
   switch_page_directory(ctx.page_dir);
 
   string s = (string)ctx.regs->ebx;
+  kloug(100, "Format string %s\n", s);
 
   int read  = 0;
   char buffer[17];
   char c = s[0];
   int nb_args = 0;
+
+#define PRINT(n) kloug(10, "%u ", *(u_int32 *)(esp + n))
+  PRINT(0); PRINT(4); PRINT(8); PRINT(12); PRINT(16); PRINT(20);
 
   while(c!='\0') {
     if(c=='%') {
@@ -203,4 +211,26 @@ void syscall_printf()
 void syscall_invalid()
 {
   throw("Invalid syscall!");
+}
+
+
+#define NUM_SYSCALLS Invalid
+/* Brace yourselves: an array of function pointers */
+void (*syscall_table[NUM_SYSCALLS])();
+
+void syscall_install()
+{
+  syscall_table[Exit]   = *syscall_exit;
+  syscall_table[Wait]   = *syscall_wait;
+  syscall_table[Fork]   = *syscall_fork;
+  syscall_table[Printf] = *syscall_printf;
+}
+
+void syscall(syscall_t sc)
+{
+  if (sc >= NUM_SYSCALLS) {
+    syscall_invalid();
+  } else {
+    syscall_table[sc]();
+  }
 }
