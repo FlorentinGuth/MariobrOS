@@ -19,12 +19,14 @@ char poll()
   if(status & ATA_ERR) { return 1; }
   if(status & ATA_DF ) { return 2; }
 
-  // if using BOCHS, comment out the next 5 lines
-  /* while(!(status & ATA_DRQ)) { */
-  /*   if(status & ATA_ERR) { return 1; } */
-  /*   if(status & ATA_DF ) { return 2; } */
-  /*   status = inb(ATA_COMMAND); */
-  /* } */
+#ifndef BOCHS // Bochs does not set ATA_DRQ as should be
+  while(!(status & ATA_DRQ)) {
+    if(status & ATA_ERR) { return 1; }
+    if(status & ATA_DF ) { return 2; }
+    status = inb(ATA_COMMAND);
+  }
+#endif
+
   return 0;
 }
 
