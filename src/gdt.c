@@ -134,10 +134,6 @@ void gdt_install()
   add_segment(&USER_DATA_SEGMENT, 0, 0xFFFFF, FALSE, 3);
 
   write_tss(&gdt[5]);
-  tss.debug_flag = 0x00;
-  tss.io_map = 0x00;
-  tss.esp0 = START_OF_KERNEL_STACK;
-  tss.ss0 = KERNEL_CODE_SEGMENT;
   /* Flush out the old GDT and install the new changes! */
   gdt_flush();
 

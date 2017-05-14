@@ -208,12 +208,17 @@ void switch_to_process(pid pid)
   switch_page_directory(ctx.page_dir);
   /* kloug(100, "Instruction at %X: %X\n", code, 8, *code, 8); */
   /* Let's go! */
-  asm volatile ("int3");
 
   asm volatile ("pop %gs");
   asm volatile ("pop %fs");
   asm volatile ("pop %es");
   asm volatile ("pop %ds");
+
+  /* u_int32 eip; */
+  /* asm volatile ("pop %0" : "=r" (eip)); */
+  /* writef("%x", eip); */
+
+  /* asm volatile ("hlt"); */
 
   asm volatile ("iret;");
 }
