@@ -313,7 +313,6 @@ u_int32 write_inode_data(u_int32 inode, u_int8* buffer, u_int32 offset, \
 u_int32 find_inode(string str_path, u_int32 root)
 {
   list_t path = str_split(str_path + !!(str_path[0]=='/'), '/', TRUE);
-  /* mem_free((void*) path->head); path = path->tail; */
 
   u_int32 inode;
   if(str_path[0]=='/') {
@@ -607,7 +606,6 @@ u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use)
   u_int32 addr = 1;
 
   while(used < 12) { // DBP
-    writef("Allocating dbp (%u), ", count);
     addr = allocate_block(addr);
     if(!addr) {
       update_inode(inode, std_inode);
@@ -617,7 +615,6 @@ u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use)
     used++; count++;
     if(used== to_use) {
       update_inode(inode, std_inode);
-      writef("Return with count %u\n", count);
       return count;
     }
   }
@@ -821,19 +818,68 @@ void ls_dir(u_int32 inode)
   /* writef("Reading data from inode %u\n", inode); */
   read_inode_data(inode, std_buf, 0, block_size);
   dir_entry *entry = (void*) std_buf;
-  u_int32 endpos = (u_int32)std_buf + block_size;
+  u_int32 endpos = (u_int32) std_buf + block_size;
 
-  while(entry->size && (u_int32)entry < endpos) {
+  while((u_int32) entry < endpos) {
     writef("%c ", 195);
     for(u_int32 i = 0 ; i < entry->name_length ; i++) {
       writef("%c", ((u_int8*) &(entry->name))[i]);
     }
     set_inode(entry->inode, std_inode);
     writef("\t<-- inode = %u\n", entry->inode);
-    entry = (dir_entry*) (((u_int32)entry) + entry->size);
+    entry = (dir_entry*) (((u_int32) entry) + entry->size);
   }
 }
 
+u_int8 rm_dir(u_int32 inode)
+{
+  if(!inode) {
+    writef("Invalid address\n");
+    return 5;
+  }
+  u_int32 tmp; u_int8 res;
+  dir_entry *entry;
+  u_int32 endpos = (u_int32) std_buf + block_size;
+  u_int32 current = inode; // Current directory to delete
+  read_inode_data(inode, std_buf, 0, block_size);
+  while(1) { // inode directory is not empty
+    read_inode_data(current, std_buf, 0, block_size);
+    if(((dir_entry*) ((u_int32) std_buf + 12))->size == block_size - 12) {
+      /* The current directory is empty */
+      if(current == inode) {
+        tmp = ((dir_entry*) ((u_int32) std_buf + 12))->inode;
+        res = delete_file(tmp, inode);
+        return res;
+      }
+      else { // Sub directory is empty: deleting it
+        tmp = current;
+        current = ((dir_entry*) ((u_int32) std_buf + 12))->inode;
+        res = delete_file(current, tmp);
+        if(res) {
+          return res;
+        }
+      }
+    } else {
+      entry = (void*) std_buf + 12;
+      entry = (void*) ((u_int32) entry + entry->size);
+      while((u_int32) entry < endpos && !(entry->file_type & FILE_DIR)) {
+        /* Regular files to delete */
+        tmp = (u_int32) entry + entry->size; // Next entry
+        res = delete_file(current, entry->inode);  // modifies std_buf !
+        if(res) {
+          return res;
+        }
+        read_inode_data(current, std_buf, 0, block_size);
+        entry = (void*) tmp;
+      }
+      if((u_int32) entry == endpos) { // Current directory is now empty
+        continue;
+      } else { // entry points to a sub directory do delete
+        current = entry->inode;
+      }
+    }
+  }
+}
 
 
 void filesystem_install()
@@ -868,11 +914,11 @@ void filesystem_install()
 
   std_inode = mem_alloc(sizeof(inode_t));
 
-  /* allocate_inode(); */
-  /* u_int32 test1 =create_dir(2, "test1"); */
-  /* u_int32 test2 = create_dir(2, "test2"); */
-  /* /\* u_int32 subtest =  *\/create_dir(test1, "subtest"); */
-  /* u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR); */
+  allocate_inode();
+  u_int32 test1 = create_dir(2, "test1");
+  u_int32 test2 = create_dir(2, "test2");
+  /* u_int32 subtest =  */create_dir(test1, "subtest");
+  u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR);
 
-  /* add_file(test2, filetest, FILE_REGULAR, "filetest"); */
+  add_file(test2, filetest, FILE_REGULAR, "filetest");
 }
