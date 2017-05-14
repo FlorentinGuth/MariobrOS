@@ -39,6 +39,7 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   keyboard_install(TRUE);
   isr_install_handler(6, illegal_opcode_handler);
   isr_install_handler(8, double_fault_handler);
+  isr_install_handler(13, gpf_handler);
   idt_install();
   isrs_install();
   irq_install();

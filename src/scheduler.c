@@ -191,7 +191,7 @@ void switch_to_process(pid pid)
   /* Simulate an interruption stack frame */
   asm volatile ("push %0" : : "r" (ctx.regs->ss));
   asm volatile ("push %0" : : "r" (ctx.regs->useresp));
-  asm volatile ("push %0" : : "r" (ctx.regs->eflags));
+  asm volatile ("pushf");
   asm volatile ("push %0" : : "r" (ctx.regs->cs));
   asm volatile ("push %0" : : "r" (ctx.regs->eip));
 
@@ -201,19 +201,34 @@ void switch_to_process(pid pid)
   asm volatile ("push %0" : : "r" (ctx.regs->fs));
   asm volatile ("push %0" : : "r" (ctx.regs->gs));
 
-  /* Restores process paging */
-  u_int32 *code = (u_int32 *)ctx.regs->eip;
-  /* kloug(100, "Oh god\n"); */
-  log_page_dir(ctx.page_dir);
+  /* /\* Restores process paging *\/ */
+  /* u_int32 *code = (u_int32 *)ctx.regs->eip; */
+  /* /\* kloug(100, "Oh god\n"); *\/ */
+  /* log_page_dir(ctx.page_dir); */
   switch_page_directory(ctx.page_dir);
-  kloug(100, "Instruction at %X: %X\n", code, 8, *code, 8);
-
+  /* kloug(100, "Instruction at %X: %X\n", code, 8, *code, 8); */
   /* Let's go! */
   asm volatile ("pop %gs");
   asm volatile ("pop %fs");
   asm volatile ("pop %es");
   asm volatile ("pop %ds");
-  asm volatile ("iret");        /* Pops the 5 last things */
+  
+  asm volatile ("\
+pop %cx;                                         \
+pop %bx;                                         \
+mov $0x23, %ax;                                  \
+mov %ax, %ds;                                    \
+mov %ax, %es;                                    \
+mov %ax, %fs;                                    \
+mov %ax, %gs;                                    \
+                                                 \
+mov %cx, %ax;                                    \
+push $0x23;                                      \
+push %ax;                                        \
+pushf;                                           \
+push $0x1B;                                      \
+push %bx;                                        \
+iret;");
 }
 
 
