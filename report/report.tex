@@ -62,17 +62,49 @@
 
 \clearpage
 
+% Example
+%
+% On a du code \codeC{int main() { return 0; }}
+% 
+% 
+% \source{C}{ata\string_pio.c}{0}{20}{Disque}
+% 
+% \source{nasm}{loader.s}{0}{50}{Loader}
 
-\section{Truc}
+\section{Organisation générale}
 
-\subsection{Truc2}
+\subsection{\foreign{Makefile}}
 
-On a du code \codeC{int main() { return 0; }}
+Les principales cibles de compilations sont les suivantes :
+\begin{itemize}
+ \item \code{make}, \code{make disk}, \code{make diskq} : crée une image disque et lance \foreign{QEMU} ;
+ \item \code{make diskb} : crée une image disque et lance \foreign{Bochs} ;
+ \item \code{make run}, \code{make runq} : crée une image \foreign{ISO} et lance \foreign{QEMU} ;
+ \item \code{make runb} : crée une image \foreign{ISO} et lance \foreign{Bochs} ;
+ \item \code{make clean} : supprime tous les fichiers générés.
+\end{itemize}
+
+La compilation (pour le disque) s'effectue en plusieurs étapes :
+\begin{itemize}
+ \item créer une image disque vide \foreign{EXT2},
+ \item installer \foreign{GRUB} dessus,
+ \item y copier \code{kernel.elf}, l'exécutable du \foreign{kernel} une fois compilé,
+ \item compiler les programmes utilisateurs (dossier \foreign{progs}) en exécutables et les copier,
+ \item lancer l'émulateur.
+\end{itemize}
 
 
-\source{C}{ata\string_pio.c}{0}{20}{Disque}
 
-\source{nasm}{loader.s}{0}{50}{Loader}
+\subsection{\foreign{Boot}}
+
+\mariobros fonctionne aussi bien sous \foreign{Bochs} que \foreign{QEMU}. Le fonctionnement de
+
+
+\section{Système de fichiers}
+
+\section{Gestion de la mémoire}
+
+\section{\foreign{Multitasking}}
 
 
 \end{document}

@@ -54,8 +54,8 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   shell_install();
 
   /* Enables interruptions */
-  __asm__ __volatile__ ("sti");
+  asm volatile ("sti");
   for(;;)
-    __asm__ __volatile__("hlt"); // idle state, still reacts to interrupts
+    asm volatile("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;
 }
