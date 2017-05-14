@@ -203,32 +203,19 @@ void switch_to_process(pid pid)
 
   /* /\* Restores process paging *\/ */
   /* u_int32 *code = (u_int32 *)ctx.regs->eip; */
-  /* /\* kloug(100, "Oh god\n"); *\/ */
-  /* log_page_dir(ctx.page_dir); */
+  kloug(100, "Oh god\n");
+  log_page_dir(ctx.page_dir);
   switch_page_directory(ctx.page_dir);
   /* kloug(100, "Instruction at %X: %X\n", code, 8, *code, 8); */
   /* Let's go! */
+  asm volatile ("int3");
+
   asm volatile ("pop %gs");
   asm volatile ("pop %fs");
   asm volatile ("pop %es");
   asm volatile ("pop %ds");
-  
-  asm volatile ("\
-pop %cx;                                         \
-pop %bx;                                         \
-mov $0x23, %ax;                                  \
-mov %ax, %ds;                                    \
-mov %ax, %es;                                    \
-mov %ax, %fs;                                    \
-mov %ax, %gs;                                    \
-                                                 \
-mov %cx, %ax;                                    \
-push $0x23;                                      \
-push %ax;                                        \
-pushf;                                           \
-push $0x1B;                                      \
-push %bx;                                        \
-iret;");
+
+  asm volatile ("iret;");
 }
 
 
@@ -247,6 +234,8 @@ void run_program(string name)
   process_t *proc = &state->processes[pid];
   *proc = new_process(1, 1);  /* User processes have a priority of 1 */
   load_code(name, proc->context);
+
+  kloug(100, "%x %x\n", proc->context.regs->ss, proc->context.regs->cs);
 
   state->curr_pid = pid;
   switch_to_process(pid);

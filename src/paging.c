@@ -261,8 +261,6 @@ u_int32 request_physical_space(page_directory_t *dir, u_int32 physical_address, 
 
 void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool free_frame)
 {
-  /* kloug(100, "Free virtual space at %X\n", virtual_address, 8); */
-
   page_table_entry_t *page = get_page(dir, virtual_address);
 
   free_page(page, free_frame);
@@ -302,6 +300,7 @@ void page_fault_handler(regs_t *regs)
   /* The faulting address is stored in the CR2 register. */
   u_int32 faulting_address;
   asm volatile ("mov %%cr2, %0" : "=r" (faulting_address));
+  asm volatile ("mov %0,   %%edi" : : "r" (regs->err_code));
 
   /* The error code gives us details of what happened. */
   bool present  = (regs->err_code       & 0x1);  /* Whether the page is present */

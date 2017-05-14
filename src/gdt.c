@@ -114,11 +114,6 @@ void gdt_install()
   gp.limit = (sizeof(struct gdt_entry) * GDT_SIZE) - 1;
   gp.base = (u_int32)&gdt;
 
-  tss.debug_flag = 0x00;
-  tss.io_map = 0x00;
-  tss.esp0 = 0x1FFF0;
-  tss.ss0 = 0x18;
-
   /* Our NULL descriptor */
   add_segment(&NULL_SEGMENT, 0, 0, FALSE, 0);
 
@@ -139,26 +134,15 @@ void gdt_install()
   add_segment(&USER_DATA_SEGMENT, 0, 0xFFFFF, FALSE, 3);
 
   write_tss(&gdt[5]);
-  /* The TSS segment. Not sure if this are the right parameters */
-  /* access = 0xE9 = 11101001, granularity = 0x00 = 00000000 */
-  /* add_segment(&TSS_SEGMENT, (u_int32)&tss, 0x67, FALSE); */
-  /* gdt[tss_seg].access      = 1; */
-  /* gdt[tss_seg].read_write  = 0; */
-  /* gdt[tss_seg].dir_conform = 0; */
-  /* gdt[tss_seg].executable  = 1; */
-  /* gdt[tss_seg].always_one  = 1; */ // Indeed!
-  /* gdt[tss_seg].privilege   = 3; */
-  /* gdt[tss_seg].present     = 1; */
-  /* gdt[tss_seg].always_zero = 0; */
-  /* gdt[tss_seg].size        = 0; */
-  /* gdt[tss_seg].granularity = 1; */
-  
+  tss.debug_flag = 0x00;
+  tss.io_map = 0x00;
+  tss.esp0 = START_OF_KERNEL_STACK;
+  tss.ss0 = KERNEL_CODE_SEGMENT;
   /* Flush out the old GDT and install the new changes! */
   gdt_flush();
 
   tss_flush();
 
-  gdt_flush();
   kloug(100, "GTD installed\n");
 }
 

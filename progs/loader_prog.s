@@ -8,7 +8,8 @@ extern syscall_exit
 loader:                         ; Entry point defined in link_prog.ld
   ; Push eventual arguments to the stack, from last to first
   ; None for the moment
-
+  nop
+  nop
   call main
 
   ; Now we add an exit syscall to be sure the program exits properly
