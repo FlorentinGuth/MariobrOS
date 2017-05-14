@@ -36,10 +36,8 @@ PROGS_O   = $(patsubst $(PROGS_SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(PROGS_C))
 PROGS_ELF = $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_ELF_DIR)/%.elf,$(PROGS_C))
 
 # OS targets
-OS_ISO = $(BUILD_DIR)/os.iso
 KERNEL_ELF = $(BOOT_DIR)/kernel.elf
 
-BOCHS_CONFIG_CD = config_cd.txt
 BOCHS_CONFIG_DISK = config_disk.txt
 BOCHS_CONFIG_DEBUGGER = config_db.txt
 BOCHS_LOG = $(EMU_DIR)/logb.txt
@@ -60,13 +58,6 @@ cpu:              count=1, ips=1000000
 memory:           guest=$(GUEST_MEMORY), host=$(HOST_MEMORY)
 com1:             enabled=1, mode=file, dev=$(EMU_DIR)/com1.out
 keyboard:         type=mf, serial_delay=200, paste_delay=100000, keymap=$(SRC_DIR)/x11-pc-fr.map
-endef
-
-define BOCHS_CONFIG_BOOT_CD
-ata0-master:      type=cdrom, path=$(OS_ISO), status=inserted
-boot:             cdrom
-endef
-define BOCHS_CONFIG_BOOT_DISK
 ata0:             enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata0-master:      type=disk, path=$(DISK_IMG), mode=flat, translation=auto
 boot:             disk
@@ -128,7 +119,7 @@ all: disk
 
 disk: diskq
 
-.PHONY: all runb runq syncdisk disk diskb diskq clean cleandisk mount rsync umount log redisk progs core
+.PHONY: all syncdisk disk diskb diskq clean cleandisk mount rsync umount log redisk progs core
 .SECONDARY:   # Avoid deletion of intermediate files
 
 
@@ -138,8 +129,6 @@ $(BUILD_DIR) $(EMU_DIR) $(PROGS_ELF_DIR): # Ensures folders exist
 # Configuration files writing
 ECHO_CONFIG = @echo '$(subst $(NEWLINE),\n,$(1))' > $(2)
 
-$(BOCHS_CONFIG_CD): $(EMU_DIR)
-	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_CD),$(EMU_DIR)/$(BOCHS_CONFIG_CD))
 $(BOCHS_CONFIG_DISK): $(EMU_DIR)
 	$(call ECHO_CONFIG,$(BOCHS_CONFIG_CONTENT)$(NEWLINE)$(BOCHS_CONFIG_BOOT_DISK),$(EMU_DIR)/$(BOCHS_CONFIG_DISK))
 $(BOCHS_CONFIG_DEBUGGER): $(EMU_DIR)
@@ -150,15 +139,9 @@ $(GRUB_CONFIG):
 $(GRUB2_CONFIG):
 	$(call ECHO_CONFIG,$(GRUB2_CONFIG_CONTENT),$(GRUB2_CONFIG))
 
-
-runb: $(OS_ISO) $(BOCHS_CONFIG_CD) $(BOCHS_CONFIG_DEBUGGER)
-	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_CD) #-rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
-
+diskb: EMUFLAGS = -D BOCHS
 diskb: syncdisk $(BOCHS_CONFIG_DEBUGGER) #bochs
 	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_DISK) #-rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
-
-runq: $(OS_ISO)
-	qemu-system-i386 -cdrom build/os.iso -m $(GUEST_MEMORY) -s -serial file:$(EMU_DIR)/logq.txt
 
 diskq: syncdisk #qemu
 	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m $(GUEST_MEMORY) -s -serial file:$(EMU_DIR)/logq.txt -d cpu_reset
@@ -166,34 +149,20 @@ diskq: syncdisk #qemu
 
 # Kernel .c and .s compilation into .o
 $(BUILD_DIR)/%.o: src/%.c $(BUILD_DIR)
-	@$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
+	@$(CC) $< -c -o $@ $(CFLAGS) $(EMUFLAGS) $(CPPFLAGS)
 
 $(BUILD_DIR)/%.o: src/%.s $(BUILD_DIR)
 	@$(AS) $< -o $@ $(ASFLAGS)
 
 # Progs compilation into .o and .elf
 $(BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.c $(BUILD_DIR)
-	@$(CC) $< -c -o $@ $(CFLAGS) $(CPPFLAGS)
+	@$(CC) $< -c -o $@ $(CFLAGS) $(EMUFLAGS) $(CPPFLAGS)
 
 $(BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.s $(BUILD_DIR)
 	@$(AS) $< -o $@ $(ASFLAGS)
 
 $(PROGS_ELF_DIR)/%.elf: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_ELF_DIR) $(LINKER_PROG) $(LOADER_PROG_O)
 	@$(LD) $(LDFLAGS) -T $(LINKER_PROG) $(LIB_PROG_O) $(LOADER_PROG_O) $< -o $@
-
-
-$(OS_ISO):	$(GRUB_CONFIG) core
-    # Builds the ISO image from the ISO folder
-	genisoimage -R \
-                -b $(ELTORITO) \
-                -no-emul-boot \
-                -boot-load-size 4 \
-                -A $(OS_NAME) \
-                -input-charset utf8 \
-                -quiet \
-                -boot-info-table \
-                -o $(OS_ISO) \
-                iso
 
 core: $(KERNEL_ELF) $(PROGS_ELF)
 
@@ -259,3 +228,12 @@ mrproper: cleandisk
 	rm -rf $(DISK_DIR)
 
 clean: clean_old
+
+# PDF
+
+pdf: # Compile twice to set the summary table
+	pdflatex -synctex=1 -output-directory=report -interaction=nonstopmode --shell-escape report/report.tex
+	pdflatex -synctex=1 -output-directory=report -interaction=nonstopmode --shell-escape report/report.tex
+	rm -f texput.log
+	rm -rf _minted-report
+

@@ -97,14 +97,46 @@ La compilation (pour le disque) s'effectue en plusieurs étapes :
 
 \subsection{\foreign{Boot}}
 
-\mariobros fonctionne aussi bien sous \foreign{Bochs} que \foreign{QEMU}. Le fonctionnement de
+\mariobros\ fonctionne aussi bien sous \foreign{Bochs} que \foreign{QEMU}. Le fonctionnement de
 
 
 \section{Système de fichiers}
 
+	Le système de fichier implémenté est EXT2.
+	
+	\subsection{Côté hardware}
+	
+		Les fonctions \verb|readPIO|, \verb|readLBA| et \verb|writeLBA| permettent d'accéder au disque dur en utilisant le système d'addressage LBA 28 bits.
+		
+		Nous avons remarqué que l'émulateur \foreign{Bochs} n'allumait pas aux moments voulus le bit DRQ du port de contrôle ATA, qui signifie que le disque est prêt à effectuer des opérations IO, contrairement à ce que la spécification demandait. Par conséquent, la fonction \verb|poll| qui attend que ce bit soit allumé pour continuer à effectuer les opérations de lecture / écriture a été modifiée pour fonctionner sous \foreign{Bochs}.
+	
+	\subsection{Côté interface utilisateur}
+	
+		Les fonctions \verb|openfile|, \verb|read|, \verb|write| et \verb|close| de l'interface POSIX ont étés implémentées, avec la syntaxe et les flags présentés dans la bibliothèque Unix de OCaml. Les permissions ne sont pas vérifiées, seul le mode d'ouverture (\verb|O_RDONLY|, \verb|O_WRONLY|, \verb|O_APPEND|, etc.)importe.
+		
+		Les fonctions du shell \verb|ls|, \verb|mkdir|, \verb|rm| sont aussi implémentées. \verb|rm| peut supprimer récursivement des dossiers sans risque de débordement de pile pour une profondeur quelconque de sous-dossers.
+		
+	\subsection{Implémentation et difficultés rencontrées}
+	
+		La structure des inodes et des blocs est dictée par le standard de EXT2. Les champs de ces structures sont maintenus à jour de façon à ce que le disque puisse être monté sur un autre système d'exploitation et refléter les opérations réalisées sous \mariobros, à l'exception des champs concernant les dernières dates de modification, création, etc. qui ne sont pas actualisés.
+		
+		Les données des fichiers en EXT2 sont contenues dans des blocs, pointés par l'inode soit directement (douze \foreign{direct block pointers}), soit par une simple indirection (un \foreign{simple indirect block pointer} qui pointe vers un bloc d'adresses de blocs de données), soit par une double indirection, soit par une triple. L'implémentation permet en théorie de manipuler tous les fichiers de ce type, mais du fait de la taille du disque employé (64 Mo), nous n'avons pas pu tester la manipulation effective de gros fichiers.\\
+		
+		Les \foreign{file descriptors} (\foreign{fd}) ont été conçus pour répondre à trois contraintes : pouvoir effectuer la manipulation effective de fichiers, ne pas être réutilisables après avoir été fermés et ne pas être limités en nombre (autrement que par la taille de la mémoire physique). 
+		
+		Pour cela, l'OS dispose d'une \foreign{file descriptor table} (\foreign{fdt}) qui est un tableau dynamique de \foreign{fd}. Chaque \foreign{fd} est lui-même un pointeur alloué par l'OS vers un entier, cet entier servant d'index dans la \foreign{fdt}. Chaque entrée de la \foreign{fdt} est constituée d'un inode, de la taille du fichier, de la position du curseur du \foreign{fd} et de la valeur du \foreign{fd} pointant sur l'index de cette entrée.
+		
+		Pour dilater la \foreign{fdt}, il suffit d'allouer un bloc du double de sa taille et de recopier dedans la \foreign{fdt} actuelle. Pour la contracter, ce qui se produit lorsqu'elle est occupée pour moins d'un quart, un nouveau bloc est alloué de taille moitié de la \foreign{fdt} actuelle, et les entrées sont recopiées dans la nouvelle. Si une entrée doit changer d'index, le \foreign{fd} correspondant (qui est un de ses champs) est modifié en changeant l'index sur lequel il pointe.
+		
+		Enfin, à la fermeture d'un \foreign{fd}, celui-ci est libéré de la mémoire et la valeur du champ \foreign{fd} correspondant à son index dans la \foreign{fdt} est mis à 0, qui ne correspond à aucun pointeur valide, et donc à aucun \foreign{fd} valide. À chaque appel à une fonction comme \verb|read|, \verb|write|, etc., la correspondance entre le \foreign{fd} donné et le champ \foreign{fd} dans la \foreign{fdt} correspondant à son index est vérifiée, et la fonction considère le \foreign{fd} invalide si ce n'est pas le cas. Cette sécurité n'est cependant pas complète : si le pointeur \foreign{fd} est ré-alloué par la suite par \verb|openfile|, il pourra alors reservir.
+	
 \section{Gestion de la mémoire}
 
+Ça bugue plus trop maintenant.
+
 \section{\foreign{Multitasking}}
+
+LOL.
 
 
 \end{document}
