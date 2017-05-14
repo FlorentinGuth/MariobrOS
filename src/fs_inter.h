@@ -83,9 +83,8 @@ u_int32 read(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
 u_int32 write(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
 
 /**
- *  @name close - Closes a file descriptor
+ *  @name close - Closes a file descriptor, ensuring it is no more valid
  *  @param f    - The file descriptor to close
- *  WARNING: a closed file descriptor may refer to another fd...
  */
 void close(fd f);
 

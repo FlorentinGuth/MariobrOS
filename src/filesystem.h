@@ -137,13 +137,13 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name);
  *  @name remove_file - Removes the file from the directory
  *  WARNING: Does not erase the file itself, only removes it from search
  *
- *  @param dir        - The parent directory
- *  @param inode      - The inode number of the file to remove
+ *  @param dir   - The parent directory
+ *  @param inode - The inode number of the file to remove
  *
- *  @param return     - 0: No error
- *                      1: No such file found in the directory
- *                      4: No directory
- *                      5: No inode
+ *  @return      - 0: No error
+ *                 1: No such file found in the directory
+ *                 4: No directory
+ *                 5: No inode
  */
 u_int8 remove_file(u_int32 dir, u_int32 inode);
 
@@ -201,6 +201,17 @@ u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use);
  *  @param inode  - The inode number of the directory
  */
 void ls_dir(u_int32 inode);
+
+/**
+ *  @name rm_dir - Recursively deletes an entire directory
+ *  There is no recursion in the implementation to avoir stack overflow
+ *
+ *  @param inode - The inode number of the directory to delete
+ *  @return      - 0: No error
+ *                 1 or 4: Subdirectory is corrupted
+ *                 5: No inode
+ */
+u_int8 rm_dir(u_int32 inode);
 
 /**
  *  @name filesystem_install - initializes all the necessary constants of the fs

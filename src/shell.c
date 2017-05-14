@@ -386,8 +386,13 @@ void rm_handler(list_t args)
   if (is_empty_list(&args)) {
     writef("%frun:%f\tNo arguments given\n", LightRed, White);
   } else {
+    bool rec = FALSE;
     while(!(is_empty_list(&args))) {
       string file = (string) pop(&args);
+      if(file[0] == '-' && file[1] == 'r') {
+        rec = TRUE;
+        continue;
+      }
       u_int32 inode = find_inode(file, curr_dir);
       u_int32 dir = ((dir_entry*) std_buf)->inode; // std_buf set by find_inode
       if(!inode) {
@@ -396,7 +401,14 @@ void rm_handler(list_t args)
       }
       set_inode(inode, std_inode);
       if(std_inode->type & TYPE_DIR) {
-        writef("%s is not a file but a directory\n", file);
+        if(rec) {
+          if(rm_dir(inode)) {
+            writef("An error was encountered while  deleting %s directory\n", \
+                   file);
+          }
+        } else {
+          writef("%s is not a file but a directory\n", file);
+        }
         continue;
       }
       if(delete_file(dir, inode)) {
@@ -407,7 +419,7 @@ void rm_handler(list_t args)
 }
 command_t rm_cmd = {
   .name = "rm",
-  .help = "Deletes a file (not a directory)",
+  .help = "Deletes a file (option -r to delete a directory)",
   .handler = *rm_handler,
 };
 
