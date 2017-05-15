@@ -37,28 +37,26 @@ fd openfile(string path, u_int8 oflag, u_int16 fperm)
 
   if(!inode) { // O_CREAT flag is set because of the first test
     /* std_buf has been set by find_inode to the content of the data block of
-     * the parent directory, so its first directory entry is "." */
-    /* writef("Creating file %s\n", path); */
-    /* list_t l = str_split(path, '/', FALSE); */
-    /* u_int32 parent = ((dir_entry*) std_buf)->inode; */
-    /* writef("Parent: %u\n", parent); */
-    /* while(l->tail) { */
-    /*   mem_free((void*) l->head); */
-    /*   pop(&l); */
-    /* } */
-    /* writef("Name: %s\n", l->head); */
-    /* inode = create_file(parent, (void*) l->head, TYPE_FILE | fperm, \ */
-    /*                     FILE_REGULAR); */
-    /* writef("Inode for %s is %u\n", path, inode); */
-    /* ls_dir(parent); */
-    /* mem_free((void*) l->head); */
-    /* pop(&l); */
-    /* if(!inode) { */
-    /*   kloug(100, "File creation for %s failed", path); */
-    /*   return 0; */
-    /* } */
-    inode = create_file(2, "froude", PERM_ALL | TYPE_FILE, FILE_REGULAR);
-    writef("DONE!\n");
+       the parent directory, so its first directory entry is "." */
+    writef("Creating file %s\n", path);
+    list_t l = str_split(path, '/', FALSE);
+    u_int32 parent = ((dir_entry*) std_buf)->inode;
+    writef("Parent: %u\n", parent);
+    while(l->tail) {
+      mem_free((void*) l->head);
+      pop(&l);
+    }
+    writef("Name: %s\n", l->head);
+    inode = create_file(parent, (void*) l->head, TYPE_FILE | fperm, \
+                        FILE_REGULAR);
+    writef("Inode for %s is %u\n", path, inode);
+    ls_dir(parent);
+    mem_free((void*) l->head);
+    pop(&l);
+    if(!inode) {
+      kloug(100, "File creation for %s failed", path);
+      return 0;
+    }
   }
   writef("Sorti de la condition\n");
 

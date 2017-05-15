@@ -776,7 +776,6 @@ u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
   }
   u_int8 error = add_file(father, num, ftype, name);
   if(error) {
-    writef("ERROR\n");
     unallocate_inode(num);
     return 0;
   }

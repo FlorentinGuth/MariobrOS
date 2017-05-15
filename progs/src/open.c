@@ -3,9 +3,9 @@
 
 int main()
 {
-  fd f = open("test2/autre", 0xde, 0xbeef);
+  /* fd f =  */open("froude", O_RDWR | O_CREAT, PERM_USER_R | PERM_USER_W | PERM_USER_E);
   printf("Opened\n");
-  close(f);
-  printf("Closed\n");
+  /* close(f); */
+  /* printf("Closed\n"); */
   return 0;
 }

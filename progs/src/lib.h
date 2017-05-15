@@ -65,7 +65,7 @@ void free(void *ptr);
  *  @return            - The file descriptor for the given file or 0 if an error
  *  occured
  */
-fd open(string path, u_int8 oflag, u_int16 fperm);
+fd open(string path, u_int32 oflag, u_int32 fperm);
 
 /**
  *  @name close - Closes a file descriptor, ensuring it is no more valid
