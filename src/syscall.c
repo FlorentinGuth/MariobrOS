@@ -61,8 +61,8 @@ void syscall_free()
 void syscall_open()
 {
   string path   = (void*) CURR_REGS->ebx;
-  u_int8 oflag  = CURR_REGS->ecx & 0xFF;
-  u_int16 fperm = CURR_REGS->edx & 0xFFFF;
+  u_int8 oflag  = (CURR_REGS->ecx >> 16) & 0xFF;
+  u_int16 fperm = CURR_REGS->ecx & 0xFFFF;
   SWITCH_AFTER();
   fd ret = openfile(path, oflag, fperm);
   SWITCH_BEFORE();
