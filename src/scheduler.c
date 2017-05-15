@@ -28,6 +28,8 @@ void select_new_process()
       pid pid = dequeue(q);
       enqueue(temp, pid);
 
+      /* kloug(100, "Process %d is %d\n", pid, state->processes[pid].state); */
+
       if (state->processes[pid].state == Runnable) {
         /* We found a runnable process */
         found = TRUE;
@@ -55,7 +57,8 @@ void select_new_process()
     context_t *ctx = &state->processes[state->curr_pid].context;        \
                                                                         \
     /* Saves process context */                                         \
-    ctx->regs = regs;                                                   \
+    kloug(100, "regs %x &regs %x\n", ctx->regs, &ctx->regs);            \
+    *ctx->regs = *regs;                                                 \
     ctx->first_free_block = first_free_block;                           \
     ctx->unallocated_mem  = unallocated_mem;                            \
                                                                         \
@@ -65,7 +68,7 @@ void select_new_process()
   }
 
 #define SWITCH_AFTER() {                                                \
-    /* kloug(100, "Switching back to %d\n", state->curr_pid);  */             \
+    /* kloug(100, "Switching back to %d\n", state->curr_pid);  */       \
     /* Saves kernel context */                                          \
     kernel_context.unallocated_mem  = unallocated_mem;                  \
     kernel_context.first_free_block = first_free_block;                 \
@@ -244,9 +247,10 @@ void run_program(string name)
   *proc = new_process(1, 1, TRUE);  /* User processes have a priority of 1 */
   load_code(name, proc->context);
 
-  kloug(100, "%x %x\n", proc->context.regs->ss, proc->context.regs->cs);
+  /* kloug(100, "%x %x\n", proc->context.regs->ss, proc->context.regs->cs); */
 
   state->curr_pid = pid;
+  enqueue(state->runqueues[1], pid);
   switch_to_process(pid);
 }
 

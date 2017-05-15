@@ -14,7 +14,7 @@ fork:
   mov eax, 1
   mov ebx, [esp+12]
   int 0x80
-  mov edi, [esp+12]
+  mov edi, [esp+16]
   mov [edi], ebx
   pop edi
   pop ebx

@@ -190,6 +190,7 @@ void syscall_fork()
   mem_copy(&proc->context, &parent->context, sizeof(context_t));
   /* Regs */
   proc->context.regs = (regs_t *)mem_alloc(sizeof(regs_t));
+  /* kloug(100, "Parent %x child %x\n", parent->context.regs, proc->context.regs); */
   mem_copy(proc->context.regs, parent->context.regs, sizeof(regs_t));
   proc->context.regs->eax = 2;
   proc->context.regs->ebx = state->curr_pid;
@@ -213,11 +214,15 @@ void syscall_fork()
 void resolve_exit_wait(pid parent, pid child)
 {
   kloug(100, "Resolve exit wait %d %d\n", parent, child);
+  process_t* parent_proc = &state->processes[parent];
+  process_t* child_proc  = &state->processes[child];
+  /* kloug(100, "Child ebx %d\n", child_proc->context.regs->ebx); */
+  kloug(100, "%x %x\n", parent_proc->context.regs, child_proc->context.regs);
   /* Freeing the child from zombie state */
   state->processes[child].state= Free;
 
   /* Goodbye cruel world: removes the child from the runqueue */
-  priority prio = state->processes[child].prio;
+  priority prio = child_proc->prio;
   queue_t *q = state->runqueues[prio];
   queue_t *temp = empty_queue();
   while (!is_empty_queue(q)) {
@@ -230,14 +235,13 @@ void resolve_exit_wait(pid parent, pid child)
 
   /* Also free everything */
   /* FIXME: can't free regs, there is a memory leak... */
-  free_page_dir(state->processes[child].context.page_dir);
+  free_page_dir(child_proc->context.page_dir);
 
   /* Notifies the parent */
-  process_t* parent_proc = &state->processes[parent];
-  parent_proc->state= Runnable;
+  parent_proc->state = Runnable;
   parent_proc->context.regs->eax = 1;
   parent_proc->context.regs->ebx = child;
-  parent_proc->context.regs->ecx = state->processes[child].context.regs->ebx;  /* Return value */
+  parent_proc->context.regs->ecx = child_proc->context.regs->ebx;  /* Return value */
 }
 
 void syscall_exit()
@@ -306,7 +310,7 @@ void syscall_printf()
   switch_page_directory(ctx.page_dir);
 
   string s = (string)ctx.regs->ebx;
-  kloug(100, "Format string %s\n", s);
+  /* kloug(100, "Format string %s\n", s); */
 
   int read  = 0;
   char buffer[17];
