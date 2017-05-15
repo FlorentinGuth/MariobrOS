@@ -38,8 +38,11 @@ extern scheduler_state_t *state;  /* Defined in scheduler.c */
 
 void syscall_malloc()
 {
+  log_page_dir(CURR_PROC.context.page_dir);
   SWITCH_AFTER();
+  log_memory();
   CURR_REGS->eax = (u_int32)mem_alloc(CURR_REGS->ebx);
+  kloug(100, "Returned %X\n", CURR_REGS->eax);
   SWITCH_BEFORE();
 }
 

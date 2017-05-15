@@ -13,7 +13,7 @@
  */
 
 /* Limits of the heap */
-#define START_OF_HEAP ceil_multiple((u_int32)END_OF_KERNEL_LOCATION, 0x1000)  /* page-aligned */
+#define START_OF_HEAP ((current_directory == kernel_directory) ? ceil_multiple((u_int32)END_OF_KERNEL_LOCATION, 0x1000)  /* page-aligned */ : START_OF_USER_HEAP)
 #define END_OF_HEAP   (u_int32)unallocated_mem
 
 
@@ -122,17 +122,17 @@ void log_block(void *block)
 
   if (!get_used(block)) {
     header_free_t *a = (header_free_t *)block;
-    kloug(100, "Free block at %x, size %x, prev %x, next %x\n", a, get_size(a), a->prev, a->next);
+    kloug(100, "Free block at %X, size %x, prev %X, next %X\n", a, 8, get_size(a), a->prev, 8, a->next, 8);
   } else {
     header_used_t *a = (header_used_t *)block;
-    kloug(100, "Used block at %x, size %x\n", a, get_size(a));
+    kloug(100, "Used block at %X, size %x\n", a, 8, get_size(a));
   }
 }
 
 void log_memory()
 {
-  kloug(100, "Malloc heap from %x to %x\n", START_OF_HEAP, END_OF_HEAP);
-  kloug(100, "First free block at %x\n", first_free_block);
+  kloug(100, "Malloc heap from %X to %X\n", START_OF_HEAP, 8, END_OF_HEAP, 8);
+  kloug(100, "First free block at %X\n", first_free_block, 8);
   void* block = (void *)START_OF_HEAP;
   while (block) {
     log_block(block);
