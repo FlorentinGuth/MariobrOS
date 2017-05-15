@@ -12,7 +12,7 @@ typedef enum syscall {
   Wait       =  2,    /* Waits for a child to return a value */
   Printf     =  3,    /* Prints to the framebuffer */
   Malloc     =  4,
-  Free       =  5,
+  MemFree    =  5,
   Ls         =  6,
   Rm         =  7,
   Mkdir      =  8,

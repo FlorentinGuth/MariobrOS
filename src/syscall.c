@@ -6,6 +6,7 @@
 #include "syscall_asm.h"
 #include "idt.h"
 #include "gdt.h"
+#include "malloc.h"
 
 
 /* Possible speed enhancements:
@@ -18,23 +19,40 @@ extern scheduler_state_t *state;  /* Defined in scheduler.c */
 #define CURR_PROC (state->processes[state->curr_pid])
 #define CURR_REGS (state->processes[state->curr_pid].context.regs)
 
+#define SWITCH_AFTER()                                              \
+    kernel_context.unallocated_mem  = unallocated_mem;              \
+    kernel_context.first_free_block = first_free_block;             \
+    context_t *ctx = &state->processes[state->curr_pid].context;    \
+    first_free_block = ctx->first_free_block;                       \
+    unallocated_mem  = ctx->unallocated_mem;                        \
+    switch_page_directory(ctx->page_dir);
+
+
+
+#define SWITCH_BEFORE()                                 \
+    switch_page_directory(kernel_directory);            \
+    ctx->first_free_block = first_free_block;           \
+    ctx->unallocated_mem  = unallocated_mem;            \
+    unallocated_mem  = kernel_context.unallocated_mem;  \
+    first_free_block = kernel_context.first_free_block;
+
 void syscall_malloc()
 {
   SWITCH_AFTER();
-  CURR_REGS->eax = mem_alloc(CURR_REGS->ebx);
+  CURR_REGS->eax = (u_int32)mem_alloc(CURR_REGS->ebx);
   SWITCH_BEFORE();
 }
 
 void syscall_free()
 {
   SWITCH_AFTER();
-  mem_free(CURR_REGS->ebx);
+  mem_free((void *)CURR_REGS->ebx);
   SWITCH_BEFORE();
 }
 
 void syscall_ls()
 {
-  
+
 }
 
 void syscall_fork()
@@ -250,13 +268,13 @@ void (*syscall_table[NUM_SYSCALLS])();
 
 void syscall_install()
 {
-  syscall_table[Exit]   = *syscall_exit;
-  syscall_table[Wait]   = *syscall_wait;
-  syscall_table[Fork]   = *syscall_fork;
-  syscall_table[Printf] = *syscall_printf;
-  syscall_table[Hlt]    = *syscall_hlt;
-  syscall_table[Malloc] = *syscall_malloc;
-  syscall_table[Free]   = *syscall_free;
+  syscall_table[Exit]    = *syscall_exit;
+  syscall_table[Wait]    = *syscall_wait;
+  syscall_table[Fork]    = *syscall_fork;
+  syscall_table[Printf]  = *syscall_printf;
+  syscall_table[Hlt]     = *syscall_hlt;
+  syscall_table[Malloc]  = *syscall_malloc;
+  syscall_table[MemFree] = *syscall_free;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }
