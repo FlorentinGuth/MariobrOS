@@ -514,6 +514,9 @@ u_int8 remove_file(u_int32 dir, u_int32 inode)
 
 void erase_file_data(u_int32 inode)
 {
+  if(!inode) {
+    return;
+  }
   set_inode(inode, std_inode);
   if(!std_inode->size_low) {
     return;
@@ -594,7 +597,7 @@ void erase_file_data(u_int32 inode)
 
 u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use)
 {
-  if(to_use <= used) {
+  if(!inode || to_use <= used) {
     return 0;
   }
   u_int32 addr_per_block = block_size / 4;
@@ -773,6 +776,7 @@ u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
   }
   u_int8 error = add_file(father, num, ftype, name);
   if(error) {
+    writef("ERROR\n");
     unallocate_inode(num);
     return 0;
   }
@@ -917,8 +921,6 @@ void filesystem_install()
   allocate_inode();
   u_int32 test1 = create_dir(2, "test1");
   u_int32 test2 = create_dir(2, "test2");
-  /* u_int32 subtest =  */create_dir(test1, "subtest");
-  u_int32 filetest = create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR);
-
-  add_file(test2, filetest, FILE_REGULAR, "filetest");
+  create_dir(test1, "subtest");
+  create_file(test2, "filetest", PERM_ALL | TYPE_FILE, FILE_REGULAR);
 }
