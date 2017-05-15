@@ -72,9 +72,9 @@ open:
   mov edx, [esp+24]
   and edx, 0xffff
   int 0x80
-  push ebx
-  push ecx
-  push edx
+  pop ebx
+  pop ecx
+  pop edx
   ret
 
 global close
@@ -136,3 +136,18 @@ printf:
   pop    ebx
   pop    ebp
   ret
+
+global lseek
+lseek:
+    push ebx
+    push ecx
+    push edx
+    mov eax, 19
+    mov ebx, [esp+16]
+    mov ecx, [esp+20]
+    mov edx, [esp+24]
+    int 0x80
+    pop edx
+    pop ecx
+    pop ebx
+    ret

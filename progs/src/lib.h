@@ -65,7 +65,7 @@ void free(void *ptr);
  *  @return            - The file descriptor for the given file or 0 if an error
  *  occured
  */
-fd open(string path, u_int8 oflag, u_int16 fperm);
+fd open(string path, u_int32 oflag, u_int32 fperm);
 
 /**
  *  @name close - Closes a file descriptor, ensuring it is no more valid
@@ -101,6 +101,17 @@ u_int32 read(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
  *                  -3: The block allocation failed
  */
 u_int32 write(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
+
+/**
+ *  @name lseek   - Set the current position for a file descriptor
+ *
+ *  @param f      - The file descriptor
+ *  @param offset - The new offset (according to the seek command)
+ *  @param seek   - The seek command, SEEK_SET, SEEK_CUR or SEEK_END
+ *
+ *  @return       - The new actual offset from the beginning of the file
+ */
+u_int32 lseek(fd f, s_int32 offset, u_int8 seek);
 
 /**
  *  @name fork - Creates a new process with a new, copied context

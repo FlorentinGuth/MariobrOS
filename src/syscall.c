@@ -15,6 +15,8 @@
  * - Stack of free processes
  */
 
+u_int8 sys_buf[2048]; // Static buffer
+
 extern scheduler_state_t *state;  /* Defined in scheduler.c */
 
 #define CURR_PROC (state->processes[state->curr_pid])
@@ -62,18 +64,19 @@ void syscall_free()
 void syscall_open()
 {
   string path   = (void*) CURR_REGS->ebx;
-  u_int8 oflag  = (CURR_REGS->ecx >> 16) & 0xFF;
-  u_int16 fperm = CURR_REGS->ecx & 0xFFFF;
-  writef("ecx: %x, oflag: %x, fperm: %x\n",CURR_REGS->ecx, oflag, fperm);
+  u_int8 oflag  = CURR_REGS->ecx & 0xFF;
+  u_int16 fperm = CURR_REGS->edx & 0xFFFF;
   SWITCH_AFTER();
-  fd ret = openfile(path, oflag, fperm);
+  str_copy(path, (void*) &sys_buf);
   SWITCH_BEFORE();
+  fd ret = openfile((void*) &sys_buf, oflag, fperm);
   CURR_REGS->eax = (u_int32) ret;
 }
 
 void syscall_close()
 {
-  close((void*) CURR_REGS->ebx);
+  fd f = (void*) CURR_REGS->ebx;
+  close(f);
 }
 
 void syscall_read()
@@ -161,6 +164,14 @@ void syscall_write()
   }
 
   CURR_REGS->eax = written;
+}
+
+void syscall_lseek()
+{
+  fd      f      = (void*) CURR_REGS->ebx;
+  s_int32 offset = (s_int32) CURR_REGS->ecx;
+  u_int8  seek   = (u_int8)  CURR_REGS->edx;
+  CURR_REGS->eax = lseek(f, offset, seek);
 }
 
 
@@ -403,6 +414,7 @@ void syscall_install()
   syscall_table[Close]   = *syscall_close;
   syscall_table[Read]    = *syscall_read;
   syscall_table[Write]   = *syscall_write;
+  syscall_table[Lseek]   = *syscall_lseek;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }
