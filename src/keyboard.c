@@ -259,14 +259,34 @@ void keyboard_handler(struct regs *r)
 }
 #pragma GCC diagnostic pop
 
-/* Handles the keyboard interrupt for the shell */
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-void keyboard_shell_handler(struct regs *r)
-{
-  int scancode;
+u_int8 key_buf[256];
+u_int8 k_read  = 0;
+u_int8 k_write = 0;
 
-  /* Read from the keyboard's data buffer */
-  scancode = inb(0x60);
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void keyboard_buf_handler(struct regs *r)
+{
+  u_int8 scancode = inb(0x60);
+  if(k_write + 1 != k_read) {
+    key_buf[k_write] = scancode;
+    k_write++;
+  }
+  // Else: lost data
+}
+#pragma GCC diagnostic pop
+
+u_int8 keyboard_get()
+{
+  if(k_read != k_write) {
+    u_int8 ret = key_buf[k_read];
+    k_read++;
+    return ret;
+  }
+  return 0;
+}
+
+void keyboard_shell(u_int8 scancode)
+{
   /* If the top bit of the byte we read from the keyboard is
    * set, that means that a key has just been released */
   if (scancode & 0x80)
@@ -401,6 +421,17 @@ void keyboard_shell_handler(struct regs *r)
         k_dead_trema = FALSE;
       }
     }
+}
+
+/* Handles the keyboard interrupt for the shell */
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void keyboard_shell_handler(struct regs *r)
+{
+  int scancode;
+
+  /* Read from the keyboard's data buffer */
+  scancode = inb(0x60);
+  keyboard_shell(scancode);
 }
 #pragma GCC diagnostic pop
 

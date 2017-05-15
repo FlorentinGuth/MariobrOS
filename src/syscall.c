@@ -8,6 +8,7 @@
 #include "gdt.h"
 #include "malloc.h"
 #include "memory.h"
+#include "keyboard.h"
 
 
 /* Possible speed enhancements:
@@ -16,6 +17,7 @@
  */
 
 u_int8 sys_buf[2048]; // Static buffer
+u_int8 sys_buf2[2048];
 
 extern scheduler_state_t *state;  /* Defined in scheduler.c */
 
@@ -394,6 +396,166 @@ void syscall_printf()
   switch_page_directory(kernel_directory);
 }
 
+void syscall_set_curs()
+{
+  set_cursor_pos(CURR_REGS->ebx);
+}
+
+void syscall_get_curs()
+{
+  CURR_REGS->eax = get_cursor_pos();
+}
+
+void syscall_ls()
+{
+  SWITCH_AFTER();
+  str_copy((void*) CURR_REGS->ebx, (void*) &sys_buf);
+  SWITCH_BEFORE();
+  ls_dir(find_inode((void*) &sys_buf, CURR_REGS->ecx));
+}
+
+void syscall_rm()
+{
+  SWITCH_AFTER();
+  str_copy((void*)CURR_REGS->ebx, (void*) &sys_buf);
+  SWITCH_BEFORE();
+  string file = (void*) &sys_buf;
+  bool rec = CURR_REGS->edx;
+  u_int32 curr_dir = CURR_REGS->ecx;
+  u_int32 inode = find_inode(file, curr_dir);
+  u_int32 dir = ((dir_entry*) std_buf)->inode; // std_buf set by find_inode
+  if(!inode) {
+    CURR_REGS->eax = 1;
+    return;
+  }
+  set_inode(inode, std_inode);
+  if(std_inode->type & TYPE_DIR) {
+    if(rec) {
+      if(rm_dir(inode)) {
+        CURR_REGS->eax = 2;
+        return;
+      }
+      CURR_REGS->eax = 0;
+    } else {
+      CURR_REGS->eax = 3;
+    }
+    return;
+  }
+  if(delete_file(dir, inode)) {
+    CURR_REGS->eax = 4;
+    return;
+  }
+  CURR_REGS->eax = 0;
+  return;
+}
+
+void syscall_mkdir() {
+  SWITCH_AFTER();
+  str_copy((void*)CURR_REGS->ebx, (void*) &sys_buf);
+  SWITCH_BEFORE();
+  u_int32 inode = create_dir(CURR_REGS->ecx, (void*) &sys_buf);
+  if(!inode) {
+    CURR_REGS->eax = 1;
+  } else {
+    CURR_REGS->eax = 0;
+  }
+}
+
+void syscall_keyget() {
+  CURR_REGS->eax = keyboard_get();
+}
+
+void syscall_scroll() {
+  scroll();
+}
+
+void syscall_write_box() {
+  write_box(CURR_REGS->ebx, CURR_REGS->ecx);
+}
+
+void syscall_gcwd() {
+
+  u_int32 inode  = CURR_REGS->ebx;
+  string path    = (void*) CURR_REGS->ecx;
+
+  if(inode == 2) {
+    CURR_REGS->eax = 0;
+    return;
+  }
+  string locpath = (void*) &sys_buf;
+  string tmp;
+  u_int32 size = 0;
+  u_int32 parent = 0;
+  dir_entry* entry;
+  u_int32 endpos = (u_int32) std_buf + block_size;
+
+  read_inode_data(inode, std_buf, 0, 512);
+  parent = ((dir_entry*) ((u_int32)std_buf + 12))->inode;
+  read_inode_data(parent, std_buf, 0, block_size);
+  entry = (void*) ((u_int32) std_buf + 24);
+  while((u_int32) entry < endpos && entry->inode != inode) {
+    entry = (void*) (((u_int32) entry) + entry->size);
+  }
+  if((u_int32) entry >= endpos) {
+    CURR_REGS->eax = 0;
+    return;
+  }
+  for(int i = 0; i < entry->name_length; i++) {
+    locpath[i] = ((char*) ((u_int32) entry + 8))[i];
+  }
+  locpath[entry->name_length] = '\0';
+  size += entry->name_length + 1;
+  inode = parent;
+
+  while(inode != 2) {
+    parent = ((dir_entry*) ((u_int32)std_buf + 12))->inode;
+    read_inode_data(parent, std_buf, 0, block_size);
+    entry = (void*) ((u_int32) std_buf + 24);
+    while((u_int32) entry < endpos && entry->inode != inode) {
+      entry = (void*) (((u_int32) entry) + entry->size);
+    }
+    if((u_int32) entry >= endpos) {
+      CURR_REGS->eax = 0;
+      return;
+    }
+    tmp = (void*) &sys_buf2;
+    for(int i = 0; i < entry->name_length; i++) {
+      tmp[i] = ((char*) ((u_int32) entry + 8))[i];
+    }
+    tmp[entry->name_length] = '/';
+    str_copy(locpath, (void*) ((u_int32) tmp + entry->name_length + 1));
+    str_copy(tmp, (void*) &sys_buf);
+    locpath = (void*) &sys_buf; size += entry->name_length + 1;
+    inode = parent;
+  }
+  SWITCH_AFTER();
+  mem_free(path);
+  CURR_REGS->eax = (u_int32) mem_alloc(size + 1);
+  ((char*) CURR_REGS->eax)[0] = '/';
+  str_copy(locpath, (void*) ((u_int32) CURR_REGS->eax + 1));
+  SWITCH_BEFORE();
+}
+
+void syscall_find_dir()
+{
+  SWITCH_AFTER();
+  str_copy((void*) CURR_REGS->ebx, (void*) &sys_buf);
+  SWITCH_BEFORE();
+  CURR_REGS->eax = find_dir((void*) &sys_buf, CURR_REGS->ecx);
+}
+
+void syscall_clear_buf()
+{
+  clear();
+}
+
+void syscall_run()
+{
+  SWITCH_AFTER();
+  str_copy((void*) CURR_REGS->ebx, (void*) &sys_buf);
+  SWITCH_BEFORE();
+  run_program((void*) &sys_buf);
+}
 
 void syscall_hlt()
 {
@@ -413,19 +575,31 @@ void (*syscall_table[NUM_SYSCALLS])();
 
 void syscall_install()
 {
-  syscall_table[Exit]    = *syscall_exit;
-  syscall_table[Wait]    = *syscall_wait;
-  syscall_table[Fork]    = *syscall_fork;
-  syscall_table[Printf]  = *syscall_printf;
-  syscall_table[Hlt]     = *syscall_hlt;
-  syscall_table[Malloc]  = *syscall_malloc;
-  syscall_table[MemFree] = *syscall_free;
-  syscall_table[Open]    = *syscall_open;
-  syscall_table[Close]   = *syscall_close;
-  syscall_table[Read]    = *syscall_read;
-  syscall_table[Write]   = *syscall_write;
-  syscall_table[Lseek]   = *syscall_lseek;
-  syscall_table[Fstat]   = *syscall_fstat;
+  syscall_table[Exit]     = *syscall_exit;
+  syscall_table[Wait]     = *syscall_wait;
+  syscall_table[Fork]     = *syscall_fork;
+  syscall_table[Printf]   = *syscall_printf;
+  syscall_table[Hlt]      = *syscall_hlt;
+  syscall_table[Malloc]   = *syscall_malloc;
+  syscall_table[MemFree]  = *syscall_free;
+  syscall_table[Ls]       = *syscall_ls;
+  syscall_table[Rm]       = *syscall_rm;
+  syscall_table[Mkdir]    = *syscall_mkdir;
+  syscall_table[Keyget]   = *syscall_keyget;
+  syscall_table[Run]      = *syscall_run;
+  syscall_table[Open]     = *syscall_open;
+  syscall_table[Close]    = *syscall_close;
+  syscall_table[Read]     = *syscall_read;
+  syscall_table[Write]    = *syscall_write;
+  syscall_table[Lseek]    = *syscall_lseek;
+  syscall_table[Fstat]    = *syscall_fstat;
+  syscall_table[Set_curs] = *syscall_set_curs;
+  syscall_table[Get_curs] = *syscall_get_curs;
+  syscall_table[Scroll]   = *syscall_scroll;
+  syscall_table[Write_box]= *syscall_write_box;
+  syscall_table[Gcwd]     = *syscall_gcwd;
+  syscall_table[Find_dir] = *syscall_find_dir;
+  syscall_table[Clear_buf]= *syscall_clear_buf;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }

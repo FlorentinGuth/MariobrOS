@@ -55,6 +55,33 @@ typedef unsigned char bool;
 #define FALSE 0
 #define TRUE  1
 
+typedef u_int32 pos_t;
+
+enum Color {
+  Black        =  0,
+  Blue         =  1,
+  Green        =  2,
+  Cyan         =  3,
+  Red          =  4,
+  Magenta      =  5,
+  Brown        =  6,
+  LightGrey    =  7,
+  DarkGrey     =  8,
+  LightBlue    =  9,
+  LightGreen   = 10,
+  LightCyan    = 11,
+  LightRed     = 12,
+  LightMagenta = 13,
+  LightBrown   = 14,
+  White        = 15,
+};
+typedef enum Color color_t;
+
+#define SCREEN_WIDTH  80
+#define SCREEN_HEIGHT 25
+#define TAB_WIDTH      4
+
+#define POS(row, col)  ((row) * SCREEN_WIDTH + (col))
 
 typedef char* string;
 
@@ -157,9 +184,58 @@ void exit(u_int32 return_value);
 bool scwait(u_int32 *pid, u_int32 *return_value);
 
 
+/**
+ *  @name set_cursor_pos - Moves the cursor of the framebuffer.
+ *
+ *  @param pos The new position of the cursor
+ */
+void set_cursor_pos(pos_t pos);
+
+/**
+ *  @name get_cursor_pos -
+ *  Communicate with the framebuffer to get the cursor position.
+ *
+ *  @return The position of the cursor
+ */
+pos_t get_cursor_pos();
+
+void ls(string dir, u_int32 curr_dir);
+
+u_int8 rm(string name, u_int32 curr_dir, bool rec);
+
+bool mkdir(string dir, u_int32 curr_dir);
+
+string get_cwd(u_int32 curr_dir, string path);
+
+u_int32 find_dir(string path, u_int32 curr_dir);
+
+/**
+ *  @name scroll - Move all the text one line up, and erases the last line.
+ */
+void scroll();
+
+/**
+ * @name write_box - Writes a double-framed box to the framebuffer
+ * @param upper_left -
+ * @param lower_right -
+ * @return void
+ */
+void write_box(pos_t upper_left, pos_t lower_right);
+
+/**
+ *  @name keyboard_get - Gives the first non read scancode (if shell is on)
+ */
+u_int8 keyget();
+
+/**
+ *  @name clear - Empties the framebuffer
+ */
+void clear();
+
 void printf(string s, ...);
 
 void hlt();
 
+void run_program(string path);
 
 #endif

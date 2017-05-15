@@ -16,7 +16,7 @@ typedef enum syscall {
   Ls         =  6,
   Rm         =  7,
   Mkdir      =  8,
-  Cat        =  9,
+  Keyget     =  9,
   Run        = 10,
   Hlt        = 11,
   NewChannel = 12,
@@ -28,6 +28,13 @@ typedef enum syscall {
   Write      = 18,
   Lseek      = 19,
   Fstat      = 20,
+  Set_curs   = 21,
+  Get_curs   = 22,
+  Scroll     = 23,
+  Write_box  = 24,
+  Gcwd       = 25,
+  Find_dir   = 26,
+  Clear_buf  = 27,
   Invalid,       /* /!\ This need to be the last syscall */
 } syscall_t;
 

@@ -54,6 +54,59 @@ free:
   pop ebx
   ret
 
+global ls
+ls:
+    push ebx
+    push ecx
+    mov eax, 6
+    mov ebx, [esp+12]
+    mov ecx, [esp+16]
+    int 0x80
+    pop ecx
+    pop ebx
+    ret
+
+global rm
+rm:
+    push ebx
+    push ecx
+    push edx
+    mov eax, 7
+    mov ebx, [esp+16]
+    mov ecx, [esp+20]
+    mov edx, [esp+24]
+    int 0x80
+    pop edx
+    pop ecx
+    pop ebx
+    ret
+    
+global mkdir
+mkdir:
+    push ebx
+    push ecx
+    mov eax, 8
+    mov ebx, [esp+12]
+    mov ecx, [esp+16]
+    pop ebx
+    pop ecx
+    ret
+
+global keyget
+keyget:
+    mov eax, 9
+    int 0x80
+    ret
+
+global run_program
+run_program:
+    push ebx
+    mov eax, 10
+    mov ebx, [esp+8]
+    int 0x80
+    pop ebx
+    ret
+
 global hlt
 hlt:
   mov eax, 11
@@ -163,3 +216,67 @@ fstat:
     pop ecx
     pop ebx
     ret
+
+global set_cursor_pos
+set_cursor_pos:
+    push ebx
+    mov ebx, [esp+8]
+    mov eax, 21
+    int 0x80
+    pop ebx
+    ret
+    
+global get_cursor_pos
+get_cursor_pos:
+    mov eax, 22
+    int 0x80
+    ret
+
+global scroll
+scroll:
+    mov eax, 23
+    int 0x80
+    ret
+
+global write_box
+write_box:
+    push ebx
+    push ecx
+    mov eax, 24
+    mov ebx, [esp+12]
+    mov ecx, [esp+16]
+    int 0x80
+    pop ecx
+    pop ebx
+    ret
+
+global get_cwd
+get_cwd:
+    push ebx
+    push ecx
+    mov eax, 25
+    mov ebx, [esp+12]
+    mov ecx, [esp+16]
+    int 0x80
+    pop ecx
+    pop ebx
+    ret
+
+global find_dir
+find_dir:   
+    push ebx
+    push ecx
+    mov eax, 26
+    mov ebx, [esp+12]
+    mov ecx, [esp+16]
+    int 0x80
+    pop ecx
+    pop ebx
+    ret
+
+global clear
+clear:
+    mov eax, 27
+    int 0x80
+    ret
+
