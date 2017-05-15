@@ -2,7 +2,7 @@
 #define FILESYSTEM_H
 
 #include "malloc.h"
-#include "string.h"
+#include "logging.h"
 #include "fs_types.h"
 
 /**

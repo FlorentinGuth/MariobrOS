@@ -4,16 +4,16 @@ fdt_e* fdt = 0;
 u_int32 fdt_size = 0;
 u_int32 fdt_num = 0;
 
-
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 fd openfile(string path, u_int8 oflag, u_int16 fperm)
 {
   u_int32 inode = find_inode(path, 2);
   if(!( (oflag & O_CREAT) || inode) ) {
-    writef("File does not exist\n");
+    kloug(100, "File %s does not exist\n", path);
     return 0;
   }
   if((oflag & O_EXCL) && inode) {
-    writef("File already exists\n");
+    kloug(100, "File %s already exists\n", path);
     return 0;
   }
 
@@ -38,25 +38,35 @@ fd openfile(string path, u_int8 oflag, u_int16 fperm)
   if(!inode) { // O_CREAT flag is set because of the first test
     /* std_buf has been set by find_inode to the content of the data block of
      * the parent directory, so its first directory entry is "." */
-    list_t l = str_split(path, '/', FALSE);
-    while(l->tail) {
-      mem_free((void*) l->head);
-      pop(&l);
-    }
-    inode = create_file( ((dir_entry*) std_buf)->inode, (string) l->head, \
-                         TYPE_FILE | fperm, FILE_REGULAR);
-    mem_free((void*) l->head);
-    pop(&l);
-    if(!inode) {
-      writef("File creation failed");
-      return 0;
-    }
+    /* writef("Creating file %s\n", path); */
+    /* list_t l = str_split(path, '/', FALSE); */
+    /* u_int32 parent = ((dir_entry*) std_buf)->inode; */
+    /* writef("Parent: %u\n", parent); */
+    /* while(l->tail) { */
+    /*   mem_free((void*) l->head); */
+    /*   pop(&l); */
+    /* } */
+    /* writef("Name: %s\n", l->head); */
+    /* inode = create_file(parent, (void*) l->head, TYPE_FILE | fperm, \ */
+    /*                     FILE_REGULAR); */
+    /* writef("Inode for %s is %u\n", path, inode); */
+    /* ls_dir(parent); */
+    /* mem_free((void*) l->head); */
+    /* pop(&l); */
+    /* if(!inode) { */
+    /*   kloug(100, "File creation for %s failed", path); */
+    /*   return 0; */
+    /* } */
+    inode = create_file(2, "froude", PERM_ALL | TYPE_FILE, FILE_REGULAR);
+    writef("DONE!\n");
   }
+  writef("Sorti de la condition\n");
 
   if(oflag & O_TRUNC) {
+    writef("oflag: %x\n", oflag);
     erase_file_data(inode);
   }
-
+  writef("Setting inode\n");
   set_inode(inode, std_inode);
   if(oflag & O_APPEND) {
     fdt[*f].pos = std_inode->size_low;
@@ -71,6 +81,7 @@ fd openfile(string path, u_int8 oflag, u_int16 fperm)
    * and also allows to prevent a closed file descriptor from referring to
    * another file.
    */
+  ls_dir(2);
   return f;
 }
 

@@ -75,7 +75,7 @@ fd openker(string path);
 u_int32 read(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
 
 /**
- *  @name read    - Writes to a file
+ *  @name write   - Writes to a file
  *
  *  @param f      - The file descriptor
  *  @param buffer - The input buffer
