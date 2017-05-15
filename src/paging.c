@@ -556,6 +556,18 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
   return new;
 }
 
+void free_page_dir(page_directory_t *dir)
+{
+  kloug(100, "Freeing page dir\n");
+
+  for (int table_index = 0; table_index < 1024; table_index++) {
+    if (dir->entries[table_index].present) {
+      mem_free(dir->tables[table_index]);
+    }
+  }
+  mem_free(dir);
+}
+
 
 void log_page_dir(page_directory_t *dir)
 {

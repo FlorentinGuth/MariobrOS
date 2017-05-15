@@ -218,6 +218,10 @@ void resolve_exit_wait(pid parent, pid child)
   }
   state->runqueues[prio] = temp;
 
+  /* Also free everything */
+  /* FIXME: can't free regs, there is a memory leak... */
+  free_page_dir(state->processes[child].context.page_dir);
+
   /* Notifies the parent */
   process_t* parent_proc = &state->processes[parent];
   parent_proc->state= Runnable;
@@ -233,10 +237,13 @@ void syscall_exit()
   pid id = state->curr_pid;
   state->processes[id].state = Zombie;
 
-  /* Notifies the child processes of the exiting one */
+  /* Notifies the child processes of the exiting one, and resolve also exits */
   for (pid i = 0; i < NUM_PROCESSES; i++) {
     if (state->processes[i].parent_id == id) {
       state->processes[i].parent_id = 1;
+      if (state->processes[i].state == Zombie && state->processes[1].state == Waiting) {
+        resolve_exit_wait(1, i);
+      }
     }
   }
 

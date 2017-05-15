@@ -126,6 +126,7 @@ void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool fre
  */
 void switch_page_directory(page_directory_t *new);
 
+
 /**
  * @name new_page_dir - Allocates and creates a new page directory, with the
  * kernel code and data (including stack) at the same virtual space.
@@ -136,6 +137,13 @@ void switch_page_directory(page_directory_t *new);
  * @return page_directory_t*
  */
 page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem);
+
+/**
+ * @name free_page_dir - Completely free a user page directory
+ * @param dir          - The page directory to free
+ * @return void
+ */
+void free_page_dir(page_directory_t *dir);
 
 
 /**
