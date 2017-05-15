@@ -395,9 +395,25 @@ void syscall_printf()
 }
 
 
+extern bool in_kernel, should_cycle;  /* From scheduler.c */
 void syscall_hlt()
 {
-  asm volatile ("sti; hlt; cli");
+  should_cycle = FALSE;
+  asm volatile ("sti");
+  for (;;) {
+    asm volatile ("hlt");
+    if (!should_cycle) {
+      /* The interruption was not a timer */
+      asm volatile ("cli");
+      should_cycle = TRUE;  /* We want to change process, maybe someone has something to do */
+      kloug(100, "Leaving hlt\n");
+      break;
+    } else {
+      /* We received a timer event */
+      kloug(100, "Timer event\n");
+      should_cycle = FALSE;
+    }
+  }
 }
 
 

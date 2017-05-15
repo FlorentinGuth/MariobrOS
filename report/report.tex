@@ -35,8 +35,12 @@
 \newcommand{\source}[5]{
   \begin{table}[H]
     \centering
-    \inputminted[frame=lines,linenos,style=colorful,fontfamily=tt,breaklines,autogobble,firstline=#3,firstnumber=#3,lastline=#4,label={#2[#3--#4]}]{#1}{../src/#2}
-    \captionsetup{name=Listing,labelformat=listing,labelsep=endash,labelfont={sc}}
+    \small
+\inputminted[frame=lines,linenos,style=colorful,fontfamily=tt,breaklines,
+autogobble,firstline=#3,firstnumber=#3,lastline=#4,label={#2[#3--#4]}]{#1
+}{../src/#2}
+    
+\captionsetup{name=Listing,labelformat=listing,labelsep=endash,labelfont={sc}}
     \caption{#5}
   \end{table}
   }
@@ -77,10 +81,9 @@
 
 Les principales cibles de compilations sont les suivantes :
 \begin{itemize}
- \item \code{make}, \code{make disk}, \code{make diskq} : crée une image disque et lance \foreign{QEMU} ;
+ \item \code{make}, \code{make disk}, \code{make diskq} : crée une image disque 
+et lance \foreign{QEMU} ;
  \item \code{make diskb} : crée une image disque et lance \foreign{Bochs} ;
- \item \code{make run}, \code{make runq} : crée une image \foreign{ISO} et lance \foreign{QEMU} ;
- \item \code{make runb} : crée une image \foreign{ISO} et lance \foreign{Bochs} ;
  \item \code{make clean} : supprime tous les fichiers générés.
 \end{itemize}
 
@@ -88,8 +91,10 @@ La compilation (pour le disque) s'effectue en plusieurs étapes :
 \begin{itemize}
  \item créer une image disque vide \foreign{EXT2},
  \item installer \foreign{GRUB} dessus,
- \item y copier \code{kernel.elf}, l'exécutable du \foreign{kernel} une fois compilé,
- \item compiler les programmes utilisateurs (dossier \foreign{progs}) en exécutables et les copier,
+ \item y copier \code{kernel.elf}, l'exécutable du \foreign{kernel} une fois 
+compilé,
+ \item compiler les programmes utilisateurs (dossier \foreign{progs}) en 
+exécutables et les copier,
  \item lancer l'émulateur.
 \end{itemize}
 
@@ -97,7 +102,17 @@ La compilation (pour le disque) s'effectue en plusieurs étapes :
 
 \subsection{\foreign{Boot}}
 
-\mariobros\ fonctionne aussi bien sous \foreign{Bochs} que \foreign{QEMU}. Le fonctionnement de
+\mariobros\ fonctionne aussi bien sous \foreign{Bochs} que \foreign{QEMU}. Le 
+fonctionnement du \foreign{boot} est assez simple :
+\begin{itemize}
+ \item \foreign{GRUB} est d'abord lancé et détecte notre noyau 
+\code{kernel.elf},
+ \item on rentre alors dans le fichier \code{loader.s} qui permet de récupérer 
+la taille de la mémoire,
+ \item on lance ensuite la fonction \code{kmain} qui initialise tous les 
+composants et rentre dans la boucle principale.
+\end{itemize}
+
 
 
 \section{Système de fichiers}
@@ -106,37 +121,184 @@ La compilation (pour le disque) s'effectue en plusieurs étapes :
 	
 	\subsection{Côté hardware}
 	
-		Les fonctions \verb|readPIO|, \verb|readLBA| et \verb|writeLBA| permettent d'accéder au disque dur en utilisant le système d'addressage LBA 28 bits.
+		Les fonctions \verb|readPIO|, \verb|readLBA| et \verb|writeLBA| 
+permettent d'accéder au disque dur en utilisant le système d'adressage LBA 28 
+bits.
 		
-		Nous avons remarqué que l'émulateur \foreign{Bochs} n'allumait pas aux moments voulus le bit DRQ du port de contrôle ATA, qui signifie que le disque est prêt à effectuer des opérations IO, contrairement à ce que la spécification demandait. Par conséquent, la fonction \verb|poll| qui attend que ce bit soit allumé pour continuer à effectuer les opérations de lecture / écriture a été modifiée pour fonctionner sous \foreign{Bochs}.
+		Nous avons remarqué que l'émulateur \foreign{Bochs} n'allumait 
+pas aux moments voulus le bit DRQ du port de contrôle ATA, qui signifie que le 
+disque est prêt à effectuer des opérations IO, contrairement à ce que la 
+spécification demandait. Par conséquent, la fonction \verb|poll| qui attend que 
+ce bit soit allumé pour continuer à effectuer les opérations de lecture / 
+écriture a été modifiée pour fonctionner sous \foreign{Bochs}.
 	
 	\subsection{Côté interface utilisateur}
 	
-		Les fonctions \verb|openfile|, \verb|read|, \verb|write| et \verb|close| de l'interface POSIX ont étés implémentées, avec la syntaxe et les flags présentés dans la bibliothèque Unix de OCaml. Les permissions ne sont pas vérifiées, seul le mode d'ouverture (\verb|O_RDONLY|, \verb|O_WRONLY|, \verb|O_APPEND|, etc.)importe.
+		Les fonctions \verb|openfile|, \verb|read|, \verb|write| et 
+\verb|close| de l'interface POSIX ont étés implémentées, avec la syntaxe et les 
+flags présentés dans la bibliothèque Unix de OCaml. Les permissions ne sont pas 
+vérifiées, seul le mode d'ouverture (\verb|O_RDONLY|, \verb|O_WRONLY|, 
+\verb|O_APPEND|, etc.)importe.
 		
-		Les fonctions du shell \verb|ls|, \verb|mkdir|, \verb|rm| sont aussi implémentées. \verb|rm| peut supprimer récursivement des dossiers sans risque de débordement de pile pour une profondeur quelconque de sous-dossers.
+		Les fonctions du shell \verb|ls|, \verb|mkdir|, \verb|rm| sont 
+aussi implémentées. \verb|rm| peut supprimer récursivement des dossiers sans 
+risque de débordement de pile pour une profondeur quelconque de sous-dossers.
 		
 	\subsection{Implémentation et difficultés rencontrées}
 	
-		La structure des inodes et des blocs est dictée par le standard de EXT2. Les champs de ces structures sont maintenus à jour de façon à ce que le disque puisse être monté sur un autre système d'exploitation et refléter les opérations réalisées sous \mariobros, à l'exception des champs concernant les dernières dates de modification, création, etc. qui ne sont pas actualisés.
+		La structure des inodes et des blocs est dictée par le standard 
+de EXT2. Les champs de ces structures sont maintenus à jour de façon à ce que le 
+disque puisse être monté sur un autre système d'exploitation et refléter les 
+opérations réalisées sous \mariobros, à l'exception des champs concernant les 
+dernières dates de modification, création, etc. qui ne sont pas actualisés.
 		
-		Les données des fichiers en EXT2 sont contenues dans des blocs, pointés par l'inode soit directement (douze \foreign{direct block pointers}), soit par une simple indirection (un \foreign{simple indirect block pointer} qui pointe vers un bloc d'adresses de blocs de données), soit par une double indirection, soit par une triple. L'implémentation permet en théorie de manipuler tous les fichiers de ce type, mais du fait de la taille du disque employé (64 Mo), nous n'avons pas pu tester la manipulation effective de gros fichiers.\\
+		Les données des fichiers en EXT2 sont contenues dans des blocs, 
+pointés par l'inode soit directement (douze \foreign{direct block pointers}), 
+soit par une simple indirection (un \foreign{simple indirect block pointer} qui 
+pointe vers un bloc d'adresses de blocs de données), soit par une double 
+indirection, soit par une triple. L'implémentation permet en théorie de 
+manipuler tous les fichiers de ce type, mais du fait de la taille du disque 
+employé (64 Mo), nous n'avons pas pu tester la manipulation effective de gros 
+fichiers.\\
 		
-		Les \foreign{file descriptors} (\foreign{fd}) ont été conçus pour répondre à trois contraintes : pouvoir effectuer la manipulation effective de fichiers, ne pas être réutilisables après avoir été fermés et ne pas être limités en nombre (autrement que par la taille de la mémoire physique). 
+		Les \foreign{file descriptors} (\foreign{fd}) ont été conçus 
+pour répondre à trois contraintes : pouvoir effectuer la manipulation effective 
+de fichiers, ne pas être réutilisables après avoir été fermés et ne pas être 
+limités en nombre (autrement que par la taille de la mémoire physique). 
 		
-		Pour cela, l'OS dispose d'une \foreign{file descriptor table} (\foreign{fdt}) qui est un tableau dynamique de \foreign{fd}. Chaque \foreign{fd} est lui-même un pointeur alloué par l'OS vers un entier, cet entier servant d'index dans la \foreign{fdt}. Chaque entrée de la \foreign{fdt} est constituée d'un inode, de la taille du fichier, de la position du curseur du \foreign{fd} et de la valeur du \foreign{fd} pointant sur l'index de cette entrée.
+		Pour cela, l'OS dispose d'une \foreign{file descriptor table} 
+(\foreign{fdt}) qui est un tableau dynamique de \foreign{fd}. Chaque 
+\foreign{fd} est lui-même un pointeur alloué par l'OS vers un entier, cet entier 
+servant d'index dans la \foreign{fdt}. Chaque entrée de la \foreign{fdt} est 
+constituée d'un inode, de la taille du fichier, de la position du curseur du 
+\foreign{fd} et de la valeur du \foreign{fd} pointant sur l'index de cette 
+entrée.
 		
-		Pour dilater la \foreign{fdt}, il suffit d'allouer un bloc du double de sa taille et de recopier dedans la \foreign{fdt} actuelle. Pour la contracter, ce qui se produit lorsqu'elle est occupée pour moins d'un quart, un nouveau bloc est alloué de taille moitié de la \foreign{fdt} actuelle, et les entrées sont recopiées dans la nouvelle. Si une entrée doit changer d'index, le \foreign{fd} correspondant (qui est un de ses champs) est modifié en changeant l'index sur lequel il pointe.
+		Pour dilater la \foreign{fdt}, il suffit d'allouer un bloc du 
+double de sa taille et de recopier dedans la \foreign{fdt} actuelle. Pour la 
+contracter, ce qui se produit lorsqu'elle est occupée pour moins d'un quart, un 
+nouveau bloc est alloué de taille moitié de la \foreign{fdt} actuelle, et les 
+entrées sont recopiées dans la nouvelle. Si une entrée doit changer d'index, le 
+\foreign{fd} correspondant (qui est un de ses champs) est modifié en changeant 
+l'index sur lequel il pointe.
 		
-		Enfin, à la fermeture d'un \foreign{fd}, celui-ci est libéré de la mémoire et la valeur du champ \foreign{fd} correspondant à son index dans la \foreign{fdt} est mis à 0, qui ne correspond à aucun pointeur valide, et donc à aucun \foreign{fd} valide. À chaque appel à une fonction comme \verb|read|, \verb|write|, etc., la correspondance entre le \foreign{fd} donné et le champ \foreign{fd} dans la \foreign{fdt} correspondant à son index est vérifiée, et la fonction considère le \foreign{fd} invalide si ce n'est pas le cas. Cette sécurité n'est cependant pas complète : si le pointeur \foreign{fd} est ré-alloué par la suite par \verb|openfile|, il pourra alors reservir.
+		Enfin, à la fermeture d'un \foreign{fd}, celui-ci est libéré de 
+la mémoire et la valeur du champ \foreign{fd} correspondant à son index dans la 
+\foreign{fdt} est mis à 0, qui ne correspond à aucun pointeur valide, et donc à 
+aucun \foreign{fd} valide. À chaque appel à une fonction comme \verb|read|, 
+\verb|write|, etc., la correspondance entre le \foreign{fd} donné et le champ 
+\foreign{fd} dans la \foreign{fdt} correspondant à son index est vérifiée, et la 
+fonction considère le \foreign{fd} invalide si ce n'est pas le cas. Cette 
+sécurité n'est cependant pas complète : si le pointeur \foreign{fd} est 
+ré-alloué par la suite par \verb|openfile|, il pourra alors reservir.
 	
 \section{Gestion de la mémoire}
 
-Ça bugue plus trop maintenant.
+\subsection{Organisation de la mémoire}
+
+La mémoire (virtuelle) se décompose comme suit :
+On obtient donc le tableau d'activation suivant :
+\begin{table}[H]
+ \centering
+ \begin{subtable}[h]{.5\linewidth}
+ \centering
+ \begin{tabular}{|c|}
+ \hline
+ $\vdots$ \\
+ Tas du \foreign{kernel} \\
+ \hline
+ Pile du \foreign{kernel} (une page, soit 4KB) \\
+ Segment \foreign{data} \\
+ Code du \foreign{kernel} \\
+ \hline
+ Espace réservé pour le \foreign{BIOS}, \foreign{GRUB} \\
+ \hline
+\end{tabular}
+\caption{Espace mémoire du noyau}
+\end{subtable}
+
+
+\begin{subtable}[h]{.5\linewidth}
+ \centering
+ \begin{tabular}{|c|}
+  \hline
+ \foreign{Data} utilisateur \\
+ Code utilisateur \\
+ \hline
+ Pile utilisateur \\
+ $\vdots$ \\
+ \hline
+ $\vdots$ \\
+ Tas de l'utilisateur \\
+ \hline
+ Pile du \foreign{kernel} (une page, soit 4KB) \\
+ Segment \foreign{data} \\
+ Code du \foreign{kernel} \\
+ \hline
+ Espace réservé pour le \foreign{BIOS}, \foreign{GRUB} \\
+ \hline
+ \end{tabular}
+
+ \caption{Espace mémoire de l'utilisateur}
+\end{subtable}
+\caption{Organisation de la mémoire virtuelle}
+\end{table}
+
+La segmentation est utilisée en modèle \foreign{flat}, c'est-à-dire que tous les 
+segments vont de 0 à 4GB. Celle-ci ne sert qu'à gérer le \foreign{user-mode}.
+
+
+\subsection{\foreign{Paging}}
+
+En ce qui concerne le \foreign{paging}, tout de 1MB à la fin de la pile du 
+\foreign{kernel} est \foreign{identity-mapped} afin de pouvoir activer le 
+\foreign{paging} de manière transparente (et ce qui permet aux processus de 
+pouvoir exécuter du code noyau de manière transparente également), la page 0 
+n'étant pas \foreign{mappée} pour détecter les erreurs.
+
+Lorsqu'un utilisateur demande l'accès à une page virtuelle, on cherche la 
+première page physique libre et on \foreign{mappe} la première vers la 
+dernière. Ainsi, cela permet au tas de grandir automatiquement. Il en va de 
+même pour la pile de l'utilisateur : lorsqu'il effectue nu \foreign{Page 
+Fault} pour cause de \foreign{Stack Overflow}, on peut \foreign{mapper} la page 
+manquante et recommencer (désactivé pour faciliter le \foreign{debug}).
+
+Il est également possible pour le \foreign{kernel} de demander l'accès à une 
+page physique, ce qui est souvent utile : par exemple, pour charger le code 
+d'un processus en mémoire (alors que l'on est dans le \foreign{page directory} 
+du \foreign{kernel}, on demande l'accès aux pages physiques correspondant aux 
+adresses virtuelles \code{0xFFFF0000 - 0xFFFFFFFF} du processus (le code 
+utilisateur étant \foreign{linké} à l'adresse \code{0xFFFF0000}) et on y copie 
+alors le code voulu.
+
+\subsection{Tas}
+
+Le tas (\code{mem\string_alloc} et \code{mem\string_free}) suit une structure 
+de blocs standard. Initialement, il s'agit d'un seul bloc libre de la taille 
+d'une page, et lorque l'on demande des tailles plus grandes, celui s'agrandit 
+en demandant l'accès aux pages virtuelles contigües.
+
+Les blocs libres sont doublement chaînés entre eux pour faciliter l'allocation. 
+Lors de la libération d'un bloc, celui-ci est éventuellement fusionné avec ses 
+voisins (physiques) si ceux-ci sont libres, afin d'éviter la fragmentation de 
+la mémoire.
+
+\source{C}{malloc.c}{21}{52}{Structure du tas}
+
 
 \section{\foreign{Multitasking}}
 
-LOL.
+\subsection{Processus}
+
+La structure suivie est similaire à celle du piconoyau présenté lors du premier 
+cours, en ceci que l'on retient pour chaque processus ses registres, son 
+\foreign{page directory} et l'état de son tas.
+
+Un ordonnanceur va alors sélectionner les processus selon leur priorité, à 
+chaque tick de l'horloge (interruption \foreign{timer}), ou après un appel 
+système qui laisse le processus courant en attente.
+
+
 
 
 \end{document}

@@ -348,13 +348,12 @@ void run_handler(list_t args)
       writef("%frun:%f\tToo many arguments\n", LightRed, White);
     }
 
-    mem_free(prog);
-    delete_list(&args, TRUE);
+    /* delete_list(&args, TRUE); */
   }
 }
 command_t run_cmd = {
   .name = "run",
-  .help = "Runs the given program",
+  .help = "Runs the given program (the argument is the name without extension)",
   .handler = *run_handler,
 };
 
@@ -498,6 +497,10 @@ void send_command()
 
 void shell_write_char(char c)
 {
+  /* u_int32 eflags; asm volatile ("pushf; mov (%%esp), %%eax; mov %%eax, %0; popf" : "=r" (eflags) : : "eax"); */
+  /* kloug(100, "Eflags %x\n", eflags); */
+  /* log_page_dir(current_directory); */
+
   switch (c) {
 
   case '\0':
