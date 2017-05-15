@@ -41,11 +41,11 @@ void syscall_malloc()
   /* log_page_dir(CURR_PROC.context.page_dir); */
   size_t size = CURR_REGS->ebx;
   SWITCH_AFTER();
-  log_memory();
+  /* log_memory(); */
   /* u_int32 esp; asm volatile ("mov %%esp, %0" : "=r" (esp)); */
   /* kloug(100, "Allocating %x bytes, ESP=%X\n", size, esp, 8); */
   u_int32 ret = (u_int32)mem_alloc(size);
-  kloug(100, "Returned %X\n", ret, 8);
+  /* kloug(100, "Returned %X\n", ret, 8); */
   SWITCH_BEFORE();
   CURR_REGS->eax = ret;
 }
@@ -219,6 +219,10 @@ void resolve_exit_wait(pid parent, pid child)
   }
   state->runqueues[prio] = temp;
 
+  /* Also free everything */
+  /* FIXME: can't free regs, there is a memory leak... */
+  free_page_dir(state->processes[child].context.page_dir);
+
   /* Notifies the parent */
   process_t* parent_proc = &state->processes[parent];
   parent_proc->state= Runnable;
@@ -234,10 +238,13 @@ void syscall_exit()
   pid id = state->curr_pid;
   state->processes[id].state = Zombie;
 
-  /* Notifies the child processes of the exiting one */
+  /* Notifies the child processes of the exiting one, and resolve also exits */
   for (pid i = 0; i < NUM_PROCESSES; i++) {
     if (state->processes[i].parent_id == id) {
       state->processes[i].parent_id = 1;
+      if (state->processes[i].state == Zombie && state->processes[1].state == Waiting) {
+        resolve_exit_wait(1, i);
+      }
     }
   }
 

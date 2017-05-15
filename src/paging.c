@@ -241,7 +241,7 @@ u_int32 find_unmapped_page(page_directory_t *dir)
 
 bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool is_kernel, bool is_writable)
 {
-  /* kloug(100, "Virtual space at %X requested\n", virtual_address, 8); */
+  kloug(100, "Virtual space at %X requested\n", virtual_address, 8);
 
   page_table_entry_t *page = get_page(dir, virtual_address, is_kernel, is_writable);
 
@@ -554,6 +554,18 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
 
   kloug(100, "New page dir successfully created\n");
   return new;
+}
+
+void free_page_dir(page_directory_t *dir)
+{
+  kloug(100, "Freeing page dir\n");
+
+  for (int table_index = 0; table_index < 1024; table_index++) {
+    if (dir->entries[table_index].present) {
+      mem_free(dir->tables[table_index]);
+    }
+  }
+  mem_free(dir);
 }
 
 
