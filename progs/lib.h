@@ -43,4 +43,6 @@ bool syscall_wait(u_int32 *pid, u_int32 *return_value);
 
 void syscall_printf(string s, ...);
 
+void syscall_hlt();
+
 #endif

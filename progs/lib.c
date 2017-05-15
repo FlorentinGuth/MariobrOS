@@ -53,3 +53,12 @@ mov %0, %%ebx;    \
 int $0x80;          \
 " : : "r" (s) : "eax", "ebx");
 }
+
+
+void syscall_hlt()
+{
+  asm volatile ("\
+mov $11, %eax;  \
+int $0x80;       \
+");
+}

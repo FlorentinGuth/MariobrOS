@@ -211,6 +211,12 @@ void syscall_printf()
 }
 
 
+void syscall_hlt()
+{
+  asm volatile ("sti; hlt; cli");
+}
+
+
 void syscall_invalid()
 {
   throw("Invalid syscall!");
@@ -227,6 +233,7 @@ void syscall_install()
   syscall_table[Wait]   = *syscall_wait;
   syscall_table[Fork]   = *syscall_fork;
   syscall_table[Printf] = *syscall_printf;
+  syscall_table[Hlt]    = *syscall_hlt;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }

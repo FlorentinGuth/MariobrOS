@@ -6,9 +6,9 @@
 
 int main()
 {
-  u_int32 *pid = NULL, *return_value = NULL;
+  u_int32 pid, return_value;
   for (;;) {
-    syscall_wait(pid, return_value);
+    syscall_wait(&pid, &return_value);
   }
   return 0;  /* Dead code */
 }

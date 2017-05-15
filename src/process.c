@@ -29,7 +29,7 @@ process_t new_process(pid parent_id, priority prio)
   /* There comes the interesting stuff */
   regs->eip = NULL;  /* Will be set during code loading */
   regs->cs = USER_CODE_SEGMENT;
-  regs->eflags = 0;
+  regs->eflags = 0x200;  /* Interruptions */
   regs->useresp = START_OF_USER_STACK;
   regs->ss = USER_STACK_SEGMENT;
 
