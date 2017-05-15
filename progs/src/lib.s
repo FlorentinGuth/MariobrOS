@@ -1,96 +1,126 @@
 global exit
-
 exit:
-    mov eax, 0
-    mov ebx, [esp+4]
-    int 0x80
-    ret
+  push ebx
+  mov eax, 0
+  mov ebx, [esp+8]
+  int 0x80
+  pop ebx
+  ret
 
 global fork
-    
 fork:
-    mov eax, 1
-    mov ebx, [esp+4]
-    int 0x80
-    mov edi, [esp+4]
-    mov [edi], ebx
-    ret
+  push ebx
+  push edi
+  mov eax, 1
+  mov ebx, [esp+12]
+  int 0x80
+  mov edi, [esp+12]
+  mov [edi], ebx
+  pop edi
+  pop ebx
+  ret
 
 global scwait
-    
 scwait:
-    mov eax, 2
-    int 0x80
-    mov edi, [esp+4]
-    mov [edi], ebx
-    mov edi, [esp+8]
-    mov [edi], ecx
-    ret
+  push ebx
+  push ecx
+  push edi
+  mov eax, 2
+  int 0x80
+  mov edi, [esp+16]
+  mov [edi], ebx
+  mov edi, [esp+20]
+  mov [edi], ecx
+  pop edi
+  pop ecx
+  pop ebx
+  ret
 
 global malloc
-    
 malloc:
-    mov eax, 4
-    mov ebx, [esp+4]
-    int 0x80
-    ret
+  push ebx
+  mov eax, 4
+  mov ebx, [esp+8]
+  int 0x80
+  pop ebx
+  ret
 
 global free
-    
 free:
-    mov eax, 5
-    mov ebx, [esp+4]
-    int 0x80
-    ret
+  push ebx
+  mov eax, 5
+  mov ebx, [esp+8]
+  int 0x80
+  pop ebx
+  ret
 
 global hlt
-    
 hlt:
-    mov eax, 11
-    int 0x80
-    ret
+  mov eax, 11
+  int 0x80
+  ret
 
 global open
-    
 open:
-    mov eax, 15
-    mov ebx, [esp+4]
-    mov ecx, [esp+8]
-    and ecx, 0xff
-    mov edx, [esp+12]
-    and edx, 0xffff
-    int 0x80
-    ret
+  push ebx
+  push ecx
+  push edx
+  mov eax, 15
+  mov ebx, [esp+16]
+  mov ecx, [esp+20]
+  and ecx, 0xff
+  mov edx, [esp+24]
+  and edx, 0xffff
+  int 0x80
+  push ebx
+  push ecx
+  push edx
+  ret
 
 global close
-    
 close:
-    mov eax, 16
-    mov ebx, [esp+4]
-    int 0x80
-    ret
+  push ebx
+  mov eax, 16
+  mov ebx, [esp+8]
+  int 0x80
+  pop ebx
+  ret
 
 global read
-    
 read:
-    mov eax, 17
-    mov ebx, [esp+4]
-    mov ecx, [esp+8]
-    mov edx, [esp+12]
-    mov edi, [esp+16]
-    int 0x80
-    ret
+  push ebx
+  push ecx
+  push edx
+  push edi
+  mov eax, 17
+  mov ebx, [esp+20]
+  mov ecx, [esp+24]
+  mov edx, [esp+28]
+  mov edi, [esp+32]
+  int 0x80
+  pop edi
+  pop edx
+  pop ecx
+  pop ebx
+  ret
 
 global write
-    
 write:
-    mov eax, 18
-    mov ebx, [esp+4]
-    mov ecx, [esp+8]
-    mov edx, [esp+12]
-    mov edi, [esp+16]
-    int 0x80
-    ret
+  push ebx
+  push ecx
+  push edx
+  push edi
+  mov eax, 18
+  mov ebx, [esp+20]
+  mov ecx, [esp+24]
+  mov edx, [esp+28]
+  mov edi, [esp+32]
+  int 0x80
+  pop edi
+  pop edx
+  pop ecx
+  pop ebx
+  ret
 
 global printf
 printf:

@@ -100,13 +100,14 @@ void syscall_handler(regs_t *regs)
   kloug(100, "Syscall %d\n", regs->eax);
   SWITCH_BEFORE();  /* Save context + kernel paging */
   /* kloug(100, "Context restored\n"); */
-  u_int32 esp;
-  asm volatile ("mov %%esp, %0" : "=r" (esp));
+  /* u_int32 esp; */
+  /* asm volatile ("mov %%esp, %0" : "=r" (esp)); */
   /* kloug(100, "Regs structure at %X and esp at %X\n", regs, 8, esp, 8); */
   /* kloug(100, "Useresp %X ss %x esp %X\n", regs->useresp, 8, regs->ss, regs->esp, 8); */
 
 
   syscall(regs->eax);
+  kloug(100, "Syscall ended\n");
 
   /* Check if the syscall has not ended, and if it is the case select a new process */
   if (state->processes[state->curr_pid].state != Runnable) {
