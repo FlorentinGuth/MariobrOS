@@ -45,4 +45,7 @@ void syscall_printf(string s, ...);
 
 void syscall_hlt();
 
+void *syscall_malloc(u_int32 size);
+void syscall_free(void *ptr);
+
 #endif

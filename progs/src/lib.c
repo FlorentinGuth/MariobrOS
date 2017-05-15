@@ -1,9 +1,9 @@
 #include "lib.h"
 
 
-u_int32 syscall_malloc(u_int32 size)
+void *syscall_malloc(u_int32 size)
 {
-  u_int32 ret;
+  void *ret;
   asm volatile(" \
 mov $4, %%eax;                                  \
 mov %0, %%ebx;                                  \
@@ -13,7 +13,7 @@ mov %%eax, %0                                   \
   return ret;
 }
 
-void syscall_free(u_int32 return_value)
+void syscall_free(void *return_value)
 {
   asm volatile ("\
 mov $5, %%eax;                                  \

@@ -8,9 +8,11 @@ HOST_MEMORY  = 512  # Memory that bochs should use to emulate our OS
 
 # Folders and paths
 SRC_DIR   = src
-PROGS_SRC_DIR = progs
+PROGS_DIR = progs
+PROGS_SRC_DIR = $(PROGS_DIR)/$(SRC_DIR)
 PROGS_ELF_DIR = iso/progs
 BUILD_DIR = build
+PROGS_BUILD_DIR = $(PROGS_DIR)/$(BUILD_DIR)
 BOOT_DIR  = iso/boot
 EMU_DIR   = emu
 
@@ -26,13 +28,13 @@ OBJECTS = loader.o kmain.o shell.o process.o syscall.o syscall_asm.o scheduler.o
 OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
 
 # Sources for user programs
-LINKER_PROG = $(PROGS_SRC_DIR)/link_prog.ld
+LINKER_PROG = $(PROGS_DIR)/link_prog.ld
 LOADER_PROG_S = $(PROGS_SRC_DIR)/loader_prog.s
-LOADER_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.s,$(BUILD_DIR)/%.o,$(LOADER_PROG_S))
+LOADER_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.s,$(PROGS_BUILD_DIR)/%.o,$(LOADER_PROG_S))
 LIB_PROG_C = $(PROGS_SRC_DIR)/lib.c
-LIB_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(LIB_PROG_C))
-PROGS_C   = $(filter-out $(LIB_PROG_C),$(wildcard $(PROGS_SRC_DIR)/*.c))
-PROGS_O   = $(patsubst $(PROGS_SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(PROGS_C))
+LIB_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_BUILD_DIR)/%.o,$(LIB_PROG_C))
+PROGS_C   = $(filter-out $(LIB_PROG_C), $(wildcard $(PROGS_SRC_DIR)/*.c))
+PROGS_O   = $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_BUILD_DIR)/%.o,$(PROGS_C))
 PROGS_ELF = $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_ELF_DIR)/%.elf,$(PROGS_C))
 
 # OS targets
@@ -123,7 +125,7 @@ disk: diskq
 .SECONDARY:   # Avoid deletion of intermediate files
 
 
-$(BUILD_DIR) $(EMU_DIR) $(PROGS_ELF_DIR): # Ensures folders exist
+$(BUILD_DIR) $(EMU_DIR) $(PROGS_ELF_DIR) $(PROGS_BUILD_DIR): # Ensures folders exist
 	@mkdir -p $@
 
 # Configuration files writing
@@ -155,13 +157,16 @@ $(BUILD_DIR)/%.o: src/%.s $(BUILD_DIR)
 	@$(AS) $< -o $@ $(ASFLAGS)
 
 # Progs compilation into .o and .elf
-$(BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.c $(BUILD_DIR)
+$(PROGS_BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.c $(PROGS_BUILD_DIR)
 	@$(CC) $< -c -o $@ $(CFLAGS) $(EMUFLAGS) $(CPPFLAGS)
 
-$(BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.s $(BUILD_DIR)
+$(PROGS_BUILD_DIR)/%.o: $(PROGS_DIR)/%.c
+	@$(CC) $< -c -o $@ $(CFLAGS) $(EMUFLAGS) $(CPPFLAGS)
+
+$(PROGS_BUILD_DIR)/%.o: $(PROGS_DIR)/%.s $(BUILD_DIR)
 	@$(AS) $< -o $@ $(ASFLAGS)
 
-$(PROGS_ELF_DIR)/%.elf: $(BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_ELF_DIR) $(LINKER_PROG) $(LOADER_PROG_O)
+$(PROGS_ELF_DIR)/%.elf: $(PROGS_BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_ELF_DIR) $(LINKER_PROG) $(LOADER_PROG_O)
 	@$(LD) $(LDFLAGS) -T $(LINKER_PROG) $(LIB_PROG_O) $(LOADER_PROG_O) $< -o $@
 
 core: $(KERNEL_ELF) $(PROGS_ELF)
@@ -218,6 +223,7 @@ clean_old:
 	rm -rf $(EMU_DIR)
 	rm -f $(BOOT_DIR)/kernel.elf
 	rm -rf $(PROGS_ELF_DIR)
+	rm -rf $(PROGS_BUILD_DIR)
 
 cleandisk: clean_old
 	rm -f $(DISK_IMG)
