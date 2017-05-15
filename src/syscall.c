@@ -9,6 +9,7 @@
 #include "malloc.h"
 #include "memory.h"
 #include "keyboard.h"
+#include "shell.h"
 
 
 /* Possible speed enhancements:
@@ -557,9 +558,32 @@ void syscall_run()
   run_program((void*) &sys_buf);
 }
 
+extern bool in_kernel, should_cycle;  /* From scheduler.c */
+extern bool need_to_finalize;         /* From shell.c */
 void syscall_hlt()
 {
-  asm volatile ("sti; hlt; cli");
+  should_cycle = FALSE;
+
+  if (need_to_finalize) {
+    finalize_command();
+    should_cycle = TRUE;
+    return;
+  }
+
+  for (;;) {
+    asm volatile ("sti; hlt; cli");
+
+    if (!should_cycle) {
+      /* The interruption was not a timer */
+      should_cycle = TRUE;  /* We want to change process, maybe someone has something to do */
+      kloug(100, "Leaving hlt\n");
+      break;
+    } else {
+      /* We received a timer event */
+      /* kloug(100, "Timer event\n"); */
+      should_cycle = FALSE;
+    }
+  }
 }
 
 

@@ -11,6 +11,8 @@
 
 
 scheduler_state_t *state = NULL;
+bool in_kernel = FALSE;  /* If true, we were doing a syscall while we were interrupted */
+bool should_cycle = FALSE;
 
 
 void select_new_process()
@@ -52,6 +54,7 @@ void select_new_process()
 
 /* Context-switching defines, not functions, to avoid using the stack */
 #define SWITCH_BEFORE() {                                               \
+    in_kernel = TRUE;                                                   \
     /* Restores kernel paging */                                        \
     switch_page_directory(kernel_directory);                            \
     context_t *ctx = &state->processes[state->curr_pid].context;        \
@@ -80,11 +83,19 @@ void select_new_process()
                                                                         \
     /* Restores process paging */                                       \
     switch_page_directory(ctx->page_dir);                               \
+    in_kernel = FALSE;                                                  \
   }
 
 void timer_handler(regs_t *regs)
 {
-  kloug(100, "Timer\n");
+  /* kloug(100, "Timer\n"); */
+
+  if (in_kernel) {
+    /* kloug(100, "Timer during kernel!\n"); */
+    should_cycle = TRUE;
+    return;
+  }
+
   SWITCH_BEFORE();       /* Save context + kernel paging */
   select_new_process();
   SWITCH_AFTER();        /* Paging set-up + restore the stack and the context */
@@ -98,9 +109,13 @@ void timer_handler(regs_t *regs)
  */
 void syscall_handler(regs_t *regs)
 {
-  kloug(100, "Syscall %d\n", regs->eax);
+  if (in_kernel) {
+    throw("WTF");
+  }
+
+  /* kloug(100, "Syscall %d\n", regs->eax); */
   SWITCH_BEFORE();  /* Save context + kernel paging */
-  kloug(100, "Context restored\n");
+  /* kloug(100, "Context restored\n"); */
   /* u_int32 esp; */
   /* asm volatile ("mov %%esp, %0" : "=r" (esp)); */
   /* kloug(100, "Regs structure at %X and esp at %X\n", regs, 8, esp, 8); */
@@ -108,18 +123,19 @@ void syscall_handler(regs_t *regs)
 
 
   syscall(regs->eax);
-  kloug(100, "Syscall ended\n");
+  /* kloug(100, "Syscall ended\n"); */
 
   /* Check if the syscall has not ended, and if it is the case select a new process */
-  if (state->processes[state->curr_pid].state != Runnable) {
+  if (should_cycle || state->processes[state->curr_pid].state != Runnable) {
     select_new_process();
+    should_cycle = FALSE;
   }
 
   SWITCH_AFTER();  /* Paging set-up + restore the stack and the context */
 }
 
 
-void load_code(string program_name, context_t ctx)
+bool load_code(string program_name, context_t ctx)
 {
   /* kloug(100, "Loading %s code\n", program_name); */
 
@@ -128,6 +144,9 @@ void load_code(string program_name, context_t ctx)
   mem_free(temp);
 
   u_int32 inode = find_inode(path, 2);
+  if (!inode) {
+    return FALSE;
+  }
   mem_free(path);
 
   /* TODO: read until EOF or something */
@@ -165,6 +184,8 @@ void load_code(string program_name, context_t ctx)
   for (u_int32 page = 0; page < nb_pages; page++) {
     free_virtual_space(current_directory, virtuals[page], FALSE);  /* Frame also mapped for the proc */
   }
+
+  return TRUE;
 }
 
 
@@ -176,6 +197,9 @@ void load_code(string program_name, context_t ctx)
  */
 void switch_to_process(pid pid)
 {
+  in_kernel = FALSE;
+  should_cycle = FALSE;
+
   process_t proc = state->processes[pid];
 
   /* Saves kernel context */
@@ -242,7 +266,16 @@ void run_program(string name)
 
   process_t *proc = &state->processes[pid];
   *proc = new_process(1, 1, TRUE);  /* User processes have a priority of 1 */
-  load_code(name, proc->context);
+  if (!load_code(name, proc->context)) {
+    /* Unable to load code */
+    writef("%frun:%f\tUnknown file: progs/%s.elf\n", LightRed, White, name);
+
+    mem_free(proc->context.regs);
+    free_page_dir(proc->context.page_dir);
+    proc->state = Free;
+
+    return;
+  }
 
   /* kloug(100, "%x %x\n", proc->context.regs->ss, proc->context.regs->cs); */
 

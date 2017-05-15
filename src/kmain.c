@@ -50,19 +50,10 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
 
   /* log_memory(); */
 
-  scheduler_install();
-
   /* Last but not least, the shell */
   shell_install();
 
-  /* Enables interruptions */
-  asm volatile ("sti");
+  scheduler_install();
 
-  /* string s = mem_alloc(sizeof("div")); */
-  /* str_copy("div", s); */
-  /* run_program(s); */
-
-  for(;;)
-    asm volatile("hlt"); // idle state, still reacts to interrupts
   return 0xCAFEBABE;
 }

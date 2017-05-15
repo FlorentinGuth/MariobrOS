@@ -27,4 +27,6 @@ void shell_right();
 
 void register_command(command_t c);
 
+void finalize_command();
+
 #endif
