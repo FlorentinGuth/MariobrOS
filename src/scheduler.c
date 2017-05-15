@@ -257,34 +257,48 @@ void scheduler_install()
   state = (scheduler_state_t *)mem_alloc(sizeof(scheduler_state_t));
   mem_set(state, 0, sizeof(scheduler_state_t));
 
+  /* Initialization of the state */
+  for (priority prio = 0; prio <= MAX_PRIORITY; prio++) {
+    state->runqueues[prio] = empty_queue();
+  }
+
   /* Creating idle process */
   pid idle_pid = 0;
   process_t *idle = &state->processes[idle_pid];
   *idle = new_process(idle_pid, 0, TRUE);
   load_code("idle", idle->context);
+  enqueue(state->runqueues[0],            idle_pid);
 
   /* Creating init process */
   pid init_pid = 1;
   process_t *init = &(state->processes[init_pid]);
   *init = new_process(init_pid, MAX_PRIORITY, TRUE);
   load_code("init", init->context);
-
-  /* Initialization of the state */
-  state->curr_pid = init_pid;  /* We start with the init process */
-  for (priority prio = 0; prio <= MAX_PRIORITY; prio++) {
-    state->runqueues[prio] = empty_queue();
-  }
-  /* Adds idle and init in the runqueues */
-  enqueue(state->runqueues[0],            idle_pid);
   enqueue(state->runqueues[MAX_PRIORITY], init_pid);
+
+
+  /* /\* Creating timer1 process *\/ */
+  /* pid timer1_pid = 2; */
+  /* process_t *timer1 = &(state->processes[timer1_pid]); */
+  /* *timer1 = new_process(timer1_pid, MAX_PRIORITY-1, TRUE); */
+  /* load_code("timer1", timer1->context); */
+  /* enqueue(state->runqueues[MAX_PRIORITY], timer1_pid); */
+
+  /* /\* Creating timer2 process *\/ */
+  /* pid timer2_pid = 1; */
+  /* process_t *timer2 = &(state->processes[timer2_pid]); */
+  /* *timer2 = new_process(timer2_pid, MAX_PRIORITY, TRUE); */
+  /* load_code("timer2", timer2->context); */
+  /* enqueue(state->runqueues[MAX_PRIORITY], timer2_pid); */
 
   /* Adds handlers for timer and syscall interruptions */
   extern void *timer_phase(int hz);  /* Defined in timer.c */
   timer_phase(SWITCH_FREQ);
-  /* irq_install_handler(0, timer_handler); */
+  irq_install_handler(0, timer_handler);
   syscall_install();
 
   /* kloug(100, "Scheduler installed\n"); */
 
-  /* switch_to_process(init_pid); */
+  state->curr_pid = init_pid;  /* We start with the init process */
+  switch_to_process(init_pid);
 }
