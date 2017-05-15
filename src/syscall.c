@@ -38,18 +38,23 @@ extern scheduler_state_t *state;  /* Defined in scheduler.c */
 
 void syscall_malloc()
 {
-  log_page_dir(CURR_PROC.context.page_dir);
+  /* log_page_dir(CURR_PROC.context.page_dir); */
+  size_t size = CURR_REGS->ebx;
   SWITCH_AFTER();
   log_memory();
-  CURR_REGS->eax = (u_int32)mem_alloc(CURR_REGS->ebx);
-  kloug(100, "Returned %X\n", CURR_REGS->eax);
+  /* u_int32 esp; asm volatile ("mov %%esp, %0" : "=r" (esp)); */
+  /* kloug(100, "Allocating %x bytes, ESP=%X\n", size, esp, 8); */
+  u_int32 ret = (u_int32)mem_alloc(size);
+  kloug(100, "Returned %X\n", ret, 8);
   SWITCH_BEFORE();
+  CURR_REGS->eax = ret;
 }
 
 void syscall_free()
 {
+  void *ptr = (void *)CURR_REGS->ebx;
   SWITCH_AFTER();
-  mem_free((void *)CURR_REGS->ebx);
+  mem_free(ptr);
   SWITCH_BEFORE();
 }
 
