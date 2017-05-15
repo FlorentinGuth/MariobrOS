@@ -241,7 +241,7 @@ u_int32 find_unmapped_page(page_directory_t *dir)
 
 bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool is_kernel, bool is_writable)
 {
-  /* kloug(100, "Virtual space at %X requested\n", virtual_address, 8); */
+  kloug(100, "Virtual space at %X requested\n", virtual_address, 8);
 
   page_table_entry_t *page = get_page(dir, virtual_address, is_kernel, is_writable);
 

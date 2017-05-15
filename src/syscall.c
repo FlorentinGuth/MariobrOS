@@ -41,11 +41,11 @@ void syscall_malloc()
   /* log_page_dir(CURR_PROC.context.page_dir); */
   size_t size = CURR_REGS->ebx;
   SWITCH_AFTER();
-  log_memory();
+  /* log_memory(); */
   /* u_int32 esp; asm volatile ("mov %%esp, %0" : "=r" (esp)); */
   /* kloug(100, "Allocating %x bytes, ESP=%X\n", size, esp, 8); */
   u_int32 ret = (u_int32)mem_alloc(size);
-  kloug(100, "Returned %X\n", ret, 8);
+  /* kloug(100, "Returned %X\n", ret, 8); */
   SWITCH_BEFORE();
   CURR_REGS->eax = ret;
 }

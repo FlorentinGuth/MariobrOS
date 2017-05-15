@@ -3,15 +3,14 @@
 
 int main()
 {
-  void *a = syscall_malloc(1);
-  syscall_printf("%x\n", a);
-  void *b = syscall_malloc(0x2000);
-  syscall_printf("%x\n", b);
-  syscall_free(a);
-  syscall_free(b);
-  void * c = syscall_malloc(0x200);
-  syscall_printf("%x\n", c);
-  syscall_free(c);
+  void *ptrs[1000];
+
+  for (int i = 0; i < 1000; i++)
+    ptrs[i] = syscall_malloc(1);
+  syscall_printf("Survived allocation\n");
+  for (int i = 0; i < 1000; i++)
+    syscall_free(ptrs[i]);
+  syscall_printf("I survived!\n");
 
   return 0;
 }
