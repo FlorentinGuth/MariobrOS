@@ -342,7 +342,7 @@ void page_fault_handler(regs_t *regs)
   /* writef("Err_code: %x\n", regs->err_code); */
   /* page_table_entry_t *page = get_page(state->processes[state->curr_pid].context.page_dir, faulting_address); */
   /* writef("Entry: %x\n", *page); */
-  /* writef("cs %x ss %x ds %x eip %x esp %x\n", regs->cs, regs->ss, regs->ds, regs->eip, regs->useresp); */
+  writef("cs %x ss %x ds %x eip %x esp %x\n", regs->cs, regs->ss, regs->ds, regs->eip, regs->useresp);
   throw("PAGE_FAULT");
 
   if (!present) {

@@ -55,7 +55,6 @@ void select_new_process()
     context_t *ctx = &state->processes[state->curr_pid].context;        \
                                                                         \
     /* Saves process context */                                         \
-    asm volatile ("mov %%esp, %0" : "=r" (ctx->esp));                   \
     ctx->regs = regs;                                                   \
     ctx->first_free_block = first_free_block;                           \
     ctx->unallocated_mem  = unallocated_mem;                            \
@@ -66,6 +65,7 @@ void select_new_process()
   }
 
 #define SWITCH_AFTER() {                                                \
+    kloug(100, "Switching back to %d\n", state->curr_pid);              \
     /* Saves kernel context */                                          \
     kernel_context.unallocated_mem  = unallocated_mem;                  \
     kernel_context.first_free_block = first_free_block;                 \
@@ -75,7 +75,7 @@ void select_new_process()
     first_free_block = ctx->first_free_block;                           \
     unallocated_mem  = ctx->unallocated_mem;                            \
     /* No need to touch at the regs structure because of pointers */    \
-    asm volatile ("mov %0, %%esp" : : "r" (ctx->esp));                  \
+    *regs = *ctx->regs;                                                 \
                                                                         \
     /* Restores process paging */                                       \
     switch_page_directory(ctx->page_dir);                               \

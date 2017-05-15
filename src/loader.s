@@ -46,7 +46,6 @@ loader:                         ; The loader label (defined as entry point in th
   push KERNEL_STACK_START
   push ebx                      ; Load multi-boot header location, which have been set up by GRUB
   call kmain                    ; Call the kmain function from kmain.c (return in eax)
+  mov eax, 0xDEADFACE
   cli                           ; Prevents further interruptions
-
-.loop:
-  jmp .loop                     ; Loop forever
+  hlt
