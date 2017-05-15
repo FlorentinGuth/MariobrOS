@@ -19,7 +19,6 @@
 
 /* TODO:
  * Mark lower memory as usable
- * Do not map page 0
  */
 
 /**
@@ -97,7 +96,7 @@ void map_page_to_frame(page_table_entry_t *page, u_int32 frame, bool is_kernel, 
   }
 
   /* Marks the physical frame as used, if not already */
-  set_bit(frames, frame, TRUE);  /* TODO: reference counting? */
+  set_bit(frames, frame, TRUE);
 
   page->present = TRUE;
   page->rw      = is_writable;

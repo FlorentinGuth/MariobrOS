@@ -138,11 +138,12 @@ ce bit soit allumé pour continuer à effectuer les opérations de lecture /
 \verb|close| de l'interface POSIX ont étés implémentées, avec la syntaxe et les 
 flags présentés dans la bibliothèque Unix de OCaml. Les permissions ne sont pas 
 vérifiées, seul le mode d'ouverture (\verb|O_RDONLY|, \verb|O_WRONLY|, 
-\verb|O_APPEND|, etc.)importe.
+\verb|O_APPEND|, etc\ldots) importe.
 		
-		Les fonctions du shell \verb|ls|, \verb|mkdir|, \verb|rm| sont 
-aussi implémentées. \verb|rm| peut supprimer récursivement des dossiers sans 
-risque de débordement de pile pour une profondeur quelconque de sous-dossers.
+		Les fonctions du \foreign{shell} \verb|ls|, \verb|mkdir|, 
+\verb|rm| sont aussi implémentées. \verb|rm| peut supprimer récursivement des 
+dossiers sans risque de débordement de pile pour une profondeur quelconque de 
+sous-dossiers.
 		
 	\subsection{Implémentation et difficultés rencontrées}
 	
@@ -190,7 +191,7 @@ aucun \foreign{fd} valide. À chaque appel à une fonction comme \verb|read|,
 \foreign{fd} dans la \foreign{fdt} correspondant à son index est vérifiée, et la 
 fonction considère le \foreign{fd} invalide si ce n'est pas le cas. Cette 
 sécurité n'est cependant pas complète : si le pointeur \foreign{fd} est 
-ré-alloué par la suite par \verb|openfile|, il pourra alors reservir.
+ré-alloué par la suite par \verb|openfile|, il pourra alors resservir.
 
 
 \clearpage
@@ -199,7 +200,6 @@ ré-alloué par la suite par \verb|openfile|, il pourra alors reservir.
 \subsection{Organisation de la mémoire}
 
 La mémoire (virtuelle) se décompose comme suit :
-On obtient donc le tableau d'activation suivant :
 \begin{table}[H]
  \centering
  \begin{subtable}[h]{.5\linewidth}
@@ -261,14 +261,14 @@ n'étant pas \foreign{mappée} pour détecter les erreurs.
 Lorsqu'un utilisateur demande l'accès à une page virtuelle, on cherche la 
 première page physique libre et on \foreign{mappe} la première vers la 
 dernière. Ainsi, cela permet au tas de grandir automatiquement. Il en va de 
-même pour la pile de l'utilisateur : lorsqu'il effectue nu \foreign{Page 
+même pour la pile de l'utilisateur : lorsqu'il effectue un \foreign{Page 
 Fault} pour cause de \foreign{Stack Overflow}, on peut \foreign{mapper} la page 
 manquante et recommencer (désactivé pour faciliter le \foreign{debug}).
 
 Il est également possible pour le \foreign{kernel} de demander l'accès à une 
 page physique, ce qui est souvent utile : par exemple, pour charger le code 
 d'un processus en mémoire (alors que l'on est dans le \foreign{page directory} 
-du \foreign{kernel}, on demande l'accès aux pages physiques correspondant aux 
+du \foreign{kernel}), on demande l'accès aux pages physiques correspondant aux 
 adresses virtuelles \code{0xFFFF0000 - 0xFFFFFFFF} du processus (le code 
 utilisateur étant \foreign{linké} à l'adresse \code{0xFFFF0000}) et on y copie 
 alors le code voulu.
@@ -336,10 +336,13 @@ utilisateur)}
 \section{Bugs et améliorations possibles}
 
 Il y a certainement quelques fuites de mémoire de temps à autre, notamment au 
-niveau du \foreign{shell} (c'est plus faute de temps qu'autre chose).
+niveau du \foreign{shell} (c'est plus faute de temps qu'autre chose). De plus, 
+plus de gestion des erreurs (mauvaises commandes, manque de mémoire, \ldots) 
+serait nécessaire.
 
 Pouvoir exécuter le \foreign{shell} comme un processus aurait été un énorme 
-plus.
+plus, avec des \foreign{buffers} d'entrée, de sortie, d'erreur et les 
+opérateurs \foreign{pipe}, les indirections\ldots
 
 Les appels systèmes \code{new\string_channel}, \code{send} et \code{receive} 
 sont codés (depuis le piconoyau) mais pas portés dans \mariobros, encore une 

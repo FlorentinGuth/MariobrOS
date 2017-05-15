@@ -404,15 +404,15 @@ void syscall_hlt()
 
   if (need_to_finalize) {
     finalize_command();
+    should_cycle = TRUE;
+    return;
   }
 
-
-  asm volatile ("sti");
   for (;;) {
-    asm volatile ("hlt");
+    asm volatile ("sti; hlt; cli");
+
     if (!should_cycle) {
       /* The interruption was not a timer */
-      asm volatile ("cli");
       should_cycle = TRUE;  /* We want to change process, maybe someone has something to do */
       kloug(100, "Leaving hlt\n");
       break;

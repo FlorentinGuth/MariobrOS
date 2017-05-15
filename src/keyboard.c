@@ -264,6 +264,7 @@ void keyboard_handler(struct regs *r)
 void keyboard_shell_handler(struct regs *r)
 {
   int scancode;
+  /* kloug(100, "Key\n"); */
 
   /* Read from the keyboard's data buffer */
   scancode = inb(0x60);
