@@ -2,7 +2,7 @@
 #define SYSCALL_H
 
 #include "scheduler.h"
-
+#include "fs_inter.h"
 
 #define SYSCALL_ISR 0x80
 

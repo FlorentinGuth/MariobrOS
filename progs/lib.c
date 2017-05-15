@@ -22,6 +22,65 @@ int $0x80;                                      \
 " : : "r" (return_value));
 }
 
+fd syscall_open(string path, u_int8 oflag, u_int16 fperm)
+{
+  fd ret;
+  
+  asm volatile("\
+mov $15, %%eax;                                         \
+mov %0, %%ebx;                                          \
+mov %1, %%cl;                                           \
+mov %2, %%dx;                                           \
+int $0x80;                                              \
+mov %%eax, %0;                                          \
+" : "=r" (ret) : "r" (path), "r" (oflag), "r" (fperm));
+
+  return ret;
+}
+
+void syscall_close(fd f)
+{
+  asm volatile("\
+mov $16, %%eax; \
+mov %0, %%ebx;  \
+int $0x80;      \
+" : : "r" (f));
+}
+
+u_int32 syscall_read(fd f, u_int8* buffer, u_int32 offset, u_int32 length)
+{
+  u_int32 ret;
+
+  asm volatile("\
+mov $17, %%eax;                                 \
+mov %0, %%ebx;                                  \
+mov %1, %%ecx;                                  \
+mov %2, %%edx;                                  \
+mov %3, %%edi;                                  \
+int $0x80;                                      \
+mov %%eax, %0;                                  \
+" : "=r" (ret) : "r" (f), "r" (buffer), "r" (offset), "r" (length));
+
+  return ret;
+}
+
+u_int32 syscall_write(fd f, u_int8* buffer, u_int32 offset, u_int32 length)
+{
+  u_int32 ret;
+
+  asm volatile("\
+mov $18, %%eax;                                 \
+mov %0, %%ebx;                                  \
+mov %1, %%ecx;                                  \
+mov %2, %%edx;                                  \
+mov %3, %%edi;                                  \
+int $0x80;                                      \
+mov %%eax, %0;                                  \
+" : "=r" (ret) : "r" (f), "r" (buffer), "r" (offset), "r" (length));
+
+  return ret;
+}
+
 u_int32 syscall_fork(u_int32 priority, u_int32 *pid)
 {
   u_int32 ret;

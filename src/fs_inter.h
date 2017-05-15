@@ -30,6 +30,9 @@ struct file_description {
 typedef struct file_description fdt_e;
 
 
+u_int32 fdt_size;
+fdt_e* fdt;
+
 typedef struct stats {
   u_int32 st_ino;
   u_int8 st_kind;

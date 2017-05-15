@@ -4,7 +4,14 @@
 
 #define NULL  0
 
-typedef unsigned int u_int32;
+typedef unsigned int   u_int32;
+typedef   signed int   s_int32;
+typedef unsigned short u_int16;
+typedef   signed short s_int16;
+typedef unsigned char  u_int8;
+typedef   signed char  s_int8;
+
+typedef u_int32* fd;
 
 typedef unsigned char bool;
 #define FALSE 0
@@ -23,6 +30,7 @@ typedef char* string;
  *                      2 for the child process, pid contains the id of the parent process
  */
 u_int32 syscall_fork(u_int32 priority, u_int32 *pid);
+
 /**
  * @name syscall_exit  - Terminates the process
  * The child of the process have their parent replaced by the init process, while
@@ -31,6 +39,7 @@ u_int32 syscall_fork(u_int32 priority, u_int32 *pid);
  * @return void
  */
 void syscall_exit(u_int32 return_value);
+
 /**
  * @name syscall_wait  - Waits for a child process to call exit
  * @param pid          - Will contain the pid of the exited child process
