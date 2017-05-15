@@ -407,6 +407,14 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name)
   if(len>>8) {
     return 3;
   }
+  if(name[0]=='-') {
+    return 6;
+  }
+  for(u_int32 i = 0; i < len; i++) {
+    if(name[i]=='/') {
+      return 6;
+    }
+  }
   read_inode_data(dir, std_buf, 0, block_size);
   dir_entry *entry = (void*) std_buf;
   u_int32 room = entry->size; // Occupied room until current entry (included)

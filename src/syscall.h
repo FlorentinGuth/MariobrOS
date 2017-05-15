@@ -27,6 +27,7 @@ typedef enum syscall {
   Read       = 17,
   Write      = 18,
   Lseek      = 19,
+  Fstat      = 20,
   Invalid,       /* /!\ This need to be the last syscall */
 } syscall_t;
 

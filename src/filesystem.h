@@ -144,6 +144,7 @@ u_int8 add_file(u_int32 dir, u_int32 inode, u_int8 file_type, string name);
  *                 1: No such file found in the directory
  *                 4: No directory
  *                 5: No inode
+ *                 6: Bad name
  */
 u_int8 remove_file(u_int32 dir, u_int32 inode);
 

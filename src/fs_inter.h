@@ -35,7 +35,7 @@ fdt_e* fdt;
 
 typedef struct stats {
   u_int32 st_ino;
-  u_int8 st_kind;
+  u_int8  st_kind;
   u_int16 st_perm;
   u_int16 st_nlink;
   u_int32 st_size;

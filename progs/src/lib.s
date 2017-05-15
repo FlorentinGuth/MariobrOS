@@ -151,3 +151,15 @@ lseek:
     pop ecx
     pop ebx
     ret
+
+global fstat
+fstat:
+    push ebx
+    push ecx
+    mov eax, 20
+    mov ebx, [esp+12]
+    mov ecx, [esp+16]
+    int 0x80
+    pop ecx
+    pop ebx
+    ret

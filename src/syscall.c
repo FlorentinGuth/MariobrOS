@@ -174,6 +174,16 @@ void syscall_lseek()
   CURR_REGS->eax = lseek(f, offset, seek);
 }
 
+void syscall_fstat()
+{
+  fd f = (void*) CURR_REGS->ebx;
+  fstat(f, (void*) &sys_buf);
+  SWITCH_AFTER();
+  stats* s = (void*) CURR_REGS->ecx;
+  *s = *((stats*) (&sys_buf));
+  SWITCH_BEFORE();
+}
+
 
 void syscall_fork()
 {
@@ -411,6 +421,7 @@ void syscall_install()
   syscall_table[Read]    = *syscall_read;
   syscall_table[Write]   = *syscall_write;
   syscall_table[Lseek]   = *syscall_lseek;
+  syscall_table[Fstat]   = *syscall_fstat;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }

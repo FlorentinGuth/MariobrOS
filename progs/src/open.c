@@ -13,7 +13,7 @@ int main()
   string buf = "Hello world!";
   write(f, (void*)buf, 0, str_length(buf));
   u_int8 out[100];
-  lseek(f, 0, SEEK_SET);
+  lseek(f, 5, SEEK_SET);
   for(int i = 0; i < 100; i++) {
     out[i] = 0;
   }

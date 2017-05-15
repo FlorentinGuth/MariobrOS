@@ -186,7 +186,7 @@ void cd_handler(list_t args)
     /* New path defaults to root */
     curr_dir = 2;
   }
-  get_pwd();
+  get_cwd();
 }
 command_t cd_cmd = {
   .name = "cd",
@@ -195,9 +195,9 @@ command_t cd_cmd = {
 };
 
 /**
- *  @name get_pwd - Sets the global variable "path" according to "curr_dir"
+ *  @name get_cwd - Sets the global variable "path" according to "curr_dir"
  */
-void get_pwd()
+void get_cwd()
 {
   mem_free(path);
   u_int32 inode = curr_dir;
@@ -264,7 +264,7 @@ void get_pwd()
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void pwd_handler(list_t args)
 {
-  get_pwd();
+  get_cwd();
   writef("%s\n", path);
 }
 #pragma GCC diagnostic pop
@@ -376,7 +376,7 @@ void mkdir_handler(list_t args)
 }
 command_t mkdir_cmd = {
   .name = "mkdir",
-  .help = "Creates a new directory",
+  .help = "Creates a subdirectory of the current directory",
   .handler = *mkdir_handler,
 };
 

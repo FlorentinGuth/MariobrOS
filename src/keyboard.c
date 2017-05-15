@@ -332,7 +332,7 @@ void keyboard_shell_handler(struct regs *r)
       case 58: { // Caps lock
         k_lights = k_lights ^ 0x04;
         k_shift =!k_shift;
-        //keyboard_set_lights(k_lights);
+        keyboard_set_lights(k_lights);
         break;
       }
       case 69: { // Num lock

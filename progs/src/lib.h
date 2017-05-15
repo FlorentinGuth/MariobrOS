@@ -40,6 +40,14 @@ typedef   signed char  s_int8;
 #define PERM_USER_ID  0x800
 #define PERM_ALL      0x1FF
 
+typedef struct stats {
+  u_int32 st_ino;
+  u_int8  st_kind;
+  u_int16 st_perm;
+  u_int16 st_nlink;
+  u_int32 st_size;
+} stats;
+
 
 typedef u_int32* fd;
 
@@ -112,6 +120,13 @@ u_int32 write(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
  *  @return       - The new actual offset from the beginning of the file
  */
 u_int32 lseek(fd f, s_int32 offset, u_int8 seek);
+
+/**
+ *  @name fstat - Sets stats of a file
+ *  @param f    - The file descriptor
+ *  @param s    - A pointer to a stats structure
+ */
+void fstat(fd f, stats* s);
 
 /**
  *  @name fork - Creates a new process with a new, copied context
