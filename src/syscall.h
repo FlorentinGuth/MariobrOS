@@ -12,7 +12,7 @@ typedef enum syscall {
   Wait       =  2,    /* Waits for a child to return a value */
   Printf     =  3,    /* Prints to the framebuffer */
   Malloc     =  4,
-  Mem_Free   =  5,
+  Free       =  5,
   Ls         =  6,
   Rm         =  7,
   Mkdir      =  8,
@@ -22,6 +22,10 @@ typedef enum syscall {
   NewChannel = 12,
   Send       = 13,
   Receive    = 14,
+  Open       = 15,
+  Close      = 16,
+  Read       = 17,
+  Write      = 18,
   Invalid,       /* /!\ This need to be the last syscall */
 } syscall_t;
 
