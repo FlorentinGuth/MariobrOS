@@ -146,7 +146,7 @@ diskb: syncdisk $(BOCHS_CONFIG_DEBUGGER) #bochs
 	bochs -q -f $(EMU_DIR)/$(BOCHS_CONFIG_DISK) #-rc $(EMU_DIR)/$(BOCHS_CONFIG_DEBUGGER)
 
 diskq: syncdisk #qemu
-	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m $(GUEST_MEMORY) -s -serial file:$(EMU_DIR)/logq.txt -d cpu_reset
+	qemu-system-i386 -boot c -drive format=raw,file=$(DISK_IMG) -m $(GUEST_MEMORY) -s -serial file:$(EMU_DIR)/logq.txt
 
 
 # Kernel .c and .s compilation into .o

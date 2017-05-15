@@ -4,53 +4,52 @@ fdt_e* fdt = 0;
 u_int32 fdt_size = 0;
 u_int32 fdt_num = 0;
 
-#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 fd openfile(string path, u_int8 oflag, u_int16 fperm)
 {
   u_int32 inode = find_inode(path, 2);
   if(!( (oflag & O_CREAT) || inode) ) {
-    kloug(100, "File %s does not exist\n", path);
+    /* kloug(100, "File %s does not exist\n", path); */
     return 0;
   }
   if((oflag & O_EXCL) && inode) {
-    kloug(100, "File %s already exists\n", path);
+    /* kloug(100, "File %s already exists\n", path); */
     return 0;
   }
 
   u_int32 i;
   for(i = 0; i < fdt_size && fdt[i].inode; i++);
   if(i == fdt_size) { // fdt is full, so it shall double in size
-    fdt_e* tmp = (void*) mem_alloc(sizeof(2 * fdt_size * sizeof(fdt_e)));
-    for(u_int32 i = 0; i < fdt_size; i++) {
-      tmp[i] = fdt[i];
+    kloug(100,"Expanding File Descriptor Table (from size %u)\n", fdt_size);
+    fdt_e* tmp = (void*) mem_alloc(2 * fdt_size * sizeof(fdt_e));
+    for(u_int32 j = 0; j < fdt_size; j++) {
+      tmp[j] = fdt[j];
     }
-    for(u_int32 i = fdt_size; i < 2 * fdt_size; i++) {
-      tmp[i].inode = 0;
+    for(u_int32 j = fdt_size; j < 2 * fdt_size; j++) {
+      tmp[j].inode = 0;
     }
+    mem_free(fdt);
     fdt = tmp;
     i = fdt_size;
     fdt_size *= 2;
   }
-  fd f = (void*) mem_alloc(8);
+  fd f = (void*) mem_alloc(sizeof(void*));
   *f = i;
   fdt_num++;
 
   if(!inode) { // O_CREAT flag is set because of the first test
     /* std_buf has been set by find_inode to the content of the data block of
        the parent directory, so its first directory entry is "." */
-    writef("Creating file %s\n", path);
+    kloug(100, "Creating file %s\n", path);
     list_t l = str_split(path, '/', FALSE);
     u_int32 parent = ((dir_entry*) std_buf)->inode;
-    writef("Parent: %u\n", parent);
     while(l->tail) {
       mem_free((void*) l->head);
       pop(&l);
     }
-    writef("Name: %s\n", l->head);
     inode = create_file(parent, (void*) l->head, TYPE_FILE | fperm, \
                         FILE_REGULAR);
-    writef("Inode for %s is %u\n", path, inode);
-    ls_dir(parent);
+    /* kloug(100, "Inode for %s is %u\n", path, inode); */
     mem_free((void*) l->head);
     pop(&l);
     if(!inode) {
@@ -58,13 +57,9 @@ fd openfile(string path, u_int8 oflag, u_int16 fperm)
       return 0;
     }
   }
-  writef("Sorti de la condition\n");
-
   if(oflag & O_TRUNC) {
-    writef("oflag: %x\n", oflag);
     erase_file_data(inode);
   }
-  writef("Setting inode\n");
   set_inode(inode, std_inode);
   if(oflag & O_APPEND) {
     fdt[*f].pos = std_inode->size_low;
@@ -79,7 +74,7 @@ fd openfile(string path, u_int8 oflag, u_int16 fperm)
    * and also allows to prevent a closed file descriptor from referring to
    * another file.
    */
-  ls_dir(2);
+  /* kloug(100, "File descriptor n°%u created\n", *f); */
   return f;
 }
 
@@ -208,7 +203,7 @@ u_int32 lseek(fd f, s_int32 offset, u_int8 seek)
 
 void close(fd f)
 {
-  if(!f) {
+  if(!f || !fdt[*f].inode) {
     return;
   }
   fdt[*f].inode = 0;
@@ -216,6 +211,7 @@ void close(fd f)
   mem_free(f);
   fdt_num--;
   if(fdt_num > 64 && fdt_num < fdt_size / 4) { // Shrink the fdt
+    kloug(100, "Shrinking File Descriptor Table (from size %u)\n", fdt_size);
     fdt_e* tmp = (void*) mem_alloc((fdt_size / 2) * sizeof(fdt_e));
     bool copy = TRUE;
     u_int32 j;
@@ -228,9 +224,11 @@ void close(fd f)
             tmp[i] = fdt[j];
             *(tmp[i].this) = i; // Change associated file descriptor
             fdt[j].inode = 0;
+            break;
           }
         }
         if(j == fdt_size) {
+          writef("STOP: %u\n",j);
           copy = FALSE; // No more fd to move
         }
       }
@@ -248,9 +246,9 @@ void fs_inter_install()
    * ocupation rate is below 1/4. This ensures a constant amortized cost per
    * operation of creation and deletion of file descriptors
    */
-  fdt = (void*) mem_alloc(256 * sizeof(fdt_e));
+  fdt_size = 256;
+  fdt = (void*) mem_alloc(fdt_size * sizeof(fdt_e));
   for(int i = 0; i < 256; i++) {
     fdt[i].inode = 0;
   }
-  fdt_size = 256;
 }

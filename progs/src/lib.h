@@ -103,6 +103,17 @@ u_int32 read(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
 u_int32 write(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
 
 /**
+ *  @name lseek   - Set the current position for a file descriptor
+ *
+ *  @param f      - The file descriptor
+ *  @param offset - The new offset (according to the seek command)
+ *  @param seek   - The seek command, SEEK_SET, SEEK_CUR or SEEK_END
+ *
+ *  @return       - The new actual offset from the beginning of the file
+ */
+u_int32 lseek(fd f, s_int32 offset, u_int8 seek);
+
+/**
  *  @name fork - Creates a new process with a new, copied context
  *  @param priority    - The priority to give to the child process
  *  @param pid         - A pointer toward an integer that will be set with a process id
