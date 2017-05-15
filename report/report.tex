@@ -38,7 +38,7 @@
     \small
 \inputminted[frame=lines,linenos,style=colorful,fontfamily=tt,breaklines,
 autogobble,firstline=#3,firstnumber=#3,lastline=#4,label={#2[#3--#4]}]{#1
-}{../src/#2}
+}{../#2}
     
 \captionsetup{name=Listing,labelformat=listing,labelsep=endash,labelfont={sc}}
     \caption{#5}
@@ -114,7 +114,7 @@ composants et rentre dans la boucle principale.
 \end{itemize}
 
 
-
+\clearpage
 \section{Système de fichiers}
 
 	Le système de fichier implémenté est EXT2.
@@ -191,7 +191,9 @@ aucun \foreign{fd} valide. À chaque appel à une fonction comme \verb|read|,
 fonction considère le \foreign{fd} invalide si ce n'est pas le cas. Cette 
 sécurité n'est cependant pas complète : si le pointeur \foreign{fd} est 
 ré-alloué par la suite par \verb|openfile|, il pourra alors reservir.
-	
+
+
+\clearpage
 \section{Gestion de la mémoire}
 
 \subsection{Organisation de la mémoire}
@@ -283,9 +285,10 @@ Lors de la libération d'un bloc, celui-ci est éventuellement fusionné avec se
 voisins (physiques) si ceux-ci sont libres, afin d'éviter la fragmentation de 
 la mémoire.
 
-\source{C}{malloc.c}{21}{52}{Structure du tas}
+\source{C}{src/malloc.c}{21}{52}{Structure du tas}
 
 
+\clearpage
 \section{\foreign{Multitasking}}
 
 \subsection{Processus}
@@ -298,7 +301,51 @@ Un ordonnanceur va alors sélectionner les processus selon leur priorité, à
 chaque tick de l'horloge (interruption \foreign{timer}), ou après un appel 
 système qui laisse le processus courant en attente.
 
+On dispose de l'appel système \code{hlt} (effectué par le processus \code{idle} 
+en continu) qui permet au système d'être toujours sensible aux interruptions. 
+Pour cela, on ignore les interruptions \foreign{timer} lorsque l'on est en 
+train de répondre à un appel système, tandis que tout autre interruption 
+provoque l'arrêt de la boucle d'attente et le retour à l'ordonnanceur, qui 
+sélectionne un nouveau processus, etc\ldots.
+
+\subsection{\foreign{Shell}}
+
+\`A l'heure où nous mettons sous presse, le \foreign{shell} n'est pas encore un 
+processus utilisateur à part entière. Nous espérons cependant qu'il en sera un 
+le jour de la présentation.
+
+Le \foreign{shell} premet d'éxécuter des commandes (la liste étant accessible 
+avec \code{help}), dispose d'un curseur (qui n'est pas visible depuis que l'on 
+\foreign{boot} sur le disque pour une raison inconnue) et d'un historique. En 
+tant que processus, toutes les commandes ou presque utilisent des appels 
+systèmes.
+
+\subsection{La commande \code{run}}
+
+Cette commande permet de lancer un exécutable \foreign{ELF} situé dans le 
+dossier \code{progs} (\code{run foo} va ainsi lancer le programme 
+\code{progs/foo.elf}). Ces exécutables correspondent à un ficher \foreign{C} 
+situé dans \code{progs/src} qui a été compilé à l'aide d'une bibliothèque pour 
+pouvoir utiliser les appels systèmes.
+
+\source{nasm}{progs/src/lib.s}{10}{21}{Exemple d'appel système (côté 
+utilisateur)}
 
 
+\clearpage
+\section{Bugs et améliorations possibles}
+
+Il y a certainement quelques fuites de mémoire de temps à autre, notamment au 
+niveau du \foreign{shell} (c'est plus faute de temps qu'autre chose).
+
+Pouvoir exécuter le \foreign{shell} comme un processus aurait été un énorme 
+plus.
+
+Les appels systèmes \code{new\string_channel}, \code{send} et \code{receive} 
+sont codés (depuis le piconoyau) mais pas portés dans \mariobros, encore une 
+fois par manque de temps.
+
+Enfin, dans l'état actuel des choses, appeler la commander \code{run} ne rend 
+pas la main au \code{shell}\ldots
 
 \end{document}

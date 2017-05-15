@@ -402,7 +402,7 @@ void rm_handler(list_t args)
       if(std_inode->type & TYPE_DIR) {
         if(rec) {
           if(rm_dir(inode)) {
-            writef("An error was encountered while  deleting %s directory\n", \
+            writef("An error was encountered while deleting %s directory\n", \
                    file);
           }
         } else {
@@ -474,9 +474,12 @@ void echo_command()
   set_pos();
 }
 
+bool need_to_finalize = FALSE;
 void send_command()
 {
   /* Parsing of the command */
+  need_to_finalize = TRUE;
+
   list_t words = str_split(history[history_pos], ' ', FALSE);
   kloug(100 + buffer_size, "Executing command %s %x\n", history[history_pos], words);
 
@@ -492,6 +495,39 @@ void send_command()
       writef("Unknown command: %f%s%f\n", LightRed, command_name, White);
     }
   }
+}
+
+
+void finalize_command()
+{
+  need_to_finalize = FALSE;
+  echo_thingy();
+
+  if (history_length == history_size - 1) {
+    /* Full history */
+    kloug(100, "Full history %d %d\n", history_length, history_pos);
+    mem_free(history[0]);
+    for (int i = 1; i < history_size; i++) {
+      history[i-1] = history[i];
+    }
+    history_pos = history_length;
+  } else {
+    /* Save in history */
+    kloug(100, "Non-full history %d %d\n", history_length, history_pos);
+    str_copy(history[history_pos], history[history_length]);
+
+    history_length++;
+    history_pos = history_length;
+  }
+
+  history[history_pos] = mem_alloc(buffer_size);
+  str_fill(history[history_pos], '\0', buffer_size);
+
+  pos = 0;
+  start_of_command = get_cursor_pos();
+  length = 0;
+  max_length = 0;
+  kloug(100, "Command sent\n");
 }
 
 
@@ -511,33 +547,7 @@ void shell_write_char(char c)
     write_char('\n');
 
     send_command();
-    echo_thingy();
-
-    if (history_length == history_size - 1) {
-      /* Full history */
-      kloug(100, "Full history %d %d\n", history_length, history_pos);
-      mem_free(history[0]);
-      for (int i = 1; i < history_size; i++) {
-        history[i-1] = history[i];
-      }
-      history_pos = history_length;
-    } else {
-      /* Save in history */
-      kloug(100, "Non-full history %d %d\n", history_length, history_pos);
-      str_copy(history[history_pos], history[history_length]);
-
-      history_length++;
-      history_pos = history_length;
-    }
-
-    history[history_pos] = mem_alloc(buffer_size);
-    str_fill(history[history_pos], '\0', buffer_size);
-
-    pos = 0;
-    start_of_command = get_cursor_pos();
-    length = 0;
-    max_length = 0;
-    kloug(100, "Command sent\n");
+    finalize_command();
     return;
 
   case '\t':

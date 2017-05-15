@@ -8,6 +8,7 @@
 #include "gdt.h"
 #include "malloc.h"
 #include "memory.h"
+#include "shell.h"
 
 
 /* Possible speed enhancements:
@@ -396,9 +397,16 @@ void syscall_printf()
 
 
 extern bool in_kernel, should_cycle;  /* From scheduler.c */
+extern bool need_to_finalize;         /* From shell.c */
 void syscall_hlt()
 {
   should_cycle = FALSE;
+
+  if (need_to_finalize) {
+    finalize_command();
+  }
+
+
   asm volatile ("sti");
   for (;;) {
     asm volatile ("hlt");
@@ -410,7 +418,7 @@ void syscall_hlt()
       break;
     } else {
       /* We received a timer event */
-      kloug(100, "Timer event\n");
+      /* kloug(100, "Timer event\n"); */
       should_cycle = FALSE;
     }
   }
