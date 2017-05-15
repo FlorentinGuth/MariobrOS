@@ -1,16 +1,37 @@
 #include "lib.h"
 
 
+u_int32 syscall_malloc(u_int32 size)
+{
+  u_int32 ret;
+  asm volatile(" \
+mov $4, %%eax;                                  \
+mov %0, %%ebx;                                  \
+int $0x80;                                      \
+mov %%eax, %0                                   \
+" : "=r" (ret) : "r" (size));
+  return ret;
+}
+
+void syscall_free(u_int32 return_value)
+{
+  asm volatile ("\
+mov $5, %%eax;                                  \
+mov %0, %%ebx;                                  \
+int $0x80;                                      \
+" : : "r" (return_value));
+}
+
 u_int32 syscall_fork(u_int32 priority, u_int32 *pid)
 {
   u_int32 ret;
   asm volatile ("\
 mov $1, %%eax;                                  \
 mov %0, %%ebx;                                  \
-int $0x80;                                        \
-" : : "r" (priority));
+int $0x80;                                      \
+mov %%eax, %0                                   \
+" : "=r" (ret) : "r" (priority));
 
-  asm volatile ("mov %%eax, %0" : "=r" (ret));
   if (ret) {
     asm volatile ("mov %%ebx, %0" : "=r" (*pid));
   }
@@ -22,7 +43,7 @@ void syscall_exit(u_int32 return_value)
   asm volatile ("\
 mov $0, %%eax;                                  \
 mov %0, %%ebx;                                  \
-int $0x80;                                        \
+int $0x80;                                      \
 " : : "r" (return_value));
 }
 
@@ -30,7 +51,7 @@ bool syscall_wait(u_int32 *pid, u_int32 *return_value)
 {
   u_int32 ret;
   asm volatile ("\
-mov $2, %eax;    \
+mov $2, %eax;      \
 int $0x80;         \
 ");
 
@@ -48,8 +69,8 @@ mov %%ecx, %1;                                              \
 void syscall_printf(string s, ...)
 {
   asm volatile ("\
-mov $3, %%eax;    \
-mov %0, %%ebx;    \
-int $0x80;          \
+mov $3, %%eax;                                  \
+mov %0, %%ebx;                                  \
+int $0x80;                                      \
 " : : "r" (s) : "eax", "ebx");
 }

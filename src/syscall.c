@@ -15,10 +15,31 @@
 
 extern scheduler_state_t *state;  /* Defined in scheduler.c */
 
+#define CURR_PROC (state->processes[state->curr_pid])
+#define CURR_REGS (state->processes[state->curr_pid].context.regs)
+
+void syscall_malloc()
+{
+  SWITCH_AFTER();
+  CURR_REGS->eax = mem_alloc(CURR_REGS->ebx);
+  SWITCH_BEFORE();
+}
+
+void syscall_free()
+{
+  SWITCH_AFTER();
+  mem_free(CURR_REGS->ebx);
+  SWITCH_BEFORE();
+}
+
+void syscall_ls()
+{
+  
+}
 
 void syscall_fork()
 {
-  priority child_prio = state->processes[state->curr_pid].context.regs->ebx;
+  priority child_prio = CURR_REGS->ebx;
 
   /* Research of a free process */
   pid id = 0;
@@ -27,8 +48,8 @@ void syscall_fork()
   }
 
   /* One cannot create a child process with a higher priority than its own */
-  if (id == NUM_PROCESSES || child_prio > state->processes[state->curr_pid].prio) {
-    state->processes[state->curr_pid].context.regs->eax = 0;
+  if (id == NUM_PROCESSES || child_prio > CURR_PROC.prio) {
+    CURR_REGS->eax = 0;
     return;
   }
 
@@ -44,8 +65,8 @@ void syscall_fork()
   enqueue(state->runqueues[child_prio], id);
 
   /* Setting the values of the parent process */
-  state->processes[state->curr_pid].context.regs->eax = 1;
-  state->processes[state->curr_pid].context.regs->ebx = id;
+  CURR_REGS->eax = 1;
+  CURR_REGS->ebx = id;
 }
 
 /**
@@ -105,7 +126,7 @@ void syscall_wait()
 {
   kloug(100, "Syscall wait\n");
 
-  state->processes[state->curr_pid].state = Waiting;
+  CURR_PROC.state = Waiting;
   pid parent_id = state->curr_pid;
   bool has_children = FALSE;
 
@@ -122,8 +143,8 @@ void syscall_wait()
 
   if (!has_children) {
     /* The process has no children, the call terminates instantly */
-    state->processes[state->curr_pid].context.regs->eax = 0;
-    state->processes[state->curr_pid].state = Runnable;
+    CURR_REGS->eax = 0;
+    CURR_PROC.state = Runnable;
   }
 }
 
@@ -138,7 +159,7 @@ extern color_t foreground, background;      /* Defined in printer.c */
 
 void syscall_printf()
 {
-  context_t ctx = state->processes[state->curr_pid].context;
+  context_t ctx = CURR_PROC.context;
   u_int32 esp = ctx.regs->useresp;
   kloug(100, "User esp %X\n", esp, 8);
   switch_page_directory(ctx.page_dir);
@@ -227,6 +248,8 @@ void syscall_install()
   syscall_table[Wait]   = *syscall_wait;
   syscall_table[Fork]   = *syscall_fork;
   syscall_table[Printf] = *syscall_printf;
+  syscall_table[Malloc] = *syscall_malloc;
+  syscall_table[Free]   = *syscall_free;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }
