@@ -559,12 +559,12 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
 
 page_directory_t *fork_page_dir(page_directory_t *dir)
 {
-  kloug(100, "Forking directory\n");
+  /* kloug(100, "Forking directory\n"); */
   page_directory_t *fork = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
   if (!fork) {
     return NULL;
   }
-  mem_copy(fork, dir, sizeof(page_directory_t));
+  mem_set(fork, 0, sizeof(page_directory_t));
 
 #define RET_NULL() { kloug(100, "Fork failed\n"); free_page_dir(fork); return NULL; }
 
@@ -580,6 +580,9 @@ page_directory_t *fork_page_dir(page_directory_t *dir)
         RET_NULL();
       }
       mem_copy(table_fork, table, sizeof(page_table_t));
+      fork->entries[table_index] = dir->entries[table_index];
+      fork->entries[table_index].address = get_physical_address(current_directory, (u_int32)table_fork) / 0x1000;
+      fork->tables[table_index] = table_fork;
 
       for (u_int32 page_index = 0; page_index < 1024; page_index++) {
         if (table->pages[page_index].present) {
@@ -588,17 +591,21 @@ page_directory_t *fork_page_dir(page_directory_t *dir)
             /* The page is present in base directory: link! */
           } else {
             /* Copy the page */
-            if (!request_virtual_space(fork, virtual, FALSE, TRUE)) {
+            u_int32 physical = first_false_bit(frames);
+            if (physical == (u_int32)-1) {
               RET_NULL();
             }
+            set_bit(frames, physical, TRUE);
+            physical *= 0x1000;
 
-            u_int32 dest = request_physical_space(current_directory, \
-                                                  get_physical_address(fork, virtual), TRUE, FALSE);
+            u_int32 dest = request_physical_space(current_directory, physical, TRUE, FALSE);
+            /* kloug(100, "Dest %X points at %X\n", dest, 8, physical, 8); */
             if (!dest) {
               RET_NULL();
             }
             u_int32 src  = request_physical_space(current_directory, \
                                                   get_physical_address(dir,  virtual), TRUE, FALSE);
+            /* kloug(100, "Src  %X points at %X\n", src, 8, get_physical_address(dir, virtual), 8); */
             if (!src) {
               free_virtual_space(current_directory, dest, FALSE);
               RET_NULL();
@@ -610,18 +617,17 @@ page_directory_t *fork_page_dir(page_directory_t *dir)
             free_virtual_space(current_directory, dest, FALSE);  /* Will be used by the child */
 
             /* Finally, let's set the physical address */
-            table_fork->pages[page_index].address = get_physical_address(fork, virtual);
+            table_fork->pages[page_index].address = physical / 0x1000;
           }
         }
       }
-
-      fork->entries[table_index].address = get_physical_address(current_directory, (u_int32)table_fork);
-      fork->tables[table_index] = table_fork;
     }
   }
 
-  kloug(100, "Let's test the forked page dir\n");
-  test_page_dir(fork);
+  /* kloug(100, "Let's test the forked page dir\n"); */
+  /* log_page_dir(dir); */
+  /* test_page_dir(fork); */
+  /* kloug(100, "Wow\n"); */
   return fork;
 }
 

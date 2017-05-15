@@ -38,7 +38,6 @@ process_t new_process(pid parent_id, priority prio, bool create_page_dir)
   regs->ss = USER_STACK_SEGMENT;
 
   ctx.regs = regs;
-  ctx.esp = NULL;                                  /* Will be set-up by the switching code */
   proc.context = ctx;
 
   return proc;
