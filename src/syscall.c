@@ -310,7 +310,7 @@ extern unsigned char utf8_c2[], utf8_c3[];  /* Defined in printer.c */
 extern color_t foreground, background;      /* Defined in printer.c */
 
 #define POP(type)                                                       \
-  type param = *(type *)(esp + 16 + 4*nb_args);                          \
+  type param = *(type *)(esp + 16 + 4*nb_args);                         \
   nb_args++;
 
 
@@ -318,9 +318,9 @@ void syscall_printf()
 {
   context_t ctx = CURR_PROC.context;
   u_int32 esp = ctx.regs->useresp;
+  string s = (string)ctx.regs->ebx;
   switch_page_directory(ctx.page_dir);
 
-  string s = (string)ctx.regs->ebx;
   /* kloug(100, "Format string %s\n", s); */
 
   int read  = 0;

@@ -26,7 +26,6 @@ typedef enum process_state {
 typedef struct context {
   /* Registers */
   regs_t *regs;  /* The registers of the process */
-  u_int32 esp;   /* The esp of the handler call, to restore the stack after switching */
 
   /* Malloc state */
   void *first_free_block;

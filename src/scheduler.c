@@ -57,7 +57,6 @@ void select_new_process()
     context_t *ctx = &state->processes[state->curr_pid].context;        \
                                                                         \
     /* Saves process context */                                         \
-    kloug(100, "regs %x &regs %x\n", ctx->regs, &ctx->regs);            \
     *ctx->regs = *regs;                                                 \
     ctx->first_free_block = first_free_block;                           \
     ctx->unallocated_mem  = unallocated_mem;                            \
@@ -77,7 +76,6 @@ void select_new_process()
     context_t *ctx = &state->processes[state->curr_pid].context;        \
     first_free_block = ctx->first_free_block;                           \
     unallocated_mem  = ctx->unallocated_mem;                            \
-    /* No need to touch at the regs structure because of pointers */    \
     *regs = *ctx->regs;                                                 \
                                                                         \
     /* Restores process paging */                                       \
@@ -102,7 +100,7 @@ void syscall_handler(regs_t *regs)
 {
   kloug(100, "Syscall %d\n", regs->eax);
   SWITCH_BEFORE();  /* Save context + kernel paging */
-  /* kloug(100, "Context restored\n"); */
+  kloug(100, "Context restored\n");
   /* u_int32 esp; */
   /* asm volatile ("mov %%esp, %0" : "=r" (esp)); */
   /* kloug(100, "Regs structure at %X and esp at %X\n", regs, 8, esp, 8); */
@@ -183,7 +181,6 @@ void switch_to_process(pid pid)
   /* Saves kernel context */
   kernel_context.unallocated_mem  = unallocated_mem;
   kernel_context.first_free_block = first_free_block;
-  asm volatile ("mov %%esp, %0" : "=r" (kernel_context.esp));
 
   /* Restores process context */
   context_t ctx = proc.context;
