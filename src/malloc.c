@@ -116,23 +116,23 @@ void *get_next_block(void *block)
 void log_block(void *block)
 {
   if (!block) {
-    kloug(100, "Nonexistent block\n");
+    kloug(100, "  Nonexistent block\n");
     return;
   }
 
   if (!get_used(block)) {
     header_free_t *a = (header_free_t *)block;
-    kloug(100, "Free block at %X, size %x, prev %X, next %X\n", a, 8, get_size(a), a->prev, 8, a->next, 8);
+    kloug(100, "  Free block at %X, size %x, prev %X, next %X\n", a, 8, get_size(a), a->prev, 8, a->next, 8);
   } else {
     header_used_t *a = (header_used_t *)block;
-    kloug(100, "Used block at %X, size %x\n", a, 8, get_size(a));
+    kloug(100, "  Used block at %X, size %x\n", a, 8, get_size(a));
   }
 }
 
 void log_memory()
 {
-  kloug(100, "Malloc heap from %X to %X\n", START_OF_HEAP, 8, END_OF_HEAP, 8);
-  kloug(100, "First free block at %X\n", first_free_block, 8);
+  kloug(100, "  Malloc heap from %X to %X\n", START_OF_HEAP, 8, END_OF_HEAP, 8);
+  kloug(100, "  First free block at %X\n", first_free_block, 8);
   void* block = (void *)START_OF_HEAP;
   while (block) {
     log_block(block);
@@ -282,10 +282,11 @@ bool extend_heap(int nb_pages)
   if (nb_pages == 0) {
     throw("Extension of heap by 0 pages");
   }
-  /* kloug(100, "Extension of heap by %d pages\n", nb_pages); */
+  kloug(100, "Extension of heap by %d pages\n", nb_pages);
 
 
   bool is_kernel = current_directory == kernel_directory;
+  kloug(100, "Is kernel: %u\n", is_kernel);
   /* The moving end of heap, different from unallocated_mem to avoid bad malloc states
    * during page table allocations
    */

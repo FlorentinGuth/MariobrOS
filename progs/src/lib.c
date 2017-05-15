@@ -9,7 +9,7 @@ mov $4, %%eax;                                  \
 mov %0, %%ebx;                                  \
 int $0x80;                                      \
 mov %%eax, %0                                   \
-" : "=r" (ret) : "r" (size));
+" : "=r" (ret) : "r" (size) : "eax", "ebx");
   return ret;
 }
 
@@ -19,7 +19,7 @@ void syscall_free(void *return_value)
 mov $5, %%eax;                                  \
 mov %0, %%ebx;                                  \
 int $0x80;                                      \
-" : : "r" (return_value));
+" : : "r" (return_value) : "eax", "ebx");
 }
 
 u_int32 syscall_fork(u_int32 priority, u_int32 *pid)
@@ -30,7 +30,7 @@ mov $1, %%eax;                                  \
 mov %0, %%ebx;                                  \
 int $0x80;                                      \
 mov %%eax, %0                                   \
-" : "=r" (ret) : "r" (priority));
+" : "=r" (ret) : "r" (priority) : "eax", "ebx");
 
   if (ret) {
     asm volatile ("mov %%ebx, %0" : "=r" (*pid));
@@ -44,7 +44,7 @@ void syscall_exit(u_int32 return_value)
 mov $0, %%eax;                                  \
 mov %0, %%ebx;                                  \
 int $0x80;                                      \
-" : : "r" (return_value));
+" : : "r" (return_value) : "eax", "ebx");
 }
 
 bool syscall_wait(u_int32 *pid, u_int32 *return_value)
