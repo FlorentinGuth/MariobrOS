@@ -15,7 +15,7 @@ scheduler_state_t *state = NULL;
 
 void select_new_process()
 {
-  kloug(100, "Select new process\n");
+  /* kloug(100, "Select new process\n"); */
 
   /* Search for a runnable process */
   bool found = FALSE;
@@ -44,7 +44,7 @@ void select_new_process()
 
   mem_free(temp);
 
-  kloug(100, "Selected %d\n", state->curr_pid);
+  kloug(100, "Selected %d as new process\n", state->curr_pid);
 }
 
 
@@ -65,7 +65,7 @@ void select_new_process()
   }
 
 #define SWITCH_AFTER() {                                                \
-    kloug(100, "Switching back to %d\n", state->curr_pid);              \
+    /* kloug(100, "Switching back to %d\n", state->curr_pid);  */             \
     /* Saves kernel context */                                          \
     kernel_context.unallocated_mem  = unallocated_mem;                  \
     kernel_context.first_free_block = first_free_block;                 \
@@ -99,11 +99,11 @@ void syscall_handler(regs_t *regs)
 {
   kloug(100, "Syscall %d\n", regs->eax);
   SWITCH_BEFORE();  /* Save context + kernel paging */
-  kloug(100, "Context restored\n");
+  /* kloug(100, "Context restored\n"); */
   u_int32 esp;
   asm volatile ("mov %%esp, %0" : "=r" (esp));
-  kloug(100, "Regs structure at %X and esp at %X\n", regs, 8, esp, 8);
-  kloug(100, "Useresp %X ss %x esp %X\n", regs->useresp, 8, regs->ss, regs->esp, 8);
+  /* kloug(100, "Regs structure at %X and esp at %X\n", regs, 8, esp, 8); */
+  /* kloug(100, "Useresp %X ss %x esp %X\n", regs->useresp, 8, regs->ss, regs->esp, 8); */
 
 
   syscall(regs->eax);
@@ -119,7 +119,7 @@ void syscall_handler(regs_t *regs)
 
 void load_code(string program_name, context_t ctx)
 {
-  kloug(100, "Loading %s code\n", program_name);
+  /* kloug(100, "Loading %s code\n", program_name); */
 
   string temp = str_cat("/progs/", program_name);
   string path = str_cat(temp, ".elf");
@@ -155,8 +155,6 @@ void load_code(string program_name, context_t ctx)
     }
   }
 
-  log_page_dir(current_directory);
-
   /* Loads actual code and data at the right place, and set up eip */
   ctx.regs->eip = check_and_load(elf_buffer, virtuals);
 
@@ -189,8 +187,8 @@ void switch_to_process(pid pid)
   unallocated_mem  = ctx.unallocated_mem;
 
   /* Pushes the regs structure on the stack */
-  kloug(100, "Pushing, kernel ESP %X user ESP %X EIP %X\n",       \
-        kernel_context.esp, 8, ctx.regs->useresp, 8, ctx.regs->eip, 8);
+  /* kloug(100, "Pushing, kernel ESP %X user ESP %X EIP %X\n",       \ */
+        /* kernel_context.esp, 8, ctx.regs->useresp, 8, ctx.regs->eip, 8); */
 
   /* Simulate an interruption stack frame */
   asm volatile ("push %0" : : "r" (ctx.regs->ss));
@@ -207,8 +205,8 @@ void switch_to_process(pid pid)
 
   /* /\* Restores process paging *\/ */
   /* u_int32 *code = (u_int32 *)ctx.regs->eip; */
-  kloug(100, "Oh god\n");
-  log_page_dir(ctx.page_dir);
+  /* kloug(100, "Oh god\n"); */
+  /* log_page_dir(ctx.page_dir); */
   /* kloug(100, "%u %u\n", ctx.page_dir->tables[0x3FF]->pages[0x400 - 16].user, \ */
         /* ctx.page_dir->tables[0x3FF]->pages[0x400 - 16].rw); */
 
@@ -224,8 +222,6 @@ void switch_to_process(pid pid)
   /* u_int32 eip; */
   /* asm volatile ("pop %0" : "=r" (eip)); */
   /* writef("%x", eip); */
-
-  /* asm volatile ("hlt"); */
 
   asm volatile ("iret;");
 }
@@ -270,9 +266,6 @@ void scheduler_install()
   process_t *init = &(state->processes[init_pid]);
   *init = new_process(init_pid, MAX_PRIORITY);
   load_code("init", init->context);
-  kloug(100 ,"So far so good\n");
-
-  log_page_dir(current_directory);
 
   /* Initialization of the state */
   state->curr_pid = init_pid;  /* We start with the init process */
@@ -289,7 +282,7 @@ void scheduler_install()
   /* irq_install_handler(0, timer_handler); */
   syscall_install();
 
-  kloug(100, "Scheduler installed\n");
+  /* kloug(100, "Scheduler installed\n"); */
 
   /* switch_to_process(init_pid); */
 }

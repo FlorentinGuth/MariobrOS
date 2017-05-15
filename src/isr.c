@@ -46,7 +46,7 @@ void isrs_install()
   idt_set_gate(30, (unsigned)isr30, KERNEL_CODE_SEGMENT, 0);
   idt_set_gate(31, (unsigned)isr31, KERNEL_CODE_SEGMENT, 0);
 
-  kloug(100, "ISR installed\n");
+  /* kloug(100, "ISR installed\n"); */
 }
 
 void *isr_routines[32] = {

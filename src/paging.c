@@ -208,7 +208,7 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address, bool is_ker
 
   page_table_t *page_table = dir->tables[table_index];
   if (!dir->entries[table_index].present) {
-    kloug(100, "get_page makes a page table\n");
+    /* kloug(100, "get_page makes a page table\n"); */
     make_page_table(dir, table_index, is_kernel, is_writable);  /* A page table is kernel-only */
     page_table = dir->tables[table_index];
   }
@@ -241,7 +241,7 @@ u_int32 find_unmapped_page(page_directory_t *dir)
 
 bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool is_kernel, bool is_writable)
 {
-  kloug(100, "Virtual space at %X requested\n", virtual_address, 8);
+  /* kloug(100, "Virtual space at %X requested\n", virtual_address, 8); */
 
   page_table_entry_t *page = get_page(dir, virtual_address, is_kernel, is_writable);
 
@@ -283,8 +283,8 @@ void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool fre
 
 void switch_page_directory(page_directory_t *dir)
 {
-  kloug(100, "Switching page directory to the one at %X\n", dir->physical_address, 8);
-  kloug(100, "dir %X phys %X entries %X\n", dir, 8, dir->physical_address, 8, dir->entries, 8);
+  /* kloug(100, "Switching page directory to the one at %X\n", dir->physical_address, 8); */
+  /* kloug(100, "dir %X phys %X entries %X\n", dir, 8, dir->physical_address, 8, dir->entries, 8); */
 
   /* Disables paging */
   u_int32 cr0;
@@ -509,13 +509,13 @@ void paging_install()
   base_directory = clone_directory(kernel_directory);
   set_user_addresses();
 
-  kloug(100, "Paging installed\n");
+  /* kloug(100, "Paging installed\n"); */
 }
 
 
 page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem)
 {
-  kloug(100, "New page dir\n");
+  /* kloug(100, "New page dir\n"); */
 
   page_directory_t *new = clone_directory(base_directory);
 
@@ -552,16 +552,91 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
 
   free_virtual_space(current_directory, heap_virtual, FALSE);  /* The frame is used by the process */
 
-  kloug(100, "New page dir successfully created\n");
+  /* kloug(100, "New page dir successfully created\n"); */
   return new;
+}
+
+page_directory_t *fork_page_dir(page_directory_t *dir)
+{
+  /* kloug(100, "Forking directory\n"); */
+  page_directory_t *fork = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
+  if (!fork) {
+    return NULL;
+  }
+  mem_copy(fork, dir, sizeof(page_directory_t));
+
+#define RET_NULL() { free_page_dir(fork); return NULL; }
+
+  fork->physical_address = get_physical_address(current_directory, (u_int32)fork);
+
+  for (u_int32 table_index = 0; table_index < 1024; table_index++) {
+    if (dir->entries[table_index].present) {
+      page_table_t *table = dir->tables[table_index];
+
+      /* Make the page table */
+      page_table_t *table_fork = (page_table_t *)mem_alloc_aligned(sizeof(page_table_t), 0x1000);
+      if (!table_fork) {
+        RET_NULL();
+      }
+      mem_copy(table_fork, table, sizeof(page_table_t));
+
+      for (u_int32 page_index = 0; page_index < 1024; page_index++) {
+        if (table->pages[page_index].present) {
+          u_int32 virtual = table_index*1024*0x1000 + page_index*0x1000;
+          if (get_physical_address(base_directory, virtual)) {
+            /* The page is present in base directory: link! */
+          } else {
+            /* Copy the page */
+            if (!request_virtual_space(fork, virtual, FALSE, TRUE)) {
+              RET_NULL();
+            }
+
+            u_int32 dest = request_physical_space(current_directory, \
+                                                  get_physical_address(fork, virtual), TRUE, FALSE);
+            if (!dest) {
+              RET_NULL();
+            }
+            u_int32 src  = request_physical_space(current_directory, \
+                                                  get_physical_address(dir,  virtual), TRUE, FALSE);
+            if (!src) {
+              free_virtual_space(current_directory, dest, FALSE);
+              RET_NULL();
+            }
+
+            mem_copy((void *)dest, (void *)src, 0x1000);
+
+            free_virtual_space(current_directory, src,  FALSE);  /* Is used by the parent */
+            free_virtual_space(current_directory, dest, FALSE);  /* Will be used by the child */
+
+            /* Finally, let's set the physical address */
+            table_fork->pages[page_index].address = get_physical_address(fork, virtual);
+          }
+        }
+      }
+
+      fork->entries[table_index].address = get_physical_address(current_directory, (u_int32)table_fork);
+      fork->tables[table_index] = table_fork;
+    }
+  }
+
+  kloug(100, "Let's test the forked page dir\n");
+  test_page_dir(fork);
+  return fork;
 }
 
 void free_page_dir(page_directory_t *dir)
 {
-  kloug(100, "Freeing page dir\n");
+  /* kloug(100, "Freeing page dir\n"); */
 
   for (int table_index = 0; table_index < 1024; table_index++) {
     if (dir->entries[table_index].present) {
+      for (int page_index = 0; page_index < 1024; page_index++) {
+        u_int32 virtual = 0x1000 * (page_index + 1024 * table_index);
+        if (!get_physical_address(base_directory, virtual)) {
+          /* Page not in base directory: free frame! */
+          free_virtual_space(dir, virtual, TRUE);
+        }
+      }
       mem_free(dir->tables[table_index]);
     }
   }

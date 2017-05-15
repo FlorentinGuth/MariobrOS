@@ -8,7 +8,7 @@
 
 process_t new_process(pid parent_id, priority prio)
 {
-  kloug(100, "Creating new process\n");
+  /* kloug(100, "Creating new process\n"); */
 
   process_t proc;
   proc.state = Runnable;
@@ -17,7 +17,7 @@ process_t new_process(pid parent_id, priority prio)
 
   context_t ctx;
   ctx.page_dir = new_page_dir(&ctx.first_free_block, &ctx.unallocated_mem);
-  kloug(100, "Malloc state: %x %x\n", ctx.first_free_block, ctx.unallocated_mem);
+  /* kloug(100, "Malloc state: %x %x\n", ctx.first_free_block, ctx.unallocated_mem); */
 
   regs_t *regs = (regs_t *)mem_alloc(sizeof(regs_t));
   /* The data and general purpose segment registers are set to the user data segment */

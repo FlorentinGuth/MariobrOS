@@ -284,7 +284,7 @@ bool extend_heap(int nb_pages, page_directory_t *dir)
   if (nb_pages == 0) {
     throw("Extension of heap by 0 pages");
   }
-  kloug(100, "Extension of heap by %d pages\n", nb_pages);
+  /* kloug(100, "Extension of heap by %d pages\n", nb_pages); */
 
 
   /* The moving end of heap, different from unallocated_mem to avoid bad malloc states
@@ -347,7 +347,7 @@ header_free_t *alloc_pages(size_t size)
   bool change_dir = paging_enabled && (current_directory != kernel_directory);
   page_directory_t *temp = current_directory;
   if (change_dir) {
-    kloug(100, "Changing dir for malloc\n");
+    /* kloug(100, "Changing dir for malloc\n"); */
     switch_page_directory(kernel_directory);
   }
 
@@ -384,7 +384,7 @@ void malloc_new_state(u_int32 start_of_heap, void **user_first_free_block, void 
   *user_first_free_block = block;
   *user_unallocated_mem  = block + 0x1000;
 
-  kloug(100, "Malloc new state installed\n");
+  /* kloug(100, "Malloc new state installed\n"); */
 }
 
 
@@ -397,7 +397,7 @@ void malloc_install()
     throw("Unable to install new malloc state");
   }
 
-  kloug(100, "Malloc installed\n");
+  /* kloug(100, "Malloc installed\n"); */
 }
 
 

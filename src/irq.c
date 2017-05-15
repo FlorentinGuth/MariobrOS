@@ -64,7 +64,7 @@ void irq_install()
   idt_set_gate(46, (unsigned)irq14, KERNEL_CODE_SEGMENT, 0);
   idt_set_gate(47, (unsigned)irq15, KERNEL_CODE_SEGMENT, 0);
 
-  kloug(100, "IRQ installed\n");
+  /* kloug(100, "IRQ installed\n"); */
 }
 
 /* Each of the IRQ ISRs point to this function, rather than

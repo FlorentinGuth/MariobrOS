@@ -25,7 +25,7 @@ void mem_copy_page(void *dest, const void *src, u_int32 length, u_int32 virtuals
 
 u_int32 check_and_load(void *elf_file, u_int32 virtuals[])
 {
-  kloug(100, "Checking and loading ELF\n");
+  /* kloug(100, "Checking and loading ELF\n"); */
 
   elf_header_t *elf_header = (elf_header_t *)elf_file;
 

@@ -139,6 +139,13 @@ void switch_page_directory(page_directory_t *new);
 page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem);
 
 /**
+* @name fork_page_dir - Creates a new page directory with the kernel linked and user data copied
+* @param dir          - The directory of the forking process
+* @return page_directory_t*
+*/
+page_directory_t *fork_page_dir(page_directory_t *dir);
+
+/**
  * @name free_page_dir - Completely free a user page directory
  * @param dir          - The page directory to free
  * @return void

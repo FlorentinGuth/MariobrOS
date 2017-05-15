@@ -146,7 +146,7 @@ void gdt_install()
 
   tss_flush();
 
-  kloug(100, "GTD installed\n");
+  /* kloug(100, "GTD installed\n"); */
 }
 
 void init_pic()
@@ -172,5 +172,5 @@ void init_pic()
     outb(0x21, 0x0);
     outb(0xA1, 0x0);
 
-    kloug(100, "PIC installed\n");
+    /* kloug(100, "PIC installed\n"); */
 }

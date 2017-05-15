@@ -413,5 +413,5 @@ void keyboard_install(bool shell)
   else
     irq_install_handler(1, keyboard_handler);
 
-  kloug(100, "Keyboard installed\n");
+  /* kloug(100, "Keyboard installed\n"); */
 }

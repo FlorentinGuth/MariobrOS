@@ -164,6 +164,8 @@ void syscall_write()
 
 void syscall_fork()
 {
+  kloug(100, "Syscall fork\n");
+
   priority child_prio = CURR_REGS->ebx;
 
   /* Research of a free process */
@@ -303,9 +305,6 @@ void syscall_printf()
   char buffer[17];
   char c = s[0];
   int nb_args = 0; /* To have the right offset */
-
-#define PRINT(n) kloug(10, "%u ", *(u_int32 *)(esp + n))
-  PRINT(0); PRINT(4); PRINT(8); PRINT(12); PRINT(16); PRINT(20);
 
   while(c!='\0') {
     if(c=='%') {
