@@ -31,9 +31,9 @@ OBJS = $(addprefix $(BUILD_DIR)/,$(OBJECTS))
 LINKER_PROG = $(PROGS_DIR)/link_prog.ld
 LOADER_PROG_S = $(PROGS_SRC_DIR)/loader_prog.s
 LOADER_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.s,$(PROGS_BUILD_DIR)/%.o,$(LOADER_PROG_S))
-LIB_PROG_C = $(PROGS_SRC_DIR)/lib.c
-LIB_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_BUILD_DIR)/%.o,$(LIB_PROG_C))
-PROGS_C   = $(filter-out $(LIB_PROG_C), $(wildcard $(PROGS_SRC_DIR)/*.c))
+LIB_PROG_S = $(PROGS_SRC_DIR)/lib.s
+LIB_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.s,$(PROGS_BUILD_DIR)/%.o,$(LIB_PROG_S))
+PROGS_C   = $(wildcard $(PROGS_SRC_DIR)/*.c)
 PROGS_O   = $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_BUILD_DIR)/%.o,$(PROGS_C))
 PROGS_ELF = $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_ELF_DIR)/%.elf,$(PROGS_C))
 
@@ -160,10 +160,13 @@ $(BUILD_DIR)/%.o: src/%.s $(BUILD_DIR)
 $(PROGS_BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.c $(PROGS_BUILD_DIR)
 	@$(CC) $< -c -o $@ $(CFLAGS) $(EMUFLAGS) $(CPPFLAGS)
 
+$(PROGS_BUILD_DIR)/%.o: $(PROGS_SRC_DIR)/%.s $(PROGS_BUILD_DIR)
+	$(AS) $< -o $@ $(ASFLAGS)
+
 $(PROGS_BUILD_DIR)/%.o: $(PROGS_DIR)/%.c
 	@$(CC) $< -c -o $@ $(CFLAGS) $(EMUFLAGS) $(CPPFLAGS)
 
-$(PROGS_BUILD_DIR)/%.o: $(PROGS_DIR)/%.s $(BUILD_DIR)
+$(PROGS_BUILD_DIR)/%.o: $(PROGS_DIR)/%.s $(PROGS_BUILD_DIR)
 	@$(AS) $< -o $@ $(ASFLAGS)
 
 $(PROGS_ELF_DIR)/%.elf: $(PROGS_BUILD_DIR)/%.o $(LIB_PROG_O) $(PROGS_ELF_DIR) $(LINKER_PROG) $(LOADER_PROG_O)

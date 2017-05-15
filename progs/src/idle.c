@@ -8,7 +8,7 @@
 int main()
 {
   for (;;) {
-    syscall_hlt();
+    hlt();
   }
   return 0;  /* Dead code */
 }

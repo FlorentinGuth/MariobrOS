@@ -51,12 +51,12 @@ typedef unsigned char bool;
 typedef char* string;
 
 
-void *syscall_malloc(u_int32 size);
+void *malloc(u_int32 size);
 
-void syscall_free(void *ptr);
+void free(void *ptr);
 
 /**
- *  @name syscall_open - Opens a file
+ *  @name open - Opens a file
  *
  *  @param path        - The path to the file
  *  @param oflag       - The open flags
@@ -65,16 +65,16 @@ void syscall_free(void *ptr);
  *  @return            - The file descriptor for the given file or 0 if an error
  *  occured
  */
-fd syscall_open(string path, u_int8 oflag, u_int16 fperm);
+fd open(string path, u_int8 oflag, u_int16 fperm);
 
 /**
- *  @name syscall_close - Closes a file descriptor, ensuring it is no more valid
+ *  @name close - Closes a file descriptor, ensuring it is no more valid
  *  @param f            - The file descriptor to close
  */
-void syscall_close(fd f);
+void close(fd f);
 
 /**
- *  @name syscall_read    - Reads from a file
+ *  @name read    - Reads from a file
  *
  *  @param f      - The file descriptor
  *  @param buffer - The output buffer
@@ -85,7 +85,7 @@ void syscall_close(fd f);
  *                  -1: Invalid file descriptor
  *                  -2: File is not opened with the read flag
  */
-u_int32 syscall_read(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
+u_int32 read(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
 
 /**
  *  @name write   - Writes to a file
@@ -100,40 +100,40 @@ u_int32 syscall_read(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
  *                  -2: File is not opened with the written flag
  *                  -3: The block allocation failed
  */
-u_int32 syscall_write(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
+u_int32 write(fd f, u_int8* buffer, u_int32 offset, u_int32 length);
 
 /**
- *  @name syscall_fork - Creates a new process with a new, copied context
+ *  @name fork - Creates a new process with a new, copied context
  *  @param priority    - The priority to give to the child process
  *  @param pid         - A pointer toward an integer that will be set with a process id
  *  @return u_int32    - 0 if the fork failed (pid has not been modified)
  *                       1 for the parent process, pid contains the id of the child process
  *                       2 for the child process, pid contains the id of the parent process
  */
-u_int32 syscall_fork(u_int32 priority, u_int32 *pid);
+u_int32 fork(u_int32 priority, u_int32 *pid);
 
 /**
- *  @name syscall_exit  - Terminates the process
+ *  @name exit  - Terminates the process
  *  The child of the process have their parent replaced by the init process, while
  *  the parent of the process will be given (once he calls wait) the return value.
  *  @param return_value - The return value of the exiting process
  *  @return void
  */
-void syscall_exit(u_int32 return_value);
+void exit(u_int32 return_value);
 
 /**
- *  @name syscall_wait  - Waits for a child process to call exit
+ *  @name scwait  - Waits for a child process to call exit
  *  @param pid          - Will contain the pid of the exited child process
  *  @param return_value - Will contain the return value of the exited child process
  *  @return bool        - 0 if the process has no children (pid and return_value won't be modified)
  *                        1 if the call succeeded, and pid and return_value will be set accordingly
  */
-bool syscall_wait(u_int32 *pid, u_int32 *return_value);
+bool scwait(u_int32 *pid, u_int32 *return_value);
 
 
-void syscall_printf(string s, ...);
+void printf(string s, ...);
 
-void syscall_hlt();
+void hlt();
 
 
 #endif
