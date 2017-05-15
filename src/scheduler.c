@@ -15,6 +15,8 @@ scheduler_state_t *state = NULL;
 
 void select_new_process()
 {
+  kloug(100, "Select new process\n");
+
   /* Search for a runnable process */
   bool found = FALSE;
   queue_t *temp = empty_queue();  /* The queue to temporary save processes into */
@@ -41,6 +43,8 @@ void select_new_process()
   }
 
   mem_free(temp);
+
+  kloug(100, "Selected %d\n", state->curr_pid);
 }
 
 
@@ -58,7 +62,7 @@ void select_new_process()
                                                                         \
     /* Restores kernel context */                                       \
     unallocated_mem  = kernel_context.unallocated_mem;                  \
-    first_free_block = kernel_context.unallocated_mem;                  \
+    first_free_block = kernel_context.first_free_block;                 \
   }
 
 #define SWITCH_AFTER() {                                                \

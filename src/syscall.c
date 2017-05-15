@@ -85,7 +85,7 @@ void syscall_exit()
   kloug(100, "Syscall exit\n");
 
   pid id = state->curr_pid;
-  state->processes[id].state= Zombie;
+  state->processes[id].state = Zombie;
 
   /* Notifies the child processes of the exiting one */
   for (pid i = 0; i < NUM_PROCESSES; i++) {
