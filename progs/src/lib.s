@@ -27,14 +27,6 @@ scwait:
     mov [edi], ecx
     ret
 
-global printf
-    
-printf:
-    mov eax, 3
-    mov ebx, [esp+4]
-    int 0x80
-    ret
-
 global malloc
     
 malloc:
@@ -56,6 +48,7 @@ global hlt
 hlt:
     mov eax, 11
     int 0x80
+    ret
 
 global open
     
@@ -98,3 +91,18 @@ write:
     mov edi, [esp+16]
     int 0x80
     ret
+
+global printf
+printf:
+  push   ebp
+  mov    ebp, esp
+  push   ebx
+  mov    eax, [esp]
+  add    eax, 0x1e36
+  mov    edx, [ebp+8]
+  mov    eax, 0x3
+  mov    ebx, edx
+  int    0x80
+  pop    ebx
+  pop    ebp
+  ret

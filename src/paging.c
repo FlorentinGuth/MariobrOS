@@ -86,7 +86,7 @@ void map_page_to_frame(page_table_entry_t *page, u_int32 frame, bool is_kernel, 
 {
   /* kloug(100, "Maps page %x to frame %x\n", page, frame); */
 
-  if (frame >= 0x100000) {
+  if (frame == 0 || frame >= 0x100000) {
     /* We're referencing physical space beyond 0x1000 * 0x100000 = 0xFFFFFFFF + 1 = 4GB */
     writef("Invalid frame: %x", frame);
     throw("Invalid frame");
@@ -460,6 +460,7 @@ void paging_install()
 
   /* Set up the frames bitset */
   frames = empty_bitset(floor_ratio(UPPER_MEMORY, 0x1000));
+  set_bit(frames, 0, TRUE);
   /* We use floor_ratio instead of ceil_ratio to be sure to have only full pages,
    * rather than an incomplete one at the upper end of memory.
    */
@@ -495,7 +496,7 @@ void paging_install()
    * if paging wasn't enabled. Note that the heap can grow during the loop turns,
    * as we will allocate place for the page tables.
    */
-  for (u_int32 frame = 0; frame < (u_int32)unallocated_mem; frame += 0x1000) {
+  for (u_int32 frame = 0x1000; frame < (u_int32)unallocated_mem; frame += 0x1000) {
     /* Kernel code and data is readable but not writable from user-space */
     /* kloug(100, "Identity-mapping frame %x\n", frame); */
     map_page_to_frame(get_page(kernel_directory, frame, TRUE, FALSE), frame / 0x1000, TRUE, FALSE);
