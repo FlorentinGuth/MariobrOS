@@ -20,21 +20,21 @@ extern scheduler_state_t *state;  /* Defined in scheduler.c */
 #define CURR_REGS (state->processes[state->curr_pid].context.regs)
 
 #define SWITCH_AFTER()                                              \
-    kernel_context.unallocated_mem  = unallocated_mem;              \
-    kernel_context.first_free_block = first_free_block;             \
-    context_t *ctx = &state->processes[state->curr_pid].context;    \
-    first_free_block = ctx->first_free_block;                       \
-    unallocated_mem  = ctx->unallocated_mem;                        \
-    switch_page_directory(ctx->page_dir);
+  kernel_context.unallocated_mem  = unallocated_mem;                \
+  kernel_context.first_free_block = first_free_block;               \
+  context_t *ctx = &state->processes[state->curr_pid].context;      \
+  first_free_block = ctx->first_free_block;                         \
+  unallocated_mem  = ctx->unallocated_mem;                          \
+  switch_page_directory(ctx->page_dir);
 
 
 
 #define SWITCH_BEFORE()                                 \
-    switch_page_directory(kernel_directory);            \
-    ctx->first_free_block = first_free_block;           \
-    ctx->unallocated_mem  = unallocated_mem;            \
-    unallocated_mem  = kernel_context.unallocated_mem;  \
-    first_free_block = kernel_context.first_free_block;
+  switch_page_directory(kernel_directory);              \
+  ctx->first_free_block = first_free_block;             \
+  ctx->unallocated_mem  = unallocated_mem;              \
+  unallocated_mem  = kernel_context.unallocated_mem;    \
+  first_free_block = kernel_context.first_free_block;
 
 void syscall_malloc()
 {
@@ -58,10 +58,109 @@ void syscall_free()
   SWITCH_BEFORE();
 }
 
-void syscall_ls()
+void syscall_open()
 {
-
+  string path   = (void*) CURR_REGS->ebx;
+  u_int8 oflag  = (CURR_REGS->ecx >> 16) & 0xFF;
+  u_int16 fperm = CURR_REGS->ecx & 0xFFFF;
+  SWITCH_AFTER();
+  fd ret = openfile(path, oflag, fperm);
+  SWITCH_BEFORE();
+  CURR_REGS->eax = (u_int32) ret;
 }
+
+void syscall_close()
+{
+  close((void*) CURR_REGS->ebx);
+}
+
+void syscall_read()
+{
+  fd f = (void*) CURR_REGS->ebx;
+  u_int8* buffer = (void*) CURR_REGS->ecx;
+  u_int32 offset = CURR_REGS->edx;
+  u_int32 length = CURR_REGS->edi;
+  if(!f || *f > fdt_size || fdt[*f].this != f || !fdt[*f].inode) {
+    CURR_REGS->eax = 0; // Invalid file descriptor
+    return;
+  }
+  if(!(fdt[*f].mode & O_RDONLY)) {
+    CURR_REGS->eax = 0; // No permission
+    return;
+  }
+  if(fdt[*f].pos >= fdt[*f].size) {
+    CURR_REGS->eax = 0;
+    return;
+  }
+  if(fdt[*f].pos + length > fdt[*f].size) {
+    length = fdt[*f].size - fdt[*f].pos;
+  }
+  u_int32 inode = fdt[*f].inode;
+  u_int32 pos = fdt[*f].pos;
+  SWITCH_AFTER();
+  u_int32 done = read_inode_data(inode, buffer + offset, pos, length);
+  SWITCH_BEFORE();
+  fdt[*f].pos += done;
+  CURR_REGS->eax = done;
+}
+
+void syscall_write()
+{
+  fd f = (void*) CURR_REGS->ebx;
+  u_int8* buffer = (void*) CURR_REGS->ecx;
+  u_int32 offset = CURR_REGS->edx;
+  u_int32 length = CURR_REGS->edi;
+  if(!f || *f > fdt_size || fdt[*f].this != f || !fdt[*f].inode) {
+    CURR_REGS->eax = 0;
+    return; // Invalid file descriptor
+  }
+  if(!(fdt[*f].mode & O_WRONLY)) {
+    CURR_REGS->eax = 0;
+    return; // No permission
+  }
+  if(!length) {
+    CURR_REGS->eax = 0;
+    return;
+  }
+  u_int32 to_use = 1 + (fdt[*f].pos + length - 1) / block_size;
+  u_int32 used;
+  if(fdt[*f].size) {
+    used = 1 + (fdt[*f].size - 1) / block_size;
+  } else {
+    used = 0;
+  }
+
+  u_int32 alloc  = prepare_blocks(fdt[*f].inode, used, to_use);
+  if(to_use > used && alloc != to_use - used) {
+    CURR_REGS->eax = 0;
+    return; // All the blocks could not be allocated
+  }
+  u_int32 written = 0;
+  u_int32 done = 0;
+  u_int32 inode = fdt[*f].inode;
+  u_int32 pos = fdt[*f].pos;
+  while(written != length) {
+    SWITCH_AFTER();
+    done = write_inode_data(inode, buffer + offset, pos, length - written);
+    SWITCH_BEFORE();
+    if(!done) { // No data was written this time, so it won't evolve
+      break;
+    }
+    offset += done;
+    pos += done;
+    written += done;
+  }
+  fdt[*f].pos = pos;
+  if(pos > fdt[*f].size) {
+    fdt[*f].size = pos;
+    // std_inode was set by write_inode_data or by prepare_block
+    std_inode->size_low = fdt[*f].size;
+    update_inode(fdt[*f].inode, std_inode);
+  }
+
+  CURR_REGS->eax = written;
+}
+
 
 void syscall_fork()
 {
@@ -283,6 +382,10 @@ void syscall_install()
   syscall_table[Hlt]     = *syscall_hlt;
   syscall_table[Malloc]  = *syscall_malloc;
   syscall_table[MemFree] = *syscall_free;
+  syscall_table[Open]    = *syscall_open;
+  syscall_table[Close]   = *syscall_close;
+  syscall_table[Read]    = *syscall_read;
+  syscall_table[Write]   = *syscall_write;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }

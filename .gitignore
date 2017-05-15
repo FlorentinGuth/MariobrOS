@@ -13,5 +13,4 @@ progs/build/**
 # Ignores every report file except the .tex and .pdf file
 report/**
 !report/report.tex
-!report/report.pdf
 
