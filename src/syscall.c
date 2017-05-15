@@ -303,7 +303,6 @@ void syscall_printf()
 {
   context_t ctx = CURR_PROC.context;
   u_int32 esp = ctx.regs->useresp;
-  kloug(100, "User esp %X\n", esp, 8);
   switch_page_directory(ctx.page_dir);
 
   string s = (string)ctx.regs->ebx;

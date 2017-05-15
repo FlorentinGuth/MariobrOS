@@ -141,7 +141,7 @@ void free_page(page_table_entry_t *page, bool set_frame_free)
   }
   page->present = FALSE;
 
-  /* Flush the TLB entry relevant to the page */
+  /* Flush thesrc/syscall.c TLB entry relevant to the page */
   /* asm volatile ("invlpg (%0)" : : "r" (page->address * 0x1000)); */
   /* Flush the entire TLB, because it works better (and only god knows why) */
   flush_tlb((u_int32)page);
