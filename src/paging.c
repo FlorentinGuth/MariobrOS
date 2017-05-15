@@ -196,7 +196,7 @@ void make_page_table(page_directory_t *dir, u_int32 table_index, bool is_kernel,
  * @param address  - The (virtual) address whose we should search in which page it is
  * @return           The page of the given page directory which contains the given address
  */
-page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
+page_table_entry_t *get_page(page_directory_t *dir, u_int32 address, bool is_kernel, bool is_writable)
 {
   /**
    * Bits  | 31 - 22 (10 bits, i.e. 1024) | 21 - 12 (10 bits, i.e. 1024) | 11 - 0 (12 bits, i.e. 0x1000)
@@ -209,7 +209,7 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address)
   page_table_t *page_table = dir->tables[table_index];
   if (!dir->entries[table_index].present) {
     kloug(100, "get_page makes a page table\n");
-    make_page_table(dir, table_index, TRUE, FALSE);  /* A page table is kernel-only */
+    make_page_table(dir, table_index, is_kernel, is_writable);  /* A page table is kernel-only */
     page_table = dir->tables[table_index];
   }
 
@@ -243,7 +243,7 @@ bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool 
 {
   /* kloug(100, "Virtual space at %X requested\n", virtual_address, 8); */
 
-  page_table_entry_t *page = get_page(dir, virtual_address);
+  page_table_entry_t *page = get_page(dir, virtual_address, is_kernel, is_writable);
 
   if (page->present) {
     kloug(100, "Virtual space is already used by someone else\n");
@@ -265,7 +265,7 @@ u_int32 request_physical_space(page_directory_t *dir, u_int32 physical_address, 
   }
 
   u_int32 virtual_address = index * 0x1000 + physical_address % 0x1000;
-  page_table_entry_t *page = get_page(dir, virtual_address);
+  page_table_entry_t *page = get_page(dir, virtual_address, is_kernel, is_writable);
   map_page_to_frame(page, physical_address / 0x1000, is_kernel, is_writable);
 
   /* kloug(100, "Mapped from %X\n", virtual_address, 8); */
@@ -274,7 +274,8 @@ u_int32 request_physical_space(page_directory_t *dir, u_int32 physical_address, 
 
 void free_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool free_frame)
 {
-  page_table_entry_t *page = get_page(dir, virtual_address);
+  page_table_entry_t *page = get_page(dir, virtual_address, TRUE, FALSE);
+  /* FIXME: crash if has to make page table */
 
   free_page(page, free_frame);
 }
@@ -497,7 +498,7 @@ void paging_install()
   for (u_int32 frame = 0; frame < (u_int32)unallocated_mem; frame += 0x1000) {
     /* Kernel code and data is readable but not writable from user-space */
     /* kloug(100, "Identity-mapping frame %x\n", frame); */
-    map_page_to_frame(get_page(kernel_directory, frame), frame / 0x1000, TRUE, FALSE);
+    map_page_to_frame(get_page(kernel_directory, frame, TRUE, FALSE), frame / 0x1000, TRUE, FALSE);
   }
 
   /* Now, enable paging! */

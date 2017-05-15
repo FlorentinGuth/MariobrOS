@@ -60,7 +60,7 @@ void add_segment(u_int32 *address, u_int32 base, u_int32 limit, bool code, int r
   gdt[current_entry].privilege   = ring;
   gdt[current_entry].read_write  = TRUE;
 
-  *address = current_entry * sizeof(gdt_entry_t);
+  *address = (current_entry * sizeof(gdt_entry_t)) | ring;
   current_entry++;
 }
 
@@ -69,6 +69,7 @@ void write_tss(gdt_entry_t* g)
    // Firstly, let's compute the base and limit of our entry into the GDT.
    u_int32 base = (u_int32) &TSS_ENTRY;
    u_int32 limit = sizeof(TSS_ENTRY);
+   u_int8  ring = 0; /* According to OSdev, other have said 3 */
 
    // Now, add our TSS descriptor's address to the GDT.
    g->limit_low = limit & 0xFFFF;
@@ -79,17 +80,18 @@ void write_tss(gdt_entry_t* g)
    g->dir_conform = 0; //always 0 for TSS
    g->executable = 1; //For TSS this is 1 for 32bit usage, or 0 for 16bit.
    g->always_one = 0; //indicate it is a TSS
-   g->privilege = 3; //same meaning
+   g->privilege = ring; //same meaning
    g->present = 1; //same meaning
    g->limit_high = (limit >> 16) & 0xF;
    g->available = 0;
    g->always_zero = 0; //same thing
-   g->size = 0; //should leave zero according to manuals. No effect
+   g->size = 1; //should leave zero according to manuals. No effect (1 according to OSdev)
    g->granularity = 0; //so that our computed GDT limit is in bytes, not pages
    g->base_high = (base >> 24) & 0xFF; //isolate top byte.
 
    // Ensure the TSS is initially zero'd.
    mem_set(&TSS_ENTRY, 0, sizeof(TSS_ENTRY));
+   TSS_SEGMENT = (current_entry * sizeof(gdt_entry_t)) | ring;
 
    TSS_ENTRY.ss0  = KERNEL_STACK_SEGMENT;  // Set the kernel stack segment.
    TSS_ENTRY.esp0 = START_OF_KERNEL_STACK; // Set the kernel stack pointer.

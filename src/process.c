@@ -21,17 +21,17 @@ process_t new_process(pid parent_id, priority prio)
 
   regs_t *regs = (regs_t *)mem_alloc(sizeof(regs_t));
   /* The data and general purpose segment registers are set to the user data segment */
-  regs->ds = regs->es = regs->fs = regs->gs = USER_DATA_SEGMENT | 0x3;
+  regs->ds = regs->es = regs->fs = regs->gs = USER_DATA_SEGMENT;
   /* All general purpose registers are set to 0 */
   regs->eax = regs->ebx = regs->ecx = regs->edx = regs->esi = regs->edi = regs->esp = regs->ebp = 0;
   /* We don't care about the error codes */
   regs->int_no = regs->err_code= 0;
   /* There comes the interesting stuff */
   regs->eip = NULL;  /* Will be set during code loading */
-  regs->cs = USER_CODE_SEGMENT | 0x3;
+  regs->cs = USER_CODE_SEGMENT;
   regs->eflags = 0;
   regs->useresp = START_OF_USER_STACK;
-  regs->ss = USER_STACK_SEGMENT | 0x3;
+  regs->ss = USER_STACK_SEGMENT;
 
   ctx.regs = regs;
   ctx.esp = NULL;                                  /* Will be set-up by the switching code */
