@@ -132,7 +132,7 @@ extern unsigned char utf8_c2[], utf8_c3[];  /* Defined in printer.c */
 extern color_t foreground, background;      /* Defined in printer.c */
 
 #define POP(type)                                                       \
-  type param = *(type *)(esp + 12 + 4*nb_args);           \
+  type param = *(type *)(esp + 16 + 4*nb_args);           \
   nb_args++;
 
 
@@ -149,7 +149,7 @@ void syscall_printf()
   int read  = 0;
   char buffer[17];
   char c = s[0];
-  int nb_args = 0;
+  int nb_args = 0; /* To have the right offset */
 
 #define PRINT(n) kloug(10, "%u ", *(u_int32 *)(esp + n))
   PRINT(0); PRINT(4); PRINT(8); PRINT(12); PRINT(16); PRINT(20);
