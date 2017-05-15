@@ -240,7 +240,7 @@ void run_program(string name)
   }
 
   process_t *proc = &state->processes[pid];
-  *proc = new_process(1, 1);  /* User processes have a priority of 1 */
+  *proc = new_process(1, 1, TRUE);  /* User processes have a priority of 1 */
   load_code(name, proc->context);
 
   kloug(100, "%x %x\n", proc->context.regs->ss, proc->context.regs->cs);
@@ -258,13 +258,13 @@ void scheduler_install()
   /* Creating idle process */
   pid idle_pid = 0;
   process_t *idle = &state->processes[idle_pid];
-  *idle = new_process(idle_pid, 0);
+  *idle = new_process(idle_pid, 0, TRUE);
   load_code("idle", idle->context);
 
   /* Creating init process */
   pid init_pid = 1;
   process_t *init = &(state->processes[init_pid]);
-  *init = new_process(init_pid, MAX_PRIORITY);
+  *init = new_process(init_pid, MAX_PRIORITY, TRUE);
   load_code("init", init->context);
 
   /* Initialization of the state */

@@ -6,7 +6,7 @@
 #include "gdt.h"
 
 
-process_t new_process(pid parent_id, priority prio)
+process_t new_process(pid parent_id, priority prio, bool create_page_dir)
 {
   /* kloug(100, "Creating new process\n"); */
 
@@ -16,7 +16,11 @@ process_t new_process(pid parent_id, priority prio)
   proc.prio = prio;
 
   context_t ctx;
-  ctx.page_dir = new_page_dir(&ctx.first_free_block, &ctx.unallocated_mem);
+  if (create_page_dir) {
+    ctx.page_dir = new_page_dir(&ctx.first_free_block, &ctx.unallocated_mem);
+  } else {
+    ctx.page_dir = NULL;
+  }
   /* kloug(100, "Malloc state: %x %x\n", ctx.first_free_block, ctx.unallocated_mem); */
 
   regs_t *regs = (regs_t *)mem_alloc(sizeof(regs_t));

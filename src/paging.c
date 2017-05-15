@@ -558,14 +558,14 @@ page_directory_t *new_page_dir(void **user_first_free_block, void **user_unalloc
 
 page_directory_t *fork_page_dir(page_directory_t *dir)
 {
-  /* kloug(100, "Forking directory\n"); */
+  kloug(100, "Forking directory\n");
   page_directory_t *fork = (page_directory_t *)mem_alloc_aligned(sizeof(page_directory_t), 0x1000);
   if (!fork) {
     return NULL;
   }
   mem_copy(fork, dir, sizeof(page_directory_t));
 
-#define RET_NULL() { free_page_dir(fork); return NULL; }
+#define RET_NULL() { kloug(100, "Fork failed\n"); free_page_dir(fork); return NULL; }
 
   fork->physical_address = get_physical_address(current_directory, (u_int32)fork);
 

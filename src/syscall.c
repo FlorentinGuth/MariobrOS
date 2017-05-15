@@ -7,6 +7,7 @@
 #include "idt.h"
 #include "gdt.h"
 #include "malloc.h"
+#include "memory.h"
 
 
 /* Possible speed enhancements:
@@ -166,6 +167,7 @@ void syscall_fork()
 {
   kloug(100, "Syscall fork\n");
 
+  process_t *parent = &state->processes[state->curr_pid];
   priority child_prio = CURR_REGS->ebx;
 
   /* Research of a free process */
@@ -182,11 +184,16 @@ void syscall_fork()
 
   /* Initialization of fields, registers, copying of context */
   process_t *proc = &state->processes[id];
-  proc->parent_id = state->curr_pid;
-  proc->state = Runnable;
+  *proc = new_process(state->curr_pid, child_prio, FALSE);
+  /* Context */
+  mem_copy(&proc->context, &parent->context, sizeof(context_t));
+  /* Regs */
+  proc->context.regs = (regs_t *)mem_alloc(sizeof(regs_t));
+  mem_copy(proc->context.regs, parent->context.regs, sizeof(regs_t));
   proc->context.regs->eax = 2;
   proc->context.regs->ebx = state->curr_pid;
-  /* TODO: copy context */
+  /* Page directory */
+  proc->context.page_dir = fork_page_dir(parent->context.page_dir);
 
   /* Adding the process in the runqueue */
   enqueue(state->runqueues[child_prio], id);
