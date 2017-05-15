@@ -7,10 +7,21 @@
 #define SYSCALL_ISR 0x80
 
 typedef enum syscall {
-  Exit   = 0,    /* The process is finished and returns a value */
-  Fork   = 1,    /* Creates a new child process, with the same context at first */
-  Wait   = 2,    /* Waits for a child to return a value */
-  Printf = 3,    /* Prints to the framebuffer */
+  Exit       =  0,    /* The process is finished and returns a value */
+  Fork       =  1,    /* Creates a new child process, with the same context at first */
+  Wait       =  2,    /* Waits for a child to return a value */
+  Printf     =  3,    /* Prints to the framebuffer */
+  Malloc     =  4,
+  Mem_Free   =  5,
+  Ls         =  6,
+  Rm         =  7,
+  Mkdir      =  8,
+  Cat        =  9,
+  Run        = 10,
+  Hlt        = 11,
+  NewChannel = 12,
+  Send       = 13,
+  Receive    = 14,
   Invalid,       /* /!\ This need to be the last syscall */
 } syscall_t;
 
