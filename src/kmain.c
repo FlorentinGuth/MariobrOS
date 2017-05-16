@@ -50,6 +50,8 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
 
   /* log_memory(); */
 
+  shell_install();
+
   scheduler_install();
 
   /* run_program("shell"); */
