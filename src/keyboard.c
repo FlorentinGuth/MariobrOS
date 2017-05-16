@@ -183,7 +183,7 @@ void keyboard_handler(struct regs *r)
       case 58: { // Caps lock
         k_lights = k_lights ^ 0x04;
         k_shift =!k_shift;
-        //keyboard_set_lights(k_lights);
+        keyboard_set_lights(k_lights);
         break;
       }
       case 69: { // Num lock
@@ -293,10 +293,9 @@ u_int8 keyboard_get()
   return 0;
 }
 
-void keyboard_shell(u_int8 scancode)
+void keyboard_shell(int scancode)
 {
   /* Read from the keyboard's data buffer */
-  scancode = inb(0x60);
 
   if (run_pid) {
     /* There is a running process from the shell, ignore, unless Ctrl-C */
