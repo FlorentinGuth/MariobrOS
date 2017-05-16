@@ -312,7 +312,6 @@ void scheduler_install()
   load_code("init", init->context);
   enqueue(state->runqueues[MAX_PRIORITY], init_pid);
 
-
   /* /\* Creating timer1 process *\/ */
   /* pid timer1_pid = 2; */
   /* process_t *timer1 = &(state->processes[timer1_pid]); */
