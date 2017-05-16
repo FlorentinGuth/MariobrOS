@@ -138,6 +138,7 @@ void free_page(page_table_entry_t *page, bool set_frame_free)
 {
   if (set_frame_free && page->address) {  /* Never free frame 0 */
     set_bit(frames, page->address, FALSE);
+    /* kloug(100, "Freeing frame %X\n", page->address * 0x1000, 8); */
   }
   page->present = FALSE;
 
@@ -247,6 +248,7 @@ bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool 
 
   if (page->present) {
     kloug(100, "Virtual space at %X is already used by someone else\n", virtual_address, 8);
+    log_page_dir(dir);
     return FALSE;
   }
 
@@ -517,7 +519,7 @@ void paging_install()
 page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem)
 {
   /* kloug(100, "New page dir\n"); */
-  log_memory();
+  /* log_memory(); */
 
   page_directory_t *new = clone_directory(base_directory);
   /* log_page_dir(new); */
@@ -641,7 +643,7 @@ void free_page_dir(page_directory_t *dir)
     if (dir->entries[table_index].present) {
       for (int page_index = 0; page_index < 1024; page_index++) {
         u_int32 virtual = 0x1000 * (page_index + 1024 * table_index);
-        if (get_physical_address(base_directory, virtual)) {
+        if (!get_physical_address(base_directory, virtual)) {
           /* Page not in base directory (and not frame 0): free frame! */
           free_virtual_space(dir, virtual, TRUE);
         }

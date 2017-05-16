@@ -257,11 +257,8 @@ void resolve_exit_wait(pid parent, pid child)
   state->runqueues[prio] = temp;
 
   /* Also free everything */
-  kloug(100, "a");
   mem_free(child_proc->context.regs);
-  kloug(100, "b");
   free_page_dir(child_proc->context.page_dir);
-  kloug(100, "c\n");
 
   /* Notifies the parent */
   parent_proc->state = Runnable;
