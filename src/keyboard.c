@@ -440,7 +440,7 @@ void keyboard_shell_handler(struct regs *r)
 void keyboard_install(bool shell)
 {
   if (shell)
-    irq_install_handler(1, keyboard_shell_handler);
+    irq_install_handler(1, keyboard_buf_handler);
   else
     irq_install_handler(1, keyboard_handler);
 
