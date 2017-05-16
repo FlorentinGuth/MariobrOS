@@ -474,12 +474,9 @@ void echo_command()
   set_pos();
 }
 
-bool need_to_finalize = FALSE;
 void send_command()
 {
   /* Parsing of the command */
-  need_to_finalize = TRUE;
-
   list_t words = str_split(history[history_pos], ' ', FALSE);
   kloug(100 + buffer_size, "Executing command %s %x\n", history[history_pos], words);
 
@@ -500,7 +497,6 @@ void send_command()
 
 void finalize_command()
 {
-  need_to_finalize = FALSE;
   echo_thingy();
 
   if (history_length == history_size - 1) {

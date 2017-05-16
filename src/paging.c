@@ -115,6 +115,7 @@ void map_page_to_frame(page_table_entry_t *page, u_int32 frame, bool is_kernel, 
  */
 bool map_page(page_table_entry_t *page, bool is_kernel, bool is_writable)
 {
+  /* kloug(100, "Map page\n"); */
   u_int32 frame = first_false_bit(frames);
   if (frame == (u_int32)(-1)) {
     /* No more free frames! */
@@ -135,7 +136,7 @@ bool map_page(page_table_entry_t *page, bool is_kernel, bool is_writable)
  */
 void free_page(page_table_entry_t *page, bool set_frame_free)
 {
-  if (set_frame_free) {
+  if (set_frame_free && page->address) {  /* Never free frame 0 */
     set_bit(frames, page->address, FALSE);
   }
   page->present = FALSE;
@@ -245,7 +246,7 @@ bool request_virtual_space(page_directory_t *dir, u_int32 virtual_address, bool 
   page_table_entry_t *page = get_page(dir, virtual_address, is_kernel, is_writable);
 
   if (page->present) {
-    kloug(100, "Virtual space is already used by someone else\n");
+    kloug(100, "Virtual space at %X is already used by someone else\n", virtual_address, 8);
     return FALSE;
   }
 
@@ -336,7 +337,7 @@ void page_fault_handler(regs_t *regs)
    */
 
   /* Temporary, TODO remove */
-  writef("Page fault at %x, present %u r %u user-mode %u reserved %u instruction fetch %u", \
+  writef("Page fault at %x, p %u r %u user %u reserved %u instruction fetch %u\n", \
          faulting_address, present, rw, us, reserved, id);
   /* writef("Err_code: %x\n", regs->err_code); */
   /* page_table_entry_t *page = get_page(state->processes[state->curr_pid].context.page_dir, faulting_address); */
@@ -516,8 +517,10 @@ void paging_install()
 page_directory_t *new_page_dir(void **user_first_free_block, void **user_unallocated_mem)
 {
   /* kloug(100, "New page dir\n"); */
+  log_memory();
 
   page_directory_t *new = clone_directory(base_directory);
+  /* log_page_dir(new); */
 
   /* Add pages for the code, until the end of virtual memory (address will loop to 0) */
   for (u_int32 address = START_OF_USER_CODE; address != 0; address += 0x1000) {
@@ -638,8 +641,8 @@ void free_page_dir(page_directory_t *dir)
     if (dir->entries[table_index].present) {
       for (int page_index = 0; page_index < 1024; page_index++) {
         u_int32 virtual = 0x1000 * (page_index + 1024 * table_index);
-        if (!get_physical_address(base_directory, virtual)) {
-          /* Page not in base directory: free frame! */
+        if (get_physical_address(base_directory, virtual)) {
+          /* Page not in base directory (and not frame 0): free frame! */
           free_virtual_space(dir, virtual, TRUE);
         }
       }

@@ -11,8 +11,9 @@
 
 
 scheduler_state_t *state = NULL;
-bool in_kernel = FALSE;  /* If true, we were doing a syscall while we were interrupted */
-bool should_cycle = FALSE;
+bool in_kernel = FALSE;     /* If true, we were doing a syscall while we were interrupted */
+bool should_cycle = FALSE;  /* If true, we should select a new process after the current syscall */
+pid  run_pid = 0;           /* If non null, a shell-launched process is running */
 
 
 void select_new_process()
@@ -279,9 +280,8 @@ void run_program(string name)
 
   /* kloug(100, "%x %x\n", proc->context.regs->ss, proc->context.regs->cs); */
 
-  state->curr_pid = pid;
+  run_pid = pid;
   enqueue(state->runqueues[1], pid);
-  switch_to_process(pid);
 }
 
 

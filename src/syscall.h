@@ -59,6 +59,8 @@ void syscall_exit();
  */
 void syscall_wait();
 
+void resolve_exit_wait(pid parent, pid child);
+
 /**
  * @name syscall_printf - Prints to the framebuffer (stdout)
  * The address of the format string is located in ebx, while the different

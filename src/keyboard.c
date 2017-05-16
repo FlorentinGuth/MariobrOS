@@ -1,5 +1,7 @@
 #include "keyboard.h"
 #include "shell.h"
+#include "process.h"
+#include "syscall.h"
 
 unsigned char kbdus[256] =
   {
@@ -259,6 +261,8 @@ void keyboard_handler(struct regs *r)
 }
 #pragma GCC diagnostic pop
 
+
+extern pid run_pid;  /* The pid of the process currently running in the shell */
 /* Handles the keyboard interrupt for the shell */
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void keyboard_shell_handler(struct regs *r)
@@ -268,6 +272,17 @@ void keyboard_shell_handler(struct regs *r)
 
   /* Read from the keyboard's data buffer */
   scancode = inb(0x60);
+
+  if (run_pid) {
+    /* There is a running process from the shell, ignore, unless Ctrl-C */
+    if (k_ctrl && !(scancode & 0x80) && kbdus[(scancode+(k_shift*128))] == 'c') {
+      writef("Process interrupted\n");
+      resolve_exit_wait(1, run_pid);  /* Frees everything */
+      run_pid = 0;
+    }
+    return;
+  }
+
   /* If the top bit of the byte we read from the keyboard is
    * set, that means that a key has just been released */
   if (scancode & 0x80)
