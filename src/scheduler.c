@@ -253,6 +253,7 @@ void switch_to_process(pid pid)
 }
 
 
+bool run_executed = FALSE;
 void run_program(string name)
 {
   pid pid = 0;
@@ -282,6 +283,8 @@ void run_program(string name)
 
   run_pid = pid;
   enqueue(state->runqueues[1], pid);
+
+  run_executed = TRUE;
 }
 
 

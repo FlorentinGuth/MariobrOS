@@ -495,8 +495,14 @@ void send_command()
 }
 
 
+extern pid run_pid;
 void finalize_command()
 {
+  if (run_pid) {
+    /* We are still executing the process launched by the user */
+    return;
+  }
+
   echo_thingy();
 
   if (history_length == history_size - 1) {
