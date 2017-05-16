@@ -21,6 +21,7 @@ u_int8 sys_buf[2048]; // Static buffer
 u_int8 sys_buf2[2048];
 
 extern scheduler_state_t *state;  /* Defined in scheduler.c */
+extern pid run_pid;
 
 #define CURR_PROC (state->processes[state->curr_pid])
 #define CURR_REGS (state->processes[state->curr_pid].context.regs)
@@ -241,9 +242,9 @@ void resolve_exit_wait(pid parent, pid child)
   process_t* parent_proc = &state->processes[parent];
   process_t* child_proc  = &state->processes[child];
   /* kloug(100, "Child ebx %d\n", child_proc->context.regs->ebx); */
-  kloug(100, "%x %x\n", parent_proc->context.regs, child_proc->context.regs);
+  /* kloug(100, "%x %x\n", parent_proc->context.regs, child_proc->context.regs); */
   /* Freeing the child from zombie state */
-  state->processes[child].state= Free;
+  state->processes[child].state = Free;
 
   /* Goodbye cruel world: removes the child from the runqueue */
   priority prio = child_proc->prio;
@@ -258,7 +259,7 @@ void resolve_exit_wait(pid parent, pid child)
   state->runqueues[prio] = temp;
 
   /* Also free everything */
-  /* FIXME: can't free regs, there is a memory leak... */
+  mem_free(child_proc->context.regs);
   free_page_dir(child_proc->context.page_dir);
 
   /* Notifies the parent */
@@ -266,6 +267,12 @@ void resolve_exit_wait(pid parent, pid child)
   parent_proc->context.regs->eax = 1;
   parent_proc->context.regs->ebx = child;
   parent_proc->context.regs->ecx = child_proc->context.regs->ebx;  /* Return value */
+
+  /* Take care of run command */
+  if (run_pid == child) {
+    run_pid = 0;
+    finalize_command();
+  }
 }
 
 void syscall_exit()
@@ -558,25 +565,19 @@ void syscall_run()
   run_program((void*) &sys_buf);
 }
 
-extern bool in_kernel, should_cycle;  /* From scheduler.c */
-extern bool need_to_finalize;         /* From shell.c */
+extern bool in_kernel, should_cycle, run_executed;  /* From scheduler.c */
 void syscall_hlt()
 {
   should_cycle = FALSE;
 
-  if (need_to_finalize) {
-    finalize_command();
-    should_cycle = TRUE;
-    return;
-  }
-
   for (;;) {
     asm volatile ("sti; hlt; cli");
 
-    if (!should_cycle) {
+    if (!should_cycle || run_executed) {
       /* The interruption was not a timer */
       should_cycle = TRUE;  /* We want to change process, maybe someone has something to do */
-      kloug(100, "Leaving hlt\n");
+      run_executed = FALSE;
+      /* kloug(100, "Leaving hlt\n"); */
       break;
     } else {
       /* We received a timer event */

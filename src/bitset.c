@@ -26,6 +26,9 @@ bitset_t empty_bitset(u_int32 length)
 
 void set_bit(bitset_t b, u_int32 bit, bool value)
 {
+  value = !!value;  /* Never trust user input */
+  /* kloug(100, "Set bit %x to %d\n", bit, value); */
+
   b.bits[INDEX_FROM_BIT(bit)] \
     = (b.bits[INDEX_FROM_BIT(bit)] & ~(1 << OFFSET_FROM_BIT(bit)))  \
     | (value << OFFSET_FROM_BIT(bit));
