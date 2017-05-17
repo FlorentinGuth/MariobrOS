@@ -288,7 +288,7 @@ void run_program(string name)
 }
 
 
-void scheduler_install()
+void scheduler_install(bool shell_on)
 {
   state = (scheduler_state_t *)mem_alloc(sizeof(scheduler_state_t));
   mem_set(state, 0, sizeof(scheduler_state_t));
@@ -311,6 +311,15 @@ void scheduler_install()
   *init = new_process(init_pid, MAX_PRIORITY, TRUE);
   load_code("init", init->context);
   enqueue(state->runqueues[MAX_PRIORITY], init_pid);
+
+
+  if(shell_on) {
+    pid shell_pid = 2;
+    process_t *shell = &(state->processes[shell_pid]);
+    *shell = new_process(shell_pid, 1, shell_pid);
+    load_code("shell", shell->context);
+    enqueue(state->runqueues[1], shell_pid);
+  }
 
   /* /\* Creating timer1 process *\/ */
   /* pid timer1_pid = 2; */

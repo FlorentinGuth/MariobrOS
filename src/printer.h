@@ -17,6 +17,8 @@
 #define SCREEN_HEIGHT 25
 #define TAB_WIDTH      4
 
+char * const framebuffer;
+
 #define ROW(pos)       ((pos) / SCREEN_WIDTH)
 #define COL(pos)       ((pos) % SCREEN_WIDTH)
 #define POS(row, col)  ((row) * SCREEN_WIDTH + (col))
@@ -31,8 +33,8 @@
 #define CURSOR_LOW_BYTE   0x0F
 
 
-/** pos_t:
- *  The type of a position on the screen (whose size is 80*25)
+/**
+ *  @name pos_t - The type of a position on the screen (whose size is 80*25)
  *  Note that a pos_t never accounts for the fact that each location takes up two bytes.
  */
 typedef unsigned short pos_t;

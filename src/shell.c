@@ -422,8 +422,48 @@ command_t rm_cmd = {
   .handler = *rm_handler,
 };
 
+void cat(list_t args)
+{
+  if (is_empty_list(&args)) {
+    writef("%frun:%f\tNo arguments given\n", LightRed, White);
+  } else {
+    fd file;
+    stats* st = (void*) mem_alloc(sizeof(stats));
+    u_int8 buffer[257];
+    buffer[256] = '\0';
+    u_int32 size;
+    while(!(is_empty_list(&args))) {
+      string name = (void*) pop(&args);
+      if(name[0] == '/') {
+        file = openfile(name, O_RDONLY, 0);
+      } else {
+        file = openfile(str_cat(str_cat(path, "/"), name), O_RDONLY, 0);
+      }
+      if(!file) {
+        writef("Bad name\n");
+        continue;
+      }
+      fstat(f, st);
+      size = st->size;
+      while(size) {
+        size -= read(f, (void*) buffer, 0, 256);
+      }
+    }
+  }
+  
+  fd marioascii = openfile("/data/marioascii", O_RDONLY, 0);
+  string to_write[41];
+  for(int i = 0; i < 59; i++) {
+    for(u_int32 j = 0; j < (1<<27); j++);
+    read(marioascii, (void*)to_write, 0, 41);
+    writef("%s", to_write);
+  }
+  splash_screen(0);
+}
+
 void shell_install()
 {
+  mario_splash();
   path = (string)mem_alloc(sizeof("/"));
   path[0] = '/'; path[1] = '\0';
 

@@ -11,6 +11,7 @@ SRC_DIR   = src
 PROGS_DIR = progs
 PROGS_SRC_DIR = $(PROGS_DIR)/$(SRC_DIR)
 PROGS_ELF_DIR = iso/progs
+DATA_DIR  = data
 BUILD_DIR = build
 PROGS_BUILD_DIR = $(PROGS_DIR)/$(BUILD_DIR)
 BOOT_DIR  = iso/boot
@@ -33,7 +34,7 @@ LOADER_PROG_S = $(PROGS_SRC_DIR)/loader_prog.s
 LOADER_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.s,$(PROGS_BUILD_DIR)/%.o,$(LOADER_PROG_S))
 
 LIB_PROG_S = $(PROGS_SRC_DIR)/lib.s
-LIB_PROG_C = $(PROGS_SRC_DIR)/string.c $(PROGS_SRC_DIR)/list.c $(PROGS_SRC_DIR)/utils.c
+LIB_PROG_C = $(PROGS_SRC_DIR)/string.c $(PROGS_SRC_DIR)/list.c $(PROGS_SRC_DIR)/utils.c $(PROGS_SRC_DIR)/printer.c
 LIB_PROG_O = $(patsubst $(PROGS_SRC_DIR)/%.s,$(PROGS_BUILD_DIR)/%.o,$(LIB_PROG_S)) $(patsubst $(PROGS_SRC_DIR)/%.c,$(PROGS_BUILD_DIR)/%.o,$(LIB_PROG_C))
 
 PROGS_C   = $(filter-out $(LIB_PROG_C), $(wildcard $(PROGS_SRC_DIR)/*.c))
@@ -207,6 +208,7 @@ redisk: cleandisk disk
 rsync: $(GRUB2_CONFIG) $(BOCHS_CONFIG_DISK)
 	sudo rsync -r $(BOOT_DIR)      $(MNT_DIR)
 	sudo rsync -r $(PROGS_ELF_DIR) $(MNT_DIR)
+	sudo rsync -r $(DATA_DIR)      $(MNT_DIR)
 
 mount: $(DISK_IMG)
 	@sudo losetup $(LOOP_DEVICE) $(DISK_IMG)

@@ -232,21 +232,24 @@ get_cursor_pos:
     int 0x80
     ret
 
-global scroll
-scroll:
-    mov eax, 23
-    int 0x80
-    ret
-
-global write_box
-write_box:
+global set_char
+set_char:
     push ebx
     push ecx
-    mov eax, 24
+    mov eax, 23
     mov ebx, [esp+12]
     mov ecx, [esp+16]
     int 0x80
     pop ecx
+    pop ebx
+    ret
+
+global get_char
+get_char:
+    push ebx
+    mov eax, 24
+    mov ebx, [esp+8]
+    int 0x80
     pop ebx
     ret
 
@@ -272,11 +275,5 @@ find_dir:
     int 0x80
     pop ecx
     pop ebx
-    ret
-
-global clear
-clear:
-    mov eax, 27
-    int 0x80
     ret
 

@@ -30,11 +30,10 @@ typedef enum syscall {
   Fstat      = 20,
   Set_curs   = 21,
   Get_curs   = 22,
-  Scroll     = 23,
-  Write_box  = 24,
+  Set_char   = 23,
+  Get_char   = 24,
   Gcwd       = 25,
   Find_dir   = 26,
-  Clear_buf  = 27,
   Invalid,       /* /!\ This need to be the last syscall */
 } syscall_t;
 

@@ -48,14 +48,20 @@ typedef struct stats {
   u_int32 st_size;
 } stats;
 
-
+/**
+ *  @name fd - The type of the file descriptors
+ */
 typedef u_int32* fd;
 
 typedef unsigned char bool;
 #define FALSE 0
 #define TRUE  1
 
-typedef u_int32 pos_t;
+/**
+ *  @name pos_t - The type of a position on the screen (whose size is 80*25)
+ *  Note that a pos_t never accounts for the fact that each location takes up two bytes.
+ */
+typedef u_int16 pos_t;
 
 enum Color {
   Black        =  0,
@@ -199,14 +205,50 @@ void set_cursor_pos(pos_t pos);
  */
 pos_t get_cursor_pos();
 
+/**
+ *  @name ls        - List directory contents
+ *  @param dir      - The name of the directory
+ *  @param curr_dir - If dir does not begin with '/', local root
+ */
 void ls(string dir, u_int32 curr_dir);
 
+/**
+ *  @name rm        - Removes a file or a directory
+ *
+ *  @param name     - The file to remove
+ *  @param curr_dir - Local root
+ *  @param rec      - If set, recursively deletes a directory and its contents
+ *
+ *  @return error   - 0: No error occured
+ *                    1: File does not exist
+ *                    2: Cannot delete the directory
+ *                    3: rec is not set but name designate a directory
+ *                    4: Unknown error
+ */
 u_int8 rm(string name, u_int32 curr_dir, bool rec);
 
+/**
+ *  @name mkdir     - Creates a directory
+ *  @param dir      - The name of the directory to create
+ *  @param curr_dir - Local root
+ *  @retur error    - 0: No error occured, 1: Impossible to create directory
+ */
 bool mkdir(string dir, u_int32 curr_dir);
 
+/**
+ *  @name get_cwd   - Gets the path to the current working directory
+ *  @param curr_dir - Current working directory
+ *  @param path     - The current path (to modify)
+ *  @return name    - The new path, or 0 if an error occured
+ */
 string get_cwd(u_int32 curr_dir, string path);
 
+/**
+ *  @name find_dir  - Gives the inode number of the selected directory
+ *  @param path     - The local or global path to the directory
+ *  @param curr_dir - If path does not begin with '/', local root
+ *  @return         - The inode number
+ */
 u_int32 find_dir(string path, u_int32 curr_dir);
 
 /**
@@ -215,12 +257,19 @@ u_int32 find_dir(string path, u_int32 curr_dir);
 void scroll();
 
 /**
- * @name write_box - Writes a double-framed box to the framebuffer
- * @param upper_left -
- * @param lower_right -
- * @return void
+ *  @name set_char - Writes a physical character in the framebuffer.
+ *
+ *  @param i  - The location in the framebuffer
+ *  @param c  - The ASCII character 
  */
-void write_box(pos_t upper_left, pos_t lower_right);
+void set_char(pos_t i, char c);
+
+/**
+ *  @name get_char - Gets the physical character from the framebuffer
+ *  @param i       - The location in the framebuffer
+ *  @return        - The character
+ */
+char get_char(pos_t i);
 
 /**
  *  @name keyboard_get - Gives the first non read scancode (if shell is on)

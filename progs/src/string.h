@@ -2,8 +2,8 @@
  *  Manipulations on strings.
  */
 
-#ifndef STRING_H
-#define STRING_H
+#ifndef LIB_STRING_H
+#define LIB_STRING_H
 
 #include <stdarg.h>
 #include "list.h"

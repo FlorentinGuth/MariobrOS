@@ -52,9 +52,7 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
 
   shell_install();
 
-  scheduler_install();
-
-  /* run_program("shell"); */
+  scheduler_install(FALSE);
 
   return 0xCAFEBABE;
 }

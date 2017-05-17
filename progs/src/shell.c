@@ -1,13 +1,7 @@
 #include "shell.h"
 #include "lib.h"
 #include "string.h"
-
-/* #include "printer.h" */
-/* #include "malloc.h" */
-/* #include "logging.h" */
-/* #include "fs_inter.h" */
-/* #include "scheduler.h" */
-
+#include "printer.h"
 
 /* TODO: free unused args */
 
@@ -446,7 +440,7 @@ void rm_handler(list_t args)
         continue;
       }
       case 2: {
-        printf("An error was encountered while  deleting %s directory\n",file);
+        printf("An error was encountered while deleting %s directory\n",file);
         continue;
       }
       case 3: {
@@ -469,7 +463,10 @@ command_t rm_cmd = {
 
 void shell_install()
 {
-  path = (string)malloc(sizeof("/"));
+  path = (void*) malloc(4);
+  printf("Allocated at: ");
+  printf("%x.\n", path);
+  printf("There is : %u\n", path[0]);
   path[0] = '/'; path[1] = '\0';
 
   register_command(splash_cmd);
@@ -823,6 +820,7 @@ void keyboard_shell(u_int8 scancode)
 
 void main()
 {
+  shell_install();
   u_int8 scancode;
   for(;;) {
     scancode = keyget();

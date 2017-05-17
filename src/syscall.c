@@ -414,6 +414,17 @@ void syscall_get_curs()
   CURR_REGS->eax = get_cursor_pos();
 }
 
+void syscall_set_char()
+{
+  framebuffer[CURR_REGS->ebx % (SCREEN_WIDTH * SCREEN_HEIGHT)] = \
+    CURR_REGS->ecx;
+}
+
+void syscall_get_char()
+{
+  CURR_REGS->eax = framebuffer[CURR_REGS->ebx % (SCREEN_WIDTH * SCREEN_HEIGHT)];
+}
+
 void syscall_ls()
 {
   SWITCH_AFTER();
@@ -620,11 +631,10 @@ void syscall_install()
   syscall_table[Fstat]    = *syscall_fstat;
   syscall_table[Set_curs] = *syscall_set_curs;
   syscall_table[Get_curs] = *syscall_get_curs;
-  syscall_table[Scroll]   = *syscall_scroll;
-  syscall_table[Write_box]= *syscall_write_box;
+  syscall_table[Set_char] = *syscall_set_char;
+  syscall_table[Get_char] = *syscall_get_char;
   syscall_table[Gcwd]     = *syscall_gcwd;
   syscall_table[Find_dir] = *syscall_find_dir;
-  syscall_table[Clear_buf]= *syscall_clear_buf;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }

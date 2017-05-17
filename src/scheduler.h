@@ -20,20 +20,18 @@ typedef struct scheduler_state {
 
 /**
  * @name scheduler_install - Initializes a new scheduler
- * @return void
+ * @param shell_on         - If set, installs the shell as a program
  */
-void scheduler_install();
+void scheduler_install(bool shell_on);
 
 /**
  * @name select_new_process - Searches the runqueues for a runnable process with highest priority
- * @return void
  */
 void select_new_process();
 
 /**
  * @name run_program - Runs the given program
  * @param name       - The name of the program, /progs/name.elf must exist
- * @return void
  */
 void run_program(string name);
 
