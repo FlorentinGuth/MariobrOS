@@ -292,6 +292,7 @@ bool extend_heap(int nb_pages, page_directory_t *dir)
    */
   u_int32 current_end_of_heap = (u_int32)unallocated_mem;
   bool is_kernel = dir == kernel_directory;
+  kloug(100, "Is kernel: %u\n", is_kernel);
 
   if (paging_enabled) {
     for (int i = 0; i < nb_pages; i++) {
@@ -347,7 +348,7 @@ header_free_t *alloc_pages(size_t size)
   bool change_dir = paging_enabled && (current_directory != kernel_directory);
   page_directory_t *temp = current_directory;
   if (change_dir) {
-    /* kloug(100, "Changing dir for malloc\n"); */
+    kloug(100, "Changing dir for malloc\n");
     switch_page_directory(kernel_directory);
   }
 

@@ -212,6 +212,14 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address, bool is_ker
     /* kloug(100, "get_page makes a page table\n"); */
     make_page_table(dir, table_index, is_kernel, is_writable);  /* A page table is kernel-only */
     page_table = dir->tables[table_index];
+  } else {
+    /* Ensures the right rights with the page table */
+    if (!is_kernel) {
+      dir->entries[table_index].user = 1;
+    }
+    if (is_writable) {
+      dir->entries[table_index].rw = 1;
+    }
   }
 
   return &page_table->pages[page_index];
@@ -674,11 +682,14 @@ void log_page_dir(page_directory_t *dir)
   u_int32 virtual_page = 1;
 
 #define FLUSH_MAPPED() {                                                \
-    kloug(100, "  %X-%X mapped to %X-%X\n",                             \
+    kloug(100, "  %X-%X mapped to %X-%X (user %u rw %u)\n",             \
           start_of_virtual_block, 8,                                    \
           virtual_page*0x1000 - 1, 8,                                   \
           start_of_physical_block, 8,                                   \
-          start_of_physical_block + virtual_page*0x1000 - start_of_virtual_block - 1, 8); }
+          start_of_physical_block + virtual_page*0x1000 - start_of_virtual_block - 1, 8, \
+          dir->tables[start_of_virtual_block/(0x1000*1024)]->pages[(start_of_virtual_block/0x1000)%1024].user,\
+          dir->tables[start_of_virtual_block/(0x1000*1024)]->pages[(start_of_virtual_block/0x1000)%1024].rw \
+          ); }
 #define FLUSH_UNMAPPED() {                      \
     kloug(100, "  %X-%X mapped to NULL\n",      \
           start_of_virtual_block, 8,            \
