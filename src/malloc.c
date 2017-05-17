@@ -6,6 +6,7 @@
 #include "math.h"
 #include "utils.h"
 #include "error.h"
+#include "process.h"
 
 /* Reminder: beware to pointer arithmetic.
  * Adding 1 means getting access to the next element, i.e. adds sizeof(type)...
@@ -279,7 +280,7 @@ header_free_t *merge(header_free_t *block)
  * @param dir        - The user page directory
  * @return           - Whether the extension was successful
  */
-bool extend_heap(int nb_pages, page_directory_t *dir)
+bool extend_heap(int nb_pages, page_directory_t *dir, void *user_um)
 {
   if (nb_pages == 0) {
     throw("Extension of heap by 0 pages");
@@ -290,23 +291,24 @@ bool extend_heap(int nb_pages, page_directory_t *dir)
   /* The moving end of heap, different from unallocated_mem to avoid bad malloc states
    * during page table allocations
    */
-  u_int32 current_end_of_heap = (u_int32)unallocated_mem;
+  u_int32 current_end_of_heap = (u_int32)user_um;
   bool is_kernel = dir == kernel_directory;
-  kloug(100, "Is kernel: %u\n", is_kernel);
+  /* kloug(100, "Is kernel: %u\n", is_kernel); */
 
   if (paging_enabled) {
     for (int i = 0; i < nb_pages; i++) {
-
+      /* kloug(100, "Step %d of %d", i+1, nb_pages); */
       if (!request_virtual_space(dir, current_end_of_heap, is_kernel, !is_kernel)) {
         /* The allocation failed, we need to free everything we requested */
+        kloug(100, "Heap extension aborted\n");
         for (i = i - 1; i >= 0; i--) {
           current_end_of_heap -= 0x1000;
           free_virtual_space(dir, current_end_of_heap, TRUE);
         }
 
-        kloug(100, "Heap extension aborted\n");
         return FALSE;
       }
+      /* kloug(100, "- Successful\n"); */
 
       current_end_of_heap += 0x1000;
     }
@@ -347,16 +349,26 @@ header_free_t *alloc_pages(size_t size)
 
   bool change_dir = paging_enabled && (current_directory != kernel_directory);
   page_directory_t *temp = current_directory;
+  void *user_um = unallocated_mem;
+  void *user_ffb = first_free_block;
   if (change_dir) {
     /* kloug(100, "Changing dir for malloc\n"); */
     switch_page_directory(kernel_directory);
+
+    /* We need to also change unallocated_mem and first_free_block, in case we need
+       to allocate a page table */
+    unallocated_mem = kernel_context.unallocated_mem;
+    first_free_block = kernel_context.first_free_block;
   }
 
-  header_free_t *block = unallocated_mem;
+  header_free_t *block = user_um;
 
-  if (extend_heap(nb_pages, temp)) {
+  if (extend_heap(nb_pages, temp, user_um)) {
     if (change_dir) {
       switch_page_directory(temp);
+      unallocated_mem = user_um;
+      first_free_block = user_ffb;
+      /* kloug(100, "Finished changing directory\n"); */
     }
 
     set_block(unallocated_mem, 0x1000 * nb_pages, FALSE);
@@ -366,6 +378,8 @@ header_free_t *alloc_pages(size_t size)
   } else {
     if (change_dir) {
       switch_page_directory(temp);
+      unallocated_mem = user_um;
+      first_free_block = user_ffb;
     }
 
     return NULL;  /* Not enough space */
@@ -394,7 +408,7 @@ void malloc_install()
   first_free_block = 0;
   unallocated_mem = (void *)START_OF_HEAP;
 
-  if (!extend_heap(1, kernel_directory)) {
+  if (!extend_heap(1, kernel_directory, unallocated_mem)) {
     throw("Unable to install new malloc state");
   }
 
