@@ -443,10 +443,10 @@ void cat(list_t args)
         writef("Bad name\n");
         continue;
       }
-      fstat(f, st);
-      size = st->size;
+      fstat(file, st);
+      size = st->st_size;
       while(size) {
-        size -= read(f, (void*) buffer, 0, 256);
+        size -= read(file, (void*) buffer, 0, 256);
       }
     }
   }
@@ -463,7 +463,6 @@ void cat(list_t args)
 
 void shell_install()
 {
-  mario_splash();
   path = (string)mem_alloc(sizeof("/"));
   path[0] = '/'; path[1] = '\0';
 
