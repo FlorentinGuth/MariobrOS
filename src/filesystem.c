@@ -8,7 +8,7 @@
  */
 
 
-superblock_t *spb = 0; // Superblock address
+superblock_t spb; // Superblock address
 bgp_t *bgpt = 0; // Block group descriptor table
 u_int32 block_factor = 0; // Only used in the definition of the BLOCK macro
 u_int32 block_size = 0; // block size in bytes
@@ -45,8 +45,8 @@ void update_block(u_int8* buffer, u_int32 ofs, u_int32 length, u_int32 address)
 
 void set_inode(u_int32 inode, inode_t *buffer)
 {
-  u_int32 block_group = (inode-1) / spb->inode_per_group;
-  u_int32 index = (inode-1) % spb->inode_per_group;
+  u_int32 block_group = (inode-1) / spb.inode_per_group;
+  u_int32 index = (inode-1) % spb.inode_per_group;
   /* writef("Finding inode %u (block_group %u, index %u)\n", inode, block_group, index); */
   readPIO(BLOCK(bgpt[block_group].inode_table_address), \
           index*sizeof(inode_t), sizeof(inode_t), (void*) buffer);
@@ -54,8 +54,8 @@ void set_inode(u_int32 inode, inode_t *buffer)
 
 void update_inode(u_int32 inode, inode_t *buffer)
 {
-  u_int32 block_group = (inode-1) / spb->inode_per_group;
-  u_int32 index = (inode-1) % spb->inode_per_group;
+  u_int32 block_group = (inode-1) / spb.inode_per_group;
+  u_int32 index = (inode-1) % spb.inode_per_group;
   /* writef("Updating inode %u (block group %u, index %u)\n",inode, block_group, index); */
   update_block((u_int8*) buffer, index*sizeof(inode_t), sizeof(inode_t), \
                BLOCK(bgpt[block_group].inode_table_address));
@@ -82,26 +82,26 @@ void flush_bgpt()
 u_int32 allocate_inode()
 {
   bitset_t b;
-  b.length = spb->inode_per_group;
+  b.length = spb.inode_per_group;
   b.bits = (void*) std_buf;
-  u_int32 ret = spb->first_free_inode;
+  u_int32 ret = spb.first_free_inode;
   /* writef("FFI:%u, ", ret);  */
-  u_int32 k = (ret-1) / spb->inode_per_group; // Current checked block
-  u_int32 pos = (ret-1) % spb->inode_per_group;
-  u_int32 address = bgpt[(ret-1) / spb->inode_per_group].inode_address_bitmap;
+  u_int32 k = (ret-1) / spb.inode_per_group; // Current checked block
+  u_int32 pos = (ret-1) % spb.inode_per_group;
+  u_int32 address = bgpt[(ret-1) / spb.inode_per_group].inode_address_bitmap;
   readLBA(BLOCK(address), block_factor, std_buf);
 
-  if(!spb->unalloc_inode_num) {
+  if(!spb.unalloc_inode_num) {
     return 0;
   }
-  spb->unalloc_inode_num--;
+  spb.unalloc_inode_num--;
   set_bit(b, pos, 1);
   writeLBA(BLOCK(address), block_factor, std_buf);
 
-  bgpt[(ret-1) / spb->inode_per_group].unalloc_inode--;
+  bgpt[(ret-1) / spb.inode_per_group].unalloc_inode--;
   flush_bgpt();
 
-  for(; k < 1 + (spb->inode_num - 1) / spb->inode_per_group; k++) {
+  for(; k < 1 + (spb.inode_num - 1) / spb.inode_per_group; k++) {
     readLBA(BLOCK(bgpt[k].inode_address_bitmap), block_factor, std_buf);
     if(!bgpt[k].unalloc_inode) {
       pos = (u_int32) (-1);
@@ -118,23 +118,23 @@ u_int32 allocate_inode()
     return 0; // No free inode
   }
 
-  spb->first_free_inode = k * spb->inode_per_group + pos + 1;
+  spb.first_free_inode = k * spb.inode_per_group + pos + 1;
   flush_spb();
   return ret;
 }
 
 u_int8 unallocate_inode(u_int32 inode)
 {
-  if(inode < spb->first_free_inode) {
-    spb->first_free_inode = inode;
+  if(inode < spb.first_free_inode) {
+    spb.first_free_inode = inode;
   }
-  u_int32 address = bgpt[(inode-1) / spb->inode_per_group].inode_address_bitmap;
+  u_int32 address = bgpt[(inode-1) / spb.inode_per_group].inode_address_bitmap;
   readLBA(BLOCK(address), block_factor, std_buf);
   if(! (((u_int16*)std_buf)[((inode-1)%2048) / 16] & (1<<((inode-1)%16))) ) {
     return 1; // Not allocated inode
   }
-  spb->unalloc_inode_num++;
-  bgpt[(inode-1) / spb->inode_per_group].unalloc_inode++;
+  spb.unalloc_inode_num++;
+  bgpt[(inode-1) / spb.inode_per_group].unalloc_inode++;
   ((u_int16*)std_buf)[((inode-1)%2048) / 16] &= ~(1<<((inode-1)%16));
   writeLBA(BLOCK(address), block_factor, std_buf);
   flush_bgpt(); flush_spb();
@@ -143,24 +143,24 @@ u_int8 unallocate_inode(u_int32 inode)
 
 u_int32 allocate_block(u_int32 prec)
 {
-  if(!prec || prec >= spb->block_num - 1) {
+  if(!prec || prec >= spb.block_num - 1) {
     prec = 1;
   }
 
   bitset_t b;
-  b.length = spb->block_per_group;
+  b.length = spb.block_per_group;
   b.bits = (void*) std_buf;
 
-  u_int32 k = prec / spb->block_per_group; // Current checked block
-  u_int32 pos = prec % spb->block_per_group;
-  u_int32 address = bgpt[prec / spb->block_per_group].block_address_bitmap;
+  u_int32 k = prec / spb.block_per_group; // Current checked block
+  u_int32 pos = prec % spb.block_per_group;
+  u_int32 address = bgpt[prec / spb.block_per_group].block_address_bitmap;
   readLBA(BLOCK(address), block_factor, std_buf);
 
-  if(!spb->unalloc_block_num) {
+  if(!spb.unalloc_block_num) {
     return 0;
   }
 
-  for(; k <= (spb->block_num - 1) / spb->block_per_group; k++) {
+  for(; k <= (spb.block_num - 1) / spb.block_per_group; k++) {
     readLBA(BLOCK(bgpt[k].block_address_bitmap), block_factor, std_buf);
     if(!bgpt[k].unalloc_block) {
       pos = (u_int32) (-1);
@@ -178,10 +178,10 @@ u_int32 allocate_block(u_int32 prec)
   if(pos != (u_int32) (-1)) {
     set_bit(b, pos, 1);
     writeLBA(BLOCK(bgpt[k].block_address_bitmap), block_factor, std_buf);
-    spb->unalloc_block_num--;
+    spb.unalloc_block_num--;
     bgpt[k].unalloc_block--;
     flush_bgpt(); flush_spb();
-    return k * spb->block_per_group + pos;
+    return k * spb.block_per_group + pos;
   }
 
   if(prec == 1) {
@@ -194,16 +194,16 @@ u_int32 allocate_block(u_int32 prec)
 u_int8 unallocate_block(u_int32 block)
 {
   bitset_t b;
-  b.length = spb->block_per_group;
+  b.length = spb.block_per_group;
   b.bits = (void*) std_buf;
 
-  u_int32 address = bgpt[block / spb->block_per_group].block_address_bitmap;
+  u_int32 address = bgpt[block / spb.block_per_group].block_address_bitmap;
   readLBA(BLOCK(address), block_factor, std_buf);
 
-  if(!get_bit(b, block % spb->block_per_group)) {
+  if(!get_bit(b, block % spb.block_per_group)) {
     return 1; // Not allocated block
   }
-  set_bit(b, block % spb->block_per_group, 0);
+  set_bit(b, block % spb.block_per_group, 0);
 
   writeLBA(BLOCK(address), block_factor, std_buf);
   flush_bgpt(); flush_spb();
@@ -630,7 +630,6 @@ u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use)
     }
   }
   update_inode(inode, std_inode);
-
   used -= 12; to_use -=12;
   if(!used) { // creation of inode.sibp
     addr = allocate_block(addr);
@@ -897,22 +896,21 @@ void filesystem_install()
 {
   set_disk(FALSE);
 
-  spb = (void*) mem_alloc(512); // Minimal size of a block
-  readLBA(2, 1, (u_int8*) spb);
-  if(spb->signature!=0xef53) {
+  readPIO(2, 0, sizeof(superblock_t), (u_int8*) &spb);
+  if(spb.signature!=0xef53) {
     throw("Wrong superblock signature : is this ext2 ?");
   }
 
-  block_size = 1024<<(spb->block_size);
+  block_size = 1024<<(spb.block_size);
   /* The next definition means: block_factor = block_size / 0x200*/
-  block_factor = 2<<(spb->block_size);
+  block_factor = 2<<(spb.block_size);
 
   std_buf = mem_alloc(block_size);
 
-  u_int32 block_group_num = (spb->block_num + spb->block_per_group - 1) / \
-    spb->block_per_group;
-  if(block_group_num != (spb->inode_num + spb->inode_per_group - 1) /   \
-     spb->inode_per_group) {
+  u_int32 block_group_num = (spb.block_num + spb.block_per_group - 1) / \
+    spb.block_per_group;
+  if(block_group_num != (spb.inode_num + spb.inode_per_group - 1) /   \
+     spb.inode_per_group) {
     throw("Incoherent number of block groups");
   }
 
@@ -921,7 +919,7 @@ void filesystem_install()
   bgpt = (void*) mem_alloc(bgpt_size);
   readLBA(BLOCK(1), block_factor * (bgpt_size / block_size), (u_int8*) bgpt);
   /* bgpt[0].unalloc_block -= 2; // Blocks 0 and 1 are reserved. */
-  /* spb->unalloc_block_num -= 2; */
+  /* spb.unalloc_block_num -= 2; */
 
   std_inode = mem_alloc(sizeof(inode_t));
 

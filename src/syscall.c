@@ -9,6 +9,7 @@
 #include "malloc.h"
 #include "memory.h"
 #include "shell.h"
+#include "utils.h"
 
 
 /* Possible speed enhancements:
@@ -104,8 +105,9 @@ void syscall_read()
   }
   u_int32 inode = fdt[*f].inode;
   u_int32 pos = fdt[*f].pos;
+  u_int32 done = read_inode_data(inode, sys_buf, pos, length);
   SWITCH_AFTER();
-  u_int32 done = read_inode_data(inode, buffer + offset, pos, length);
+  mem_copy(buffer + offset, sys_buf, done);
   SWITCH_BEFORE();
   fdt[*f].pos += done;
   CURR_REGS->eax = done;
@@ -148,8 +150,9 @@ void syscall_write()
   u_int32 pos = fdt[*f].pos;
   while(written != length) {
     SWITCH_AFTER();
-    done = write_inode_data(inode, buffer + offset, pos, length - written);
+    mem_copy(sys_buf, buffer + offset, max(length - written, sizeof(sys_buf)));
     SWITCH_BEFORE();
+    done = write_inode_data(inode, sys_buf, pos, length - written);
     if(!done) { // No data was written this time, so it won't evolve
       break;
     }
