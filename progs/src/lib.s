@@ -226,7 +226,7 @@ set_cursor_pos:
     int 0x80
     pop ebx
     ret
-    
+
 global get_cursor_pos
 get_cursor_pos:
     mov eax, 22
@@ -267,7 +267,7 @@ get_cwd:
     ret
 
 global find_dir
-find_dir:   
+find_dir:
     push ebx
     push ecx
     mov eax, 26
@@ -277,4 +277,13 @@ find_dir:
     pop ecx
     pop ebx
     ret
+
+global kill_family
+kill_family:
+  push ebx
+  mov eax, 27
+  mov ebx, [esp+8]
+  int 0x80
+  pop ebx
+  ret
 

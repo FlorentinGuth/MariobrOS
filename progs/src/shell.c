@@ -835,6 +835,7 @@ void keyboard_shell(u_int8 scancode)
 
 void main()
 {
+  run_pid = empty_list();
   shell_install();
   u_int8 scancode;
   for(;;) {

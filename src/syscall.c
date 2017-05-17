@@ -662,6 +662,7 @@ void syscall_install()
   syscall_table[Get_char] = *syscall_get_char;
   syscall_table[Gcwd]     = *syscall_gcwd;
   syscall_table[Find_dir] = *syscall_find_dir;
+  syscall_table[KillFamily] = *kill_family;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }

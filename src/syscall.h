@@ -34,6 +34,7 @@ typedef enum syscall {
   Get_char   = 24,
   Gcwd       = 25,
   Find_dir   = 26,
+  KillFamily = 27,
   Invalid,       /* /!\ This need to be the last syscall */
 } syscall_t;
 

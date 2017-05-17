@@ -11,6 +11,10 @@ typedef   signed short s_int16;
 typedef unsigned char  u_int8;
 typedef   signed char  s_int8;
 
+
+typedef unsigned int pid;
+
+
 /* Open flags */
 #define O_RDONLY   0x01
 #define O_WRONLY   0x02
@@ -282,5 +286,7 @@ void writef(string s, ...);
 void hlt();
 
 void run_program(string path);
+
+void kill_family(pid parent);
 
 #endif
