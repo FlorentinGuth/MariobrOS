@@ -88,8 +88,9 @@ mkdir:
     mov eax, 8
     mov ebx, [esp+12]
     mov ecx, [esp+16]
-    pop ebx
+    int 0x80
     pop ecx
+    pop ebx
     ret
 
 global keyget

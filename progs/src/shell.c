@@ -402,7 +402,7 @@ command_t run_cmd = {
 void mkdir_handler(list_t args)
 {
   if (is_empty_list(&args)) {
-    printf("%frun:%f\tNo arguments given\n", LightRed, White);
+    printf("%fmkdir:%f\tNo arguments given\n", LightRed, White);
   } else {
     while(!(is_empty_list(&args))) {
       string dir = (string) pop(&args);
@@ -422,7 +422,7 @@ command_t mkdir_cmd = {
 void rm_handler(list_t args)
 {
   if (is_empty_list(&args)) {
-    printf("%frun:%f\tNo arguments given\n", LightRed, White);
+    printf("%frm:%f\tNo arguments given\n", LightRed, White);
   } else {
     bool rec = FALSE;
     while(!(is_empty_list(&args))) {

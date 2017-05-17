@@ -774,7 +774,6 @@ u_int8 delete_file(u_int32 dir, u_int32 inode)
 
 u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
 {
-  writef("Father: %u, name: %s\n");
   if(!father) {
     return 0;
   }
@@ -787,6 +786,7 @@ u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
     unallocate_inode(num);
     return 0;
   }
+
   u_int8 is_a_dir = !!(type & TYPE_DIR);
   std_inode->type = type;
   std_inode->hard_links = 1 + is_a_dir; // Father (+ itself)
