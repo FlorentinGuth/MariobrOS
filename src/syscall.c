@@ -427,16 +427,18 @@ void syscall_get_char()
 
 void syscall_ls()
 {
+  u_int32 addr = CURR_REGS->ebx;
   SWITCH_AFTER();
-  str_copy((void*) CURR_REGS->ebx, (void*) &sys_buf);
+  str_copy((void*) addr, (void*) &sys_buf);
   SWITCH_BEFORE();
   ls_dir(find_inode((void*) &sys_buf, CURR_REGS->ecx));
 }
 
 void syscall_rm()
 {
+  u_int32 addr = CURR_REGS->ebx;
   SWITCH_AFTER();
-  str_copy((void*)CURR_REGS->ebx, (void*) &sys_buf);
+  str_copy((void*) addr, (void*) &sys_buf);
   SWITCH_BEFORE();
   string file = (void*) &sys_buf;
   bool rec = CURR_REGS->edx;
@@ -469,8 +471,9 @@ void syscall_rm()
 }
 
 void syscall_mkdir() {
+  u_int32 addr = CURR_REGS->ebx;
   SWITCH_AFTER();
-  str_copy((void*)CURR_REGS->ebx, (void*) &sys_buf);
+  str_copy((void*) addr, (void*) &sys_buf);
   SWITCH_BEFORE();
   u_int32 inode = create_dir(CURR_REGS->ecx, (void*) &sys_buf);
   if(!inode) {
@@ -547,18 +550,22 @@ void syscall_gcwd() {
     locpath = (void*) &sys_buf; size += entry->name_length + 1;
     inode = parent;
   }
+  u_int32 addr;
+  u_int32 to_cop = CURR_REGS->ecx;
   SWITCH_AFTER();
   mem_free(path);
-  CURR_REGS->eax = (u_int32) mem_alloc(size + 1);
-  ((char*) CURR_REGS->eax)[0] = '/';
-  str_copy(locpath, (void*) ((u_int32) CURR_REGS->eax + 1));
+  addr = (u_int32) mem_alloc(size + 1);
+  ((char*) addr)[0] = '/';
+  str_copy(locpath, (void*) ((u_int32) to_cop + 1));
   SWITCH_BEFORE();
+  CURR_REGS->eax = addr;
 }
 
 void syscall_find_dir()
 {
+  u_int32 addr = CURR_REGS->ebx;
   SWITCH_AFTER();
-  str_copy((void*) CURR_REGS->ebx, (void*) &sys_buf);
+  str_copy((void*) addr, (void*) &sys_buf);
   SWITCH_BEFORE();
   CURR_REGS->eax = find_dir((void*) &sys_buf, CURR_REGS->ecx);
 }
@@ -570,8 +577,9 @@ void syscall_clear_buf()
 
 void syscall_run()
 {
+  u_int32 addr = CURR_REGS->ebx;
   SWITCH_AFTER();
-  str_copy((void*) CURR_REGS->ebx, (void*) &sys_buf);
+  str_copy((void*) addr, (void*) &sys_buf);
   SWITCH_BEFORE();
   run_program((void*) &sys_buf);
 }
