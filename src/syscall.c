@@ -233,6 +233,7 @@ void syscall_fork()
   CURR_REGS->ebx = id;
 }
 
+extern bool user_shell;
 /**
  * @name resolve_exit_wait - Resolves an exit or wait syscall
  * @param parent           - The parent process, in waiting mode
@@ -273,7 +274,7 @@ void resolve_exit_wait(pid parent, pid child)
 
   /* Take care of run command */
   remove_elt(run_pid, child);
-  if (is_empty_list(run_pid)) {
+  if (is_empty_list(run_pid) && !user_shell) {
     finalize_command();
   }
 }
@@ -593,11 +594,12 @@ extern bool in_kernel, should_cycle, run_executed;  /* From scheduler.c */
 void syscall_hlt()
 {
   should_cycle = FALSE;
+  bool ignore_timer = CURR_REGS->ebx;
 
   for (;;) {
     asm volatile ("sti; hlt; cli");
 
-    if (!should_cycle || run_executed) {
+    if (!should_cycle || run_executed || !ignore_timer) {
       /* The interruption was not a timer */
       should_cycle = TRUE;  /* We want to change process, maybe someone has something to do */
       run_executed = FALSE;
@@ -623,6 +625,19 @@ void kill_family(pid parent)
   }
 
   resolve_exit_wait(proc->parent_id, parent);
+}
+
+void syscall_ctrl_c()
+{
+  kloug(100, "Syscall Ctrl-C\n");
+  if (!is_empty_list(run_pid)) {
+    kill_family(pop(run_pid));
+  }
+}
+
+void syscall_run_finished()
+{
+  CURR_REGS->eax = is_empty_list(run_pid);
 }
 
 
@@ -662,7 +677,8 @@ void syscall_install()
   syscall_table[Get_char] = *syscall_get_char;
   syscall_table[Gcwd]     = *syscall_gcwd;
   syscall_table[Find_dir] = *syscall_find_dir;
-  syscall_table[KillFamily] = *kill_family;
+  syscall_table[CtrlC]    = *syscall_ctrl_c;
+  syscall_table[RunFinished] = *syscall_run_finished;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }

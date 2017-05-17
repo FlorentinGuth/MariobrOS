@@ -50,7 +50,7 @@ void select_new_process()
 
   mem_free(temp);
 
-  kloug(100, "Selected %d as new process\n", state->curr_pid);
+  /* kloug(100, "Selected %d as new process\n", state->curr_pid); */
 }
 
 

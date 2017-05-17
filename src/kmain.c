@@ -14,6 +14,9 @@
 u_int32 UPPER_MEMORY, LOWER_MEMORY;
 u_int32 START_OF_KERNEL_STACK, END_OF_KERNEL_STACK;
 
+
+bool user_shell = TRUE;  /* TRUE for user shell, FALSE for kernel shell */
+
 int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
 {
   kloug(100, "-----------Successfully booted----------\n");
@@ -48,7 +51,6 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   fs_inter_install();
 
   /* log_memory(); */
-  bool user_shell = TRUE;  /* TRUE for user shell, FALSE for kernel shell */
 
   if (user_shell) {
     keyboard_install(2);

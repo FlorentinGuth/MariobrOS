@@ -352,7 +352,7 @@ header_free_t *alloc_pages(size_t size)
   void *user_um = unallocated_mem;
   void *user_ffb = first_free_block;
   if (change_dir) {
-    kloug(100, "Changing dir for malloc\n");
+    /* kloug(100, "Changing dir for malloc\n"); */
     switch_page_directory(kernel_directory);
 
     /* We need to also change unallocated_mem and first_free_block, in case we need

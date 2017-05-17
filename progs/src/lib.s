@@ -110,8 +110,11 @@ run_program:
 
 global hlt
 hlt:
+  push ebx
   mov eax, 11
+  mov ebx, [esp+8]
   int 0x80
+  pop ebx
   ret
 
 global open
@@ -278,8 +281,8 @@ find_dir:
     pop ebx
     ret
 
-global kill_family
-kill_family:
+global ctrl_c
+ctrl_c:
   push ebx
   mov eax, 27
   mov ebx, [esp+8]
@@ -287,3 +290,8 @@ kill_family:
   pop ebx
   ret
 
+global run_finished
+run_finished:
+  mov eax, 28
+  int 0x80
+  ret

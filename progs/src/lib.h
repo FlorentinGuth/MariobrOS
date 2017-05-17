@@ -283,10 +283,16 @@ u_int8 keyget();
 
 void writef(string s, ...);
 
-void hlt();
+
+/**
+ * @name hlt           - Waits for an interruption
+ * @param ignore_timer - If TRUE, timer interrupts are ignored
+ * @return void
+ */
+void hlt(bool ignore_timer);
 
 void run_program(string path);
-
-void kill_family(pid parent);
+void ctrl_c();
+bool run_finished();
 
 #endif
