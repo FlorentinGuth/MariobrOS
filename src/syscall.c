@@ -336,12 +336,12 @@ extern color_t foreground, background;      /* Defined in printer.c */
 
 void syscall_printf()
 {
-  kloug(100, "Syscall printf\n");
+  /* kloug(100, "Syscall printf\n"); */
 
-  context_t ctx = CURR_PROC.context;
-  u_int32 esp = ctx.regs->useresp;
-  string s = (string)ctx.regs->ebx;
-  switch_page_directory(ctx.page_dir);
+  u_int32 esp = CURR_REGS->useresp;
+  string s = (void*)CURR_REGS->ebx;
+
+  SWITCH_AFTER();
 
   /* kloug(100, "Format string %s\n", s); */
 
@@ -403,7 +403,7 @@ void syscall_printf()
     c = s[read];
   }
 
-  switch_page_directory(kernel_directory);
+  SWITCH_BEFORE();
 }
 
 void syscall_set_curs()
@@ -497,8 +497,8 @@ void syscall_write_box() {
   write_box(CURR_REGS->ebx, CURR_REGS->ecx);
 }
 
-void syscall_gcwd() {
-
+void syscall_gcwd()
+{
   u_int32 inode  = CURR_REGS->ebx;
   string path    = (void*) CURR_REGS->ecx;
 
@@ -549,16 +549,16 @@ void syscall_gcwd() {
     tmp[entry->name_length] = '/';
     str_copy(locpath, (void*) ((u_int32) tmp + entry->name_length + 1));
     str_copy(tmp, (void*) &sys_buf);
-    locpath = (void*) &sys_buf; size += entry->name_length + 1;
+    locpath = (void*) &sys_buf;
+    size += entry->name_length + 1;
     inode = parent;
   }
   u_int32 addr;
-  u_int32 to_cop = CURR_REGS->ecx;
   SWITCH_AFTER();
   mem_free(path);
   addr = (u_int32) mem_alloc(size + 1);
   ((char*) addr)[0] = '/';
-  str_copy(locpath, (void*) ((u_int32) to_cop + 1));
+  str_copy(locpath, (void*) ((u_int32) addr + 1));
   SWITCH_BEFORE();
   CURR_REGS->eax = addr;
 }

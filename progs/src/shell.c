@@ -242,7 +242,7 @@ command_t ls_cmd = {
 void cd_handler(list_t args)
 {
   if (args) {
-    string new_path = (string)args->head;
+    string new_path = (void*) args->head;
     u_int32 i = 1;
     for(; new_path[i] != '\0'; i++);
     if(i!=1 && new_path[i-1] == '/') {

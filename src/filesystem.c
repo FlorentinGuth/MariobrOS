@@ -775,6 +775,7 @@ u_int8 delete_file(u_int32 dir, u_int32 inode)
 
 u_int32 create_file(u_int32 father, string name, u_int16 type, u_int8 ftype)
 {
+  writef("Father: %u, name: %s\n");
   if(!father) {
     return 0;
   }
