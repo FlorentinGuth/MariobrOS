@@ -375,21 +375,16 @@ command_t ascii_cmd = {
 
 
 /* The run command */
+list_t *run_pid = NULL;
 void run_handler(list_t args)
 {
   if (is_empty_list(&args)) {
-    printf("%frun:%f\tNo arguments given\n", LightRed, White);
+    writef("%frun:%f\tNo arguments given\n", LightRed, White);
   } else {
-    string prog = (string)pop(&args);
-
-    if (is_empty_list(&args)) {
+    while (!is_empty_list(&args)) {
+      string prog = (string)pop(&args);
       run_program(prog);
-    } else {
-      printf("%frun:%f\tToo many arguments\n", LightRed, White);
     }
-
-    free(prog);
-    delete_list(&args, TRUE);
   }
 }
 command_t run_cmd = {
@@ -692,6 +687,16 @@ void shell_right()
 
 void keyboard_shell(u_int8 scancode)
 {
+  if (!is_empty_list(run_pid)) {
+    /* There is a running process from the shell, ignore, unless Ctrl-C */
+    if (k_ctrl && !(scancode & 0x80) && kbdus[(scancode+(k_shift*128))] == 'c') {
+      pid pid = pop(run_pid);
+      kill_family(pid);
+      writef("Process interrupted\n");
+    }
+    return;
+  }
+
   /* If the top bit of the byte we read from the keyboard is
    * set, that means that a key has just been released */
   if (scancode & 0x80)

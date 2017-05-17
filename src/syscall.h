@@ -76,6 +76,14 @@ void resolve_exit_wait(pid parent, pid child);
  */
 void syscall_printf();
 
+/**
+ * @name kill_family - Kills the process and all its children recusively
+ * @param parent     - The process to kill (should have been created by run)
+ * @return void
+ */
+void kill_family(pid parent);
+
+
 void syscall_invalid();
 
 
