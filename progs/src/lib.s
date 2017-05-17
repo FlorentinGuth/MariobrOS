@@ -125,9 +125,9 @@ open:
   mov edx, [esp+24]
   and edx, 0xffff
   int 0x80
-  pop ebx
-  pop ecx
   pop edx
+  pop ecx
+  pop ebx
   ret
 
 global close
