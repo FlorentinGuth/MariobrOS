@@ -464,9 +464,6 @@ command_t rm_cmd = {
 void shell_install()
 {
   path = (void*) malloc(4);
-  printf("Allocated at: ");
-  printf("%x.\n", path);
-  printf("There is : %u\n", path[0]);
   path[0] = '/'; path[1] = '\0';
 
   register_command(splash_cmd);
@@ -481,7 +478,7 @@ void shell_install()
   register_command(rm_cmd);
 
   /* display_ascii(); */
-  /* splash_screen(NULL); */
+  splash_screen(NULL);
   echo_thingy();
 
   start_of_command = get_cursor_pos();
