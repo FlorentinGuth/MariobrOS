@@ -5,9 +5,11 @@
 
 /**
  *  @name keyboard_install - Enables keyboard support
- *  @param shell - Whether to send the keys to the sell or write them down directly
+ *  @param shell_status    - 0 for no shell (directly writes characters to the screen)
+ *                         - 1 for the kernel shell (transmits the keys to the internal shell)
+ *                         - 2 for the user shell (key presses are buffered)
  */
-void keyboard_install(bool shell);
+void keyboard_install(int shell_status);
 
 /**
  *  @name keyboard_get - Gives the first non read scancode (if shell is on)
