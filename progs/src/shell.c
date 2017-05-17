@@ -328,7 +328,7 @@ void splash_screen(list_t args)
   |_____||_____|\\'-;__/[___]   [___]'.__.'|_______/[___]    `.___.'  \\______.'  \
 \n\n", White, Red);
 
-  write_box(POS(0,0), POS(8,SCREEN_WIDTH-1));
+  print_box(POS(0,0), POS(8,SCREEN_WIDTH-1));
 
   printf("%f%b", Red, Black);
 

@@ -176,8 +176,8 @@ write:
   pop ebx
   ret
 
-global printf
-printf:
+global writef
+writef:
   push   ebp
   mov    ebp, esp
   push   ebx
