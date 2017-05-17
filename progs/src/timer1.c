@@ -3,6 +3,6 @@
 int main()
 {
   for (;;)
-    printf("a");
+    writef("a");
   return 0;
 }

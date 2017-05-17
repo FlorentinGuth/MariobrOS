@@ -143,7 +143,6 @@ void write_hex(int n);
  *  - %%: a real '%'
  *  - %f: changes the foreground color
  *  - %b: changes the background color
- *  - %%: writes a '%'
  *
  *  @param s   - Formatted string
  *  @param ... - Arguments of the formatted string

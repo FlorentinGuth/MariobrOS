@@ -277,7 +277,7 @@ char get_char(pos_t i);
 u_int8 keyget();
 
 
-void printf(string s, ...);
+void writef(string s, ...);
 
 void hlt();
 
