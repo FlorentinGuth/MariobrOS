@@ -47,7 +47,7 @@ list_t str_split(string s, char c, bool empty)
   char buffer[128];
   int pos = 0;
   list_t res = 0;
-  /* TODO: handle buffer overflow */
+  /* FIXME: handle buffer overflow */
 
   for (int i = 0; s[i] != '\0'; i++) {
     if (s[i] == c && !(pos == 0 && !empty)) {

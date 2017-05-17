@@ -348,7 +348,7 @@ header_free_t *alloc_pages(size_t size)
   bool change_dir = paging_enabled && (current_directory != kernel_directory);
   page_directory_t *temp = current_directory;
   if (change_dir) {
-    kloug(100, "Changing dir for malloc\n");
+    /* kloug(100, "Changing dir for malloc\n"); */
     switch_page_directory(kernel_directory);
   }
 

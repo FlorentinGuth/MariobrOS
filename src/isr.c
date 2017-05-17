@@ -136,7 +136,7 @@ void fault_handler(struct regs *r)
     if(handler) {
       handler(r);
     } else {
-      log_string(exception_messages[r->int_no], Error);
+      log_string(exception_messages[r->int_no]);
       write_string(exception_messages[r->int_no]);
       throw("Exception. System Halted");
     }
