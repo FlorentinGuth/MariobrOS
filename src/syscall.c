@@ -336,6 +336,8 @@ extern color_t foreground, background;      /* Defined in printer.c */
 
 void syscall_printf()
 {
+  kloug(100, "Syscall printf\n");
+
   context_t ctx = CURR_PROC.context;
   u_int32 esp = ctx.regs->useresp;
   string s = (string)ctx.regs->ebx;

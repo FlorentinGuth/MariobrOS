@@ -80,7 +80,7 @@ rm:
     pop ecx
     pop ebx
     ret
-    
+
 global mkdir
 mkdir:
     push ebx
