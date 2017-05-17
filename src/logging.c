@@ -42,7 +42,7 @@ bool serial_is_transmit_fifo_empty(port_t com)
 }
 
 bool configured = FALSE;
-void log_string(const char *string, log_level_t lvl)
+void log_string(const char *string)
 {
   if (!configured) {
     serial_configure_baud_rate(SERIAL_COM1_BASE, 1);
@@ -53,21 +53,21 @@ void log_string(const char *string, log_level_t lvl)
     configured = TRUE;
   }
 
-  char level[9];
-  switch (lvl) {
-  case Debug: {
-    str_copy("[DEBUG] ", level);
-    break;
-  }
-  case Info: {
-    str_copy("[INFO]  ", level);
-    break;
-  }
-  case Error: {
-    str_copy("[ERROR] ", level);
-    break;
-  }
-  }
+  /* char level[9]; */
+  /* switch (lvl) { */
+  /* case Debug: { */
+  /*   str_copy("[DEBUG] ", level); */
+  /*   break; */
+  /* } */
+  /* case Info: { */
+  /*   str_copy("[INFO]  ", level); */
+  /*   break; */
+  /* } */
+  /* case Error: { */
+  /*   str_copy("[ERROR] ", level); */
+  /*   break; */
+  /* } */
+  /* } */
 
   /* for (int i = 0; level[i] != '\0'; i++) { */
   /*   outb(SERIAL_COM1_BASE, level[i]); */
@@ -85,6 +85,6 @@ void kloug(const int size, char s[], ...)
   va_start(param,0);
   char buffer[size];
   format_to_string(buffer, s, &param);
-  log_string(buffer, Debug);
+  log_string(buffer);
   va_end(param);
 }

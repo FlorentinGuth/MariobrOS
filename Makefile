@@ -181,6 +181,8 @@ core: $(KERNEL_ELF) $(PROGS_ELF)
 $(KERNEL_ELF):	$(OBJS) $(LINKER)  # To remake if linker script changed
     # Links the file and produces the .elf in the ISO folder
 	$(LD) $(LDFLAGS) -T $(LINKER) $(OBJS) -o $(KERNEL_ELF)
+    # Objdumps the file for debugging purposes
+	@objdump -d $(KERNEL_ELF) > $(BUILD_DIR)/kernel.dissasembled
 
 
 

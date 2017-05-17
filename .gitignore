@@ -9,6 +9,7 @@ src/cscope.*
 disk/*
 iso/progs/*
 progs/build/**
+*.tar*
 
 # Ignores every report file except the .tex and .pdf file
 report/**
