@@ -81,17 +81,12 @@ void serial_configure_modem(port_t com);
  */
 bool serial_is_transmit_fifo_empty(port_t com);
 
-
-enum LogLevel { Debug, Info, Error };
-typedef enum LogLevel log_level_t;
 /**
  *  @name log:
  *  Sends a string to the COM1 port, i.e. to the com1.out file thanks to Bochs.
- *
- *  @param string - The string to send
  *  @param lvl    - The severeness of the message
  */
-void log_string(const char *string, log_level_t lvl);
+void log_string(const char *string);
 
 
 /**

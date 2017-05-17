@@ -209,11 +209,12 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address, bool is_ker
 
   page_table_t *page_table = dir->tables[table_index];
   if (!dir->entries[table_index].present) {
-    /* kloug(100, "get_page makes a page table\n"); */
-    make_page_table(dir, table_index, is_kernel, is_writable);  /* A page table is kernel-only */
+    kloug(100, "get_page makes a page table\n");
+    make_page_table(dir, table_index, is_kernel, is_writable);
     page_table = dir->tables[table_index];
   } else {
     /* Ensures the right rights with the page table */
+    /* kloug(100, "Ensuring right rights\n"); */
     if (!is_kernel) {
       dir->entries[table_index].user = 1;
     }
@@ -482,24 +483,23 @@ void paging_install()
 
   current_directory = kernel_directory;
 
-  /* We'll see, if problems arise, uncomment the following lines */
-  /* /\* First: allocate every page tables to avoid further problems *\/ */
-  /* u_int32 nb_pages  = UPPER_MEMORY / 0x1000; */
-  /* u_int32 nb_tables = ceil_ratio(nb_pages, 1024); */
-  /* page_table_t* tables = (page_table_t *)mem_alloc_aligned(nb_tables * sizeof(page_table_t), 0x1000); */
-  /* mem_set(tables, 0, nb_tables * sizeof(page_table_t)); */
+  /* First: allocate every page tables to avoid further problems */
+  u_int32 nb_pages  = UPPER_MEMORY / 0x1000;
+  u_int32 nb_tables = ceil_ratio(nb_pages, 1024);
+  page_table_t* tables = (page_table_t *)mem_alloc_aligned(nb_tables * sizeof(page_table_t), 0x1000);
+  mem_set(tables, 0, nb_tables * sizeof(page_table_t));
 
-  /* /\* Let's tell the directory about the tables *\/ */
-  /* for (u_int32 table_index = 0; table_index < nb_tables; table_index++) { */
-  /*   kernel_directory->tables[table_index]  = &tables[table_index]; */
+  /* Let's tell the directory about the tables */
+  for (u_int32 table_index = 0; table_index < nb_tables; table_index++) {
+    kernel_directory->tables[table_index]  = &tables[table_index];
 
-  /*   page_directory_entry_t *entry = &kernel_directory->entries[table_index]; */
-  /*   entry->present   = TRUE; */
-  /*   entry->rw        = FALSE; */
-  /*   entry->user      = TRUE; */
-  /*   entry->page_size = FALSE;        /\* Should already be 0, but ensures 4KB size *\/ */
-  /*   entry->address = (u_int32)(&tables[table_index]) / 0x1000; */
-  /* } */
+    page_directory_entry_t *entry = &kernel_directory->entries[table_index];
+    entry->present   = TRUE;
+    entry->rw        = FALSE;
+    entry->user      = TRUE;
+    entry->page_size = FALSE;        /* Should already be 0, but ensures 4KB size */
+    entry->address = (u_int32)(&tables[table_index]) / 0x1000;
+  }
 
   /* We need to identity map (phys addr = virt addr) from 0x0 to the end of the
    * kernel heap (given by mem_alloc), so we can access this transparently, as

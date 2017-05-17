@@ -37,7 +37,6 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   /* kloug(100, "%x %x %x %x %x %x %x\n", KERNEL_CODE_SEGMENT, KERNEL_DATA_SEGMENT, KERNEL_STACK_SEGMENT, USER_CODE_SEGMENT, USER_DATA_SEGMENT, USER_STACK_SEGMENT, TSS_SEGMENT); */
   init_pic();
   /* timer_install(); */
-  keyboard_install(TRUE);
   isr_install_handler(6, illegal_opcode_handler);
   isr_install_handler(8, double_fault_handler);
   isr_install_handler(13, gpf_handler);
@@ -49,10 +48,16 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   fs_inter_install();
 
   /* log_memory(); */
+  bool user_shell = TRUE;  /* TRUE for user shell, FALSE for kernel shell */
 
-  /* shell_install(); */
-
-  scheduler_install(TRUE);
+  if (user_shell) {
+    keyboard_install(2);
+    scheduler_install(TRUE);
+  } else {
+    keyboard_install(1);
+    shell_install();
+    scheduler_install(FALSE);
+  }
 
   return 0xCAFEBABE;
 }

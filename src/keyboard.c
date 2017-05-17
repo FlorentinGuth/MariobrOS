@@ -457,13 +457,23 @@ void keyboard_shell_handler(struct regs *r)
 
 
 
-void keyboard_install(bool shell)
+void keyboard_install(int shell_status)
 {
-  if (shell)
-    irq_install_handler(1, keyboard_buf_handler);
-    /* irq_install_handler(1, keyboard_shell_handler); */
-  else
+  switch (shell_status) {
+  case 0:
+    /* No shell */
     irq_install_handler(1, keyboard_handler);
+    break;
 
+  case 1:
+    /* Kernel shell */
+    irq_install_handler(1, keyboard_shell_handler);
+    break;
+
+  case 2:
+    /* User shell */
+    irq_install_handler(1, keyboard_buf_handler);
+    break;
+  }
   /* kloug(100, "Keyboard installed\n"); */
 }
