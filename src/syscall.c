@@ -20,7 +20,7 @@
 u_int8 sys_buf[2048]; // Static buffer
 
 extern scheduler_state_t *state;  /* Defined in scheduler.c */
-extern pid run_pid;
+extern list_t *run_pid;
 
 #define CURR_PROC (state->processes[state->curr_pid])
 #define CURR_REGS (state->processes[state->curr_pid].context.regs)
@@ -270,8 +270,8 @@ void resolve_exit_wait(pid parent, pid child)
   parent_proc->context.regs->ecx = child_proc->context.regs->ebx;  /* Return value */
 
   /* Take care of run command */
-  if (run_pid == child) {
-    run_pid = 0;
+  remove_elt(run_pid, child);
+  if (is_empty_list(run_pid)) {
     finalize_command();
   }
 }
@@ -426,6 +426,20 @@ void syscall_hlt()
       should_cycle = FALSE;
     }
   }
+}
+
+
+void kill_family(pid parent)
+{
+  process_t *proc = &state->processes[parent];
+
+  for (pid child = 0; child < NUM_PROCESSES; child++) {
+    if (state->processes[child].parent_id == parent) {
+      kill_family(child);
+    }
+  }
+
+  resolve_exit_wait(proc->parent_id, parent);
 }
 
 
