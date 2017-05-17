@@ -461,6 +461,18 @@ command_t rm_cmd = {
   .handler = *rm_handler,
 };
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void clear_handler(list_t args)
+{
+  clear();
+}
+#pragma GCC diagnostic pop
+command_t clear_cmd = {
+  .name = "clear",
+  .help = "Clears the framebuffer",
+  .handler = *clear_handler,
+};
+
 void shell_install()
 {
   path = (void*) malloc(4);
@@ -476,6 +488,7 @@ void shell_install()
   register_command(ascii_cmd);
   register_command(mkdir_cmd);
   register_command(rm_cmd);
+  register_command(clear_cmd);
 
   /* display_ascii(); */
   splash_screen(NULL);

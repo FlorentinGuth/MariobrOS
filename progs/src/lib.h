@@ -276,10 +276,6 @@ char get_char(pos_t i);
  */
 u_int8 keyget();
 
-/**
- *  @name clear - Empties the framebuffer
- */
-void clear();
 
 void printf(string s, ...);
 

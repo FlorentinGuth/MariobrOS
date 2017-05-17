@@ -58,7 +58,7 @@ color_t background = Black;
 
 void pad(pos_t cursor_pos, pos_t to_pad)
 {
-  for(int i=cursor_pos; i<to_pad; i++) {
+  for(u_int16 i = cursor_pos; i<to_pad; i++) {
     put_char(i, ' ', foreground, background);
   }
 }
@@ -73,7 +73,7 @@ void clear()
 void scroll()
 {
   pos_t last_line = SCREEN_WIDTH * (SCREEN_HEIGHT - 1);
-  for(int i=0; i < 2*last_line; i++) {
+  for(u_int16 i = 0; i < 2*last_line; i++) {
     framebuffer[i] = framebuffer[i + 2*SCREEN_WIDTH];
   }
 

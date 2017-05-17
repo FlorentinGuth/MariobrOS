@@ -37,7 +37,7 @@ char * const framebuffer;
  *  @name pos_t - The type of a position on the screen (whose size is 80*25)
  *  Note that a pos_t never accounts for the fact that each location takes up two bytes.
  */
-typedef unsigned short pos_t;
+typedef u_int16 pos_t;
 
 enum Color {
   Black        =  0,

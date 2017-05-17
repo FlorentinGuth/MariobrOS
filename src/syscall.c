@@ -421,13 +421,13 @@ void syscall_get_curs()
 
 void syscall_set_char()
 {
-  framebuffer[CURR_REGS->ebx % (SCREEN_WIDTH * SCREEN_HEIGHT)] = \
+  framebuffer[CURR_REGS->ebx % (2 * SCREEN_WIDTH * SCREEN_HEIGHT)] = \
     CURR_REGS->ecx;
 }
 
 void syscall_get_char()
 {
-  CURR_REGS->eax = framebuffer[CURR_REGS->ebx % (SCREEN_WIDTH * SCREEN_HEIGHT)];
+  CURR_REGS->eax = framebuffer[CURR_REGS->ebx % (2 * SCREEN_WIDTH * SCREEN_HEIGHT)];
 }
 
 void syscall_ls()
