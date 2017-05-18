@@ -326,6 +326,19 @@ command_t run_cmd = {
   .handler = *run_handler,
 };
 
+/* The ps command */
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void ps_handler(list_t args)
+{
+  ps();
+}
+#pragma GCC diagnostic pop
+command_t ps_cmd = {
+  .name = "ps",
+  .help = "Prints the list of running processes",
+  .handler = *ps_handler,
+};
+
 /* The mkdir command */
 void mkdir_handler(list_t args)
 {
@@ -460,6 +473,7 @@ void shell_install()
   register_command(rm_cmd);
   register_command(clear_cmd);
   register_command(cat_cmd);
+  register_command(ps_cmd);
 
   /* display_ascii(); */
   splash_screen(NULL);

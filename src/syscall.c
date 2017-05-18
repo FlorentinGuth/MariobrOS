@@ -662,6 +662,31 @@ void syscall_run_finished()
   kloug(100, "Finished!\n");
 }
 
+void syscall_ps()
+{
+  for (pid id = 0; id < NUM_PROCESSES; id++) {
+    if (state->processes[id].state != Free) {
+      writef("%u:\t state ", id);
+      switch (state->processes[id].state) {
+      case Waiting:
+        writef("Waiting\n");
+        break;
+
+      case Runnable:
+        writef("Running\n");
+        break;
+
+      case Zombie:
+        writef("Zombie\n");
+        break;
+
+      default:
+        break;
+      }
+    }
+  }
+}
+
 
 void syscall_invalid()
 {
@@ -703,6 +728,7 @@ void syscall_install()
   syscall_table[RunFinished] = *syscall_run_finished;
   syscall_table[Scroll]   = *syscall_scroll;
   syscall_table[Keypeek]  = *syscall_keypeek;
+  syscall_table[Ps]       = *syscall_ps;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }

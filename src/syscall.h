@@ -38,6 +38,7 @@ typedef enum syscall {
   RunFinished= 28,
   Scroll     = 29,
   Keypeek    = 30,
+  Ps         = 31,
   Invalid,       /* /!\ This need to be the last syscall */
 } syscall_t;
 

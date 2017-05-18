@@ -297,4 +297,6 @@ void ctrl_c();
 u_int32 keypeek();
 bool run_finished(bool ignore_zombies);
 
+void ps();
+
 #endif

@@ -313,3 +313,9 @@ keypeek:
     mov eax, 30
     int 0x80
     ret
+
+global ps
+ps:
+  mov eax, 31
+  int 0x80
+  ret
