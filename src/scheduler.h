@@ -33,7 +33,7 @@ void select_new_process();
  * @name run_program - Runs the given program
  * @param name       - The name of the program, /progs/name.elf must exist
  */
-void run_program(string name);
+bool run_program(string name);
 
 void switch_to_process(pid pid);
 

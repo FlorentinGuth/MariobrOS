@@ -295,23 +295,29 @@ command_t ascii_cmd = {
 /* The run command */
 void run_handler(list_t args)
 {
+  int nb_progs = 0;
+
   if (is_empty_list(&args)) {
     writef("%frun:%f\tNo arguments given\n", LightRed, White);
   } else {
     while (!is_empty_list(&args)) {
       string prog = (string)pop(&args);
-      run_program(prog);
+      nb_progs += run_program(prog);
     }
   }
 
   /* Do not return before the programs finished */
-  while (!run_finished()) {
-    /* hlt(FALSE); */
+  while (!run_finished(TRUE)) {
     u_int8 ctrl = keypeek();
     if(ctrl) {
       ctrl_c();
       writef("\n%fProcess interrupted%f\n", LightRed, White);
     }
+  }
+
+  u_int32 pid, return_value;
+  while (!run_finished(FALSE)) {
+    scwait(&pid, &return_value);
   }
 }
 command_t run_cmd = {
@@ -513,10 +519,10 @@ void send_command()
 
 void finalize_command()
 {
-  if (!run_finished()) {
-    /* We are still executing the process launched by the user */
-    return;
-  }
+  /* if (!run_finished()) { */
+  /*   /\* We are still executing the process launched by the user *\/ */
+  /*   return; */
+  /* } */
 
   echo_thingy();
 

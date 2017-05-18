@@ -295,9 +295,12 @@ ctrl_c:
 
 global run_finished
 run_finished:
-    mov eax, 28
-    int 0x80
-    ret
+  push ebx
+  mov eax, 28
+  mov ebx, [esp+8]
+  int 0x80
+  pop ebx
+  ret
 
 global scroll
 scroll:

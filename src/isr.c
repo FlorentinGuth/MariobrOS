@@ -140,7 +140,7 @@ void fault_handler(struct regs *r)
     if(handler) {
       handler(r);
     } else {
-      log_string(exception_messages[r->int_no]);
+      /* log_string(exception_messages[r->int_no]); */
       writef("\n%f%s\n", LightRed, exception_messages[r->int_no]);
 
       if (current_directory == kernel_directory) {
@@ -153,7 +153,7 @@ void fault_handler(struct regs *r)
         kill_family(state->curr_pid);
         select_new_process();
 
-        switch_to_process(1); /* Back to init */
+        switch_to_process(state->curr_pid);
       }
     }
   }

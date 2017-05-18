@@ -14,7 +14,6 @@
 scheduler_state_t *state = NULL;
 bool in_kernel = FALSE;     /* If true, we were doing a syscall while we were interrupted */
 bool should_cycle = FALSE;  /* If true, we should select a new process after the current syscall */
-list_t *run_pid = NULL;     /* List of run-launched processes */
 
 
 void select_new_process()
@@ -255,7 +254,7 @@ void switch_to_process(pid pid)
 
 
 bool run_executed = FALSE;
-void run_program(string name)
+bool run_program(string name)
 {
   pid pid = 0;
   while (pid < NUM_PROCESSES && state->processes[pid].state != Free) {
@@ -264,11 +263,11 @@ void run_program(string name)
 
   if (pid == NUM_PROCESSES) {
     writef("%frun:%f\tUnable to create a new process\n", LightRed, White);
-    return;
+    return FALSE;
   }
 
   process_t *proc = &state->processes[pid];
-  *proc = new_process(1, 1, TRUE);  /* User processes have a priority of 1 */
+  *proc = new_process(state->curr_pid, 1, TRUE);  /* User processes have a priority of 1 */
   if (!load_code(name, proc->context)) {
     /* Unable to load code */
     writef("%frun:%f\tUnknown file: progs/%s.elf\n", LightRed, White, name);
@@ -277,15 +276,16 @@ void run_program(string name)
     free_page_dir(proc->context.page_dir);
     proc->state = Free;
 
-    return;
+    return FALSE;
   }
 
   /* kloug(100, "%x %x\n", proc->context.regs->ss, proc->context.regs->cs); */
 
-  push(run_pid, pid);
   enqueue(state->runqueues[1], pid);
-
+  kloug(100, "New process of pid %u (parent %u)\n", pid, state->curr_pid);
   run_executed = TRUE;
+
+  return TRUE;
 }
 
 
@@ -313,13 +313,11 @@ void scheduler_install(bool shell_on)
   load_code("init", init->context);
   enqueue(state->runqueues[MAX_PRIORITY], init_pid);
 
-  run_pid = empty_list();
-
 
   if(shell_on) {
     pid shell_pid = 2;
     process_t *shell = &(state->processes[shell_pid]);
-    *shell = new_process(shell_pid, 1, shell_pid);
+    *shell = new_process(init_pid, 1, shell_pid);
     load_code("shell", shell->context);
     enqueue(state->runqueues[1], shell_pid);
   }

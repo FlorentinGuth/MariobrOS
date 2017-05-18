@@ -529,13 +529,12 @@ void send_command()
 }
 
 
-extern list_t *run_pid;
 void finalize_command()
 {
-  if (!is_empty_list(run_pid)) {
-    /* We are still executing the process launched by the user */
-    return;
-  }
+  /* if (!is_empty_list(run_pid)) { */
+  /*   /\* We are still executing the process launched by the user *\/ */
+  /*   return; */
+  /* } */
 
   echo_thingy();
 

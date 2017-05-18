@@ -292,9 +292,9 @@ void writef(string s, ...);
  */
 void hlt(bool ignore_timer);
 
-void run_program(string path);
+bool run_program(string path);  /* TRUE if launched */
 void ctrl_c();
 u_int32 keypeek();
-bool run_finished();
+bool run_finished(bool ignore_zombies);
 
 #endif

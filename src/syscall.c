@@ -22,7 +22,6 @@ u_int8 sys_buf[2048]; // Static buffer
 u_int8 sys_buf2[2048];
 
 extern scheduler_state_t *state;  /* Defined in scheduler.c */
-extern list_t *run_pid;
 
 #define CURR_PROC (state->processes[state->curr_pid])
 #define CURR_REGS (state->processes[state->curr_pid].context.regs)
@@ -273,10 +272,10 @@ void resolve_exit_wait(pid parent, pid child)
   parent_proc->context.regs->ecx = child_proc->context.regs->ebx;  /* Return value */
 
   /* Take care of run command */
-  remove_elt(run_pid, child);
-  if (is_empty_list(run_pid) && !user_shell) {
-    finalize_command();
-  }
+  /* remove_elt(run_pid, child); */
+  /* if (is_empty_list(run_pid) && !user_shell) { */
+  /*   finalize_command(); */
+  /* } */
 }
 
 void syscall_exit()
@@ -587,7 +586,7 @@ void syscall_run()
   SWITCH_AFTER();
   str_copy((void*) addr, (void*) &sys_buf);
   SWITCH_BEFORE();
-  run_program((void*) &sys_buf);
+  CURR_REGS->eax = run_program((void*) &sys_buf);
 }
 
 extern bool in_kernel, should_cycle, run_executed;  /* From scheduler.c */
@@ -616,22 +615,27 @@ void syscall_hlt()
 
 void kill_family(pid parent)
 {
-  process_t *proc = &state->processes[parent];
+  /* process_t *proc = &state->processes[parent]; */
 
   for (pid child = 0; child < NUM_PROCESSES; child++) {
-    if (state->processes[child].parent_id == parent) {
+    if (state->processes[child].state != Free && state->processes[child].parent_id == parent) {
       kill_family(child);
     }
   }
 
-  resolve_exit_wait(proc->parent_id, parent);
+  resolve_exit_wait(1, parent);
 }
 
 void syscall_ctrl_c()
 {
   kloug(100, "Syscall Ctrl-C\n");
-  if (!is_empty_list(run_pid)) {
-    kill_family(pop(run_pid));
+
+  pid curr_pid = state->curr_pid;
+  for (pid child = 0; child < NUM_PROCESSES; child++) {
+    if (state->processes[child].state != Free && state->processes[child].parent_id == curr_pid) {
+      kill_family(child);
+      return;
+    }
   }
 }
 
@@ -642,7 +646,20 @@ void syscall_keypeek()
 
 void syscall_run_finished()
 {
-  CURR_REGS->eax = is_empty_list(run_pid);
+  kloug(100, "Syscall run finished\n");
+
+  bool ignore_zombies = CURR_REGS->ebx;
+  for (pid child = 0; child < NUM_PROCESSES; child++) {
+    if (state->processes[child].state != Free &&
+        (!ignore_zombies || state->processes[child].state != Zombie) &&
+        state->processes[child].parent_id == state->curr_pid) {
+      kloug(100, "Process %u is in state %u\n", child, state->processes[child].state);
+      CURR_REGS->eax = FALSE;
+      return;
+    }
+  }
+  CURR_REGS->eax = TRUE;
+  kloug(100, "Finished!\n");
 }
 
 
