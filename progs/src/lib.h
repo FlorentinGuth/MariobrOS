@@ -11,6 +11,10 @@ typedef   signed short s_int16;
 typedef unsigned char  u_int8;
 typedef   signed char  s_int8;
 
+
+typedef unsigned int pid;
+
+
 /* Open flags */
 #define O_RDONLY   0x01
 #define O_WRONLY   0x02
@@ -279,8 +283,16 @@ u_int8 keyget();
 
 void writef(string s, ...);
 
-void hlt();
+
+/**
+ * @name hlt           - Waits for an interruption
+ * @param ignore_timer - If TRUE, timer interrupts are ignored
+ * @return void
+ */
+void hlt(bool ignore_timer);
 
 void run_program(string path);
+void ctrl_c();
+bool run_finished();
 
 #endif

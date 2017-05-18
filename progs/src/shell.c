@@ -16,6 +16,8 @@ string history[history_size] = {0};
 int history_length = 0, history_pos = 0;
 bool modified_since_history = FALSE;
 
+#define NB_HALTS 100
+
 u_int32 curr_dir = 2; // root directory
 
 unsigned char kbdus[256] =
@@ -378,19 +380,19 @@ command_t ascii_cmd = {
 void run_handler(list_t args)
 {
   if (is_empty_list(&args)) {
-    printf("%frun:%f\tNo arguments given\n", LightRed, White);
+    writef("%frun:%f\tNo arguments given\n", LightRed, White);
   } else {
-    string prog = (string)pop(&args);
-
-    if (is_empty_list(&args)) {
+    while (!is_empty_list(&args)) {
+      string prog = (string)pop(&args);
       run_program(prog);
-    } else {
-      printf("%frun:%f\tToo many arguments\n", LightRed, White);
     }
-
-    free(prog);
-    delete_list(&args, TRUE);
   }
+
+  /* Do not return before the programs finished */
+  while (!run_finished()) {
+    /* hlt(FALSE); */
+    keyboard_shell(keyget(), TRUE);
+  };
 }
 command_t run_cmd = {
   .name = "run",
@@ -592,6 +594,40 @@ void send_command()
 }
 
 
+void finalize_command()
+{
+  if (!run_finished()) {
+    /* We are still executing the process launched by the user */
+    return;
+  }
+
+  echo_thingy();
+
+  if (history_length == history_size - 1) {
+    /* Full history */
+    free(history[0]);
+    for (int i = 1; i < history_size; i++) {
+      history[i-1] = history[i];
+    }
+    history_pos = history_length;
+  } else {
+    /* Save in history */
+    str_copy(history[history_pos], history[history_length]);
+
+    history_length++;
+    history_pos = history_length;
+  }
+
+  history[history_pos] = malloc(buffer_size);
+  str_fill(history[history_pos], '\0', buffer_size);
+
+  pos = 0;
+  start_of_command = get_cursor_pos();
+  length = 0;
+  max_length = 0;
+}
+
+
 void shell_write_char(char c)
 {
   switch (c) {
@@ -604,30 +640,8 @@ void shell_write_char(char c)
     printf("\n");
 
     send_command();
-    echo_thingy();
+    finalize_command();
 
-    if (history_length == history_size - 1) {
-      /* Full history */
-      free(history[0]);
-      for (int i = 1; i < history_size; i++) {
-        history[i-1] = history[i];
-      }
-      history_pos = history_length;
-    } else {
-      /* Save in history */
-      str_copy(history[history_pos], history[history_length]);
-
-      history_length++;
-      history_pos = history_length;
-    }
-
-    history[history_pos] = malloc(buffer_size);
-    str_fill(history[history_pos], '\0', buffer_size);
-
-    pos = 0;
-    start_of_command = get_cursor_pos();
-    length = 0;
-    max_length = 0;
     return;
 
   case '\t':
@@ -736,7 +750,7 @@ void shell_right()
   set_pos();
 }
 
-void keyboard_shell(u_int8 scancode)
+void keyboard_shell(u_int8 scancode, bool in_run)
 {
   /* If the top bit of the byte we read from the keyboard is
    * set, that means that a key has just been released */
@@ -776,7 +790,7 @@ void keyboard_shell(u_int8 scancode)
           k_dead_hat = FALSE;
           k_dead_trema = TRUE; }
         else if(k_dead_hat) {
-          shell_write_char('^');
+          if (!in_run) shell_write_char('^');
           k_dead_hat = FALSE; }
         else
           k_dead_hat = TRUE;
@@ -818,55 +832,55 @@ void keyboard_shell(u_int8 scancode)
       }
         /* Next cases are only of use in the framebuffer */
       case 71: { // Home
-        shell_home();
+        if (!in_run) shell_home();
         break;
       }
       case 72: { // Up
-        shell_up();
+        if (!in_run) shell_up();
         break;
       }
       case 75: { // Left
-        shell_left();
+        if (!in_run) shell_left();
         break;
       }
       case 77: { // Right
-        shell_right();
+        if (!in_run) shell_right();
         break;
       }
       case 79: { // End
-        shell_end();
+        if (!in_run) shell_end();
         break;
       }
       case 80: { // Down
-        shell_down();
+        if (!in_run) shell_down();
         break;
       }
       default: {
         char c = kbdus[(scancode+(k_shift*128))];
         if(k_dead_hat) {
           switch(c) {
-          case 'a': { shell_write_string("â"); break; }
-          case 'e': { shell_write_string("ê"); break; }
-          case 'i': { shell_write_string("î"); break; }
-          case 'o': { shell_write_string("ô"); break; }
-          case 'u': { shell_write_string("û"); break; }
-          default: shell_write_char(c);
+          case 'a': { if (!in_run) shell_write_string("â"); break; }
+          case 'e': { if (!in_run) shell_write_string("ê"); break; }
+          case 'i': { if (!in_run) shell_write_string("î"); break; }
+          case 'o': { if (!in_run) shell_write_string("ô"); break; }
+          case 'u': { if (!in_run) shell_write_string("û"); break; }
+          default: if (!in_run) shell_write_char(c);
           }
         } else if(k_dead_trema){
           switch(c) {
-          case 'a': { shell_write_string("ä"); break; }
-          case 'e': { shell_write_string("ë"); break; }
-          case 'i': { shell_write_string("ï"); break; }
-          case 'o': { shell_write_string("ö"); break; }
-          case 'u': { shell_write_string("ü"); break; }
-          case 'y': { shell_write_string("ÿ"); break; }
-          case 'A': { shell_write_string("Ä"); break; }
-          case 'O': { shell_write_string("Ö"); break; }
-          case 'U': { shell_write_string("Ü"); break; }
-          default: shell_write_char(c);
+          case 'a': { if (!in_run) shell_write_string("ä"); break; }
+          case 'e': { if (!in_run) shell_write_string("ë"); break; }
+          case 'i': { if (!in_run) shell_write_string("ï"); break; }
+          case 'o': { if (!in_run) shell_write_string("ö"); break; }
+          case 'u': { if (!in_run) shell_write_string("ü"); break; }
+          case 'y': { if (!in_run) shell_write_string("ÿ"); break; }
+          case 'A': { if (!in_run) shell_write_string("Ä"); break; }
+          case 'O': { if (!in_run) shell_write_string("Ö"); break; }
+          case 'U': { if (!in_run) shell_write_string("Ü"); break; }
+          default: if (!in_run) shell_write_char(c);
           }
         } else
-          shell_write_char(c);
+          if (!in_run) shell_write_char(c);
       }
         k_dead_hat = FALSE;
         k_dead_trema = FALSE;
@@ -881,7 +895,7 @@ void main()
   for(;;) {
     scancode = keyget();
     if(scancode) {
-      keyboard_shell(scancode);
+      keyboard_shell(scancode, FALSE);
     }
   }
 }

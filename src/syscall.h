@@ -34,6 +34,8 @@ typedef enum syscall {
   Get_char   = 24,
   Gcwd       = 25,
   Find_dir   = 26,
+  CtrlC      = 27,
+  RunFinished= 28,
   Scroll     = 29,
   Invalid,       /* /!\ This need to be the last syscall */
 } syscall_t;
@@ -76,6 +78,14 @@ void resolve_exit_wait(pid parent, pid child);
  * @return void
  */
 void syscall_printf();
+
+/**
+ * @name kill_family - Kills the process and all its children recusively
+ * @param parent     - The process to kill (should have been created by run)
+ * @return void
+ */
+void kill_family(pid parent);
+
 
 void syscall_invalid();
 

@@ -8,7 +8,7 @@
 int main()
 {
   for (;;) {
-    hlt();
+    hlt(TRUE);
   }
   return 0;  /* Dead code */
 }

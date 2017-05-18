@@ -27,6 +27,6 @@ void shell_right();
 
 void register_command(command_t c);
 
-void keyboard_shell(u_int8 scancode);
+void keyboard_shell(u_int8 scancode, bool in_run);
 
 #endif

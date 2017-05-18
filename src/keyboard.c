@@ -265,9 +265,7 @@ void keyboard_handler(struct regs *r)
 u_int8 key_buf[256];
 u_int8 k_read  = 0;
 u_int8 k_write = 0;
-
-
-extern pid run_pid;  /* The pid of the process currently running in the shell */
+extern list_t *run_pid;  /* The pid of the process currently running in the shell */
 /* Handles the keyboard interrupt for the shell */
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -297,12 +295,12 @@ void keyboard_shell(int scancode)
 {
   /* Read from the keyboard's data buffer */
 
-  if (run_pid) {
+  if (!is_empty_list(run_pid)) {
     /* There is a running process from the shell, ignore, unless Ctrl-C */
     if (k_ctrl && !(scancode & 0x80) && kbdus[(scancode+(k_shift*128))] == 'c') {
+      pid pid = pop(run_pid);
+      kill_family(pid);
       writef("Process interrupted\n");
-      resolve_exit_wait(1, run_pid);  /* Frees everything */
-      run_pid = 0;
     }
     return;
   }

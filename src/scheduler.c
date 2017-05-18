@@ -8,12 +8,13 @@
 #include "paging.h"
 #include "filesystem.h"
 #include "elf.h"
+#include "list.h"
 
 
 scheduler_state_t *state = NULL;
 bool in_kernel = FALSE;     /* If true, we were doing a syscall while we were interrupted */
 bool should_cycle = FALSE;  /* If true, we should select a new process after the current syscall */
-pid  run_pid = 0;           /* If non null, a shell-launched process is running */
+list_t *run_pid = NULL;     /* List of run-launched processes */
 
 
 void select_new_process()
@@ -49,7 +50,7 @@ void select_new_process()
 
   mem_free(temp);
 
-  kloug(100, "Selected %d as new process\n", state->curr_pid);
+  /* kloug(100, "Selected %d as new process\n", state->curr_pid); */
 }
 
 
@@ -281,7 +282,7 @@ void run_program(string name)
 
   /* kloug(100, "%x %x\n", proc->context.regs->ss, proc->context.regs->cs); */
 
-  run_pid = pid;
+  push(run_pid, pid);
   enqueue(state->runqueues[1], pid);
 
   run_executed = TRUE;
@@ -311,6 +312,8 @@ void scheduler_install(bool shell_on)
   *init = new_process(init_pid, MAX_PRIORITY, TRUE);
   load_code("init", init->context);
   enqueue(state->runqueues[MAX_PRIORITY], init_pid);
+
+  run_pid = empty_list();
 
 
   if(shell_on) {

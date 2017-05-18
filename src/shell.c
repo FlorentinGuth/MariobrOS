@@ -340,15 +340,10 @@ void run_handler(list_t args)
   if (is_empty_list(&args)) {
     writef("%frun:%f\tNo arguments given\n", LightRed, White);
   } else {
-    string prog = (string)pop(&args);
-
-    if (is_empty_list(&args)) {
+    while (!is_empty_list(&args)) {
+      string prog = (string)pop(&args);
       run_program(prog);
-    } else {
-      writef("%frun:%f\tToo many arguments\n", LightRed, White);
     }
-
-    /* delete_list(&args, TRUE); */
   }
 }
 command_t run_cmd = {
@@ -534,10 +529,10 @@ void send_command()
 }
 
 
-extern pid run_pid;
+extern list_t *run_pid;
 void finalize_command()
 {
-  if (run_pid) {
+  if (!is_empty_list(run_pid)) {
     /* We are still executing the process launched by the user */
     return;
   }

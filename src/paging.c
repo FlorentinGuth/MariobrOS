@@ -209,7 +209,7 @@ page_table_entry_t *get_page(page_directory_t *dir, u_int32 address, bool is_ker
 
   page_table_t *page_table = dir->tables[table_index];
   if (!dir->entries[table_index].present) {
-    kloug(100, "get_page makes a page table\n");
+    /* kloug(100, "get_page makes a page table\n"); */
     make_page_table(dir, table_index, is_kernel, is_writable);
     page_table = dir->tables[table_index];
   } else {
