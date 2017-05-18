@@ -40,9 +40,9 @@ int kmain(multiboot_info_t* mbd, u_int32 stack_start, u_int32 stack_size)
   /* kloug(100, "%x %x %x %x %x %x %x\n", KERNEL_CODE_SEGMENT, KERNEL_DATA_SEGMENT, KERNEL_STACK_SEGMENT, USER_CODE_SEGMENT, USER_DATA_SEGMENT, USER_STACK_SEGMENT, TSS_SEGMENT); */
   init_pic();
   /* timer_install(); */
-  isr_install_handler(6, illegal_opcode_handler);
-  isr_install_handler(8, double_fault_handler);
-  isr_install_handler(13, gpf_handler);
+  /* isr_install_handler(6, illegal_opcode_handler); */
+  /* isr_install_handler(8, double_fault_handler); */
+  /* isr_install_handler(13, gpf_handler); */
   idt_install();
   isrs_install();
   irq_install();

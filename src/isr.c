@@ -1,6 +1,9 @@
 #include "isr.h"
 #include "error.h"
 #include "gdt.h"
+#include "paging.h"
+#include "scheduler.h"
+#include "syscall.h"
 
 /* This is a very repetitive function... it's not hard, it's
  *  just annoying. As you can see, we set the first 32 entries
@@ -127,6 +130,7 @@ void gpf_handler(struct regs *r)
  * endless loop. All ISRs disable interrupts while they are being
  * serviced as a 'locking' mechanism to prevent an IRQ from
  * happening and messing up kernel data structures */
+extern scheduler_state_t *state;
 void fault_handler(struct regs *r)
 {
   /* Is this a fault whose number is from 0 to 31? */
@@ -137,8 +141,20 @@ void fault_handler(struct regs *r)
       handler(r);
     } else {
       log_string(exception_messages[r->int_no]);
-      write_string(exception_messages[r->int_no]);
-      throw("Exception. System Halted");
+      writef("\n%f%s\n", LightRed, exception_messages[r->int_no]);
+
+      if (current_directory == kernel_directory) {
+        throw("Exception. System Halted");
+      } else {
+        switch_page_directory(kernel_directory);
+        unallocated_mem = kernel_context.unallocated_mem; first_free_block = kernel_context.first_free_block;
+
+        writef("Program interrupted%f\n", White);
+        kill_family(state->curr_pid);
+        select_new_process();
+
+        switch_to_process(1); /* Back to init */
+      }
     }
   }
 }

@@ -2,7 +2,6 @@
 #include "shell.h"
 #include "process.h"
 #include "syscall.h"
-#include "paging.h"
 
 unsigned char kbdus[256] =
   {
@@ -307,103 +306,12 @@ void keyboard_shell(int scancode)
 {
   /* Read from the keyboard's data buffer */
 
-  page_directory_t *temp = current_directory;
-  void *temp_um = unallocated_mem, *temp_ffb = first_free_block;
-  bool change_dir = temp != kernel_directory;
-  if (change_dir) {
-    unallocated_mem = kernel_context.unallocated_mem; first_free_block = kernel_context.first_free_block;
-    switch_page_directory(kernel_directory);
-  }
-
   if (!is_empty_list(run_pid)) {
     /* There is a running process from the shell, ignore, unless Ctrl-C */
-  if (scancode & 0x80)
-    {
-      switch(scancode^0x80) {
-
-      case 29: { // Ctrl
-        k_ctrl--;
-        break;
-      }
-      case 42: { // Left Shift
-        k_shift_count--;
-        k_shift = ((k_lights&0x04)>>2) ^ k_shift_count;
-        // k_shift = k_caps_lock ^ k_shift_count
-        break;
-      }
-      case 54: { // Right Shift
-        k_shift_count--;
-        k_shift = ((k_lights&0x04)>>2) ^ k_shift_count;
-        // k_shift = k_caps_lock ^ k_shift_count
-        break;
-      }
-      case 56: { // Alt
-        k_meta--;
-        break;
-      }
-
-      }
-    }
-  else
-    {
-      switch (scancode) {
-
-      case 26: { // Dead ^
-        if(k_shift) {
-          k_dead_hat = FALSE;
-          k_dead_trema = TRUE; }
-        else if(k_dead_hat) {
-          k_dead_hat = FALSE; }
-        else
-          k_dead_hat = TRUE;
-        break;
-      }
-      case 29: { // Ctrl
-        k_ctrl++;
-        break;
-      }
-      case 42: { // Left Shift
-        k_shift_count++;
-        k_shift = ((k_lights&0x04) ^ 0x04)>>2;
-        break;
-      }
-      case 54: { // Right Shift
-        k_shift_count++;
-        k_shift = ((k_lights&0x04) ^ 0x04)>>2;
-        break;
-      }
-      case 56: { // Alt
-        k_meta++;;
-        break;
-      }
-      case 58: { // Caps lock
-        k_lights = k_lights ^ 0x04;
-        k_shift =!k_shift;
-        keyboard_set_lights(k_lights);
-        break;
-      }
-      case 69: { // Num lock
-        k_lights = k_lights ^ 0x02;
-        keyboard_set_lights(k_lights);
-        break;
-      }
-      case 70: { // Scroll lock
-        k_lights = k_lights ^ 0x01;
-        keyboard_set_lights(k_lights);
-        break;
-      }
-      }
-    }
-
     if (k_ctrl && !(scancode & 0x80) && kbdus[(scancode+(k_shift*128))] == 'c') {
       pid pid = pop(run_pid);
-      writef("\n%fProcess interrupted%f\n", LightRed, White);
       kill_family(pid);
-    }
-    if (change_dir) {
-      kernel_context.unallocated_mem = unallocated_mem; kernel_context.first_free_block = first_free_block;
-      unallocated_mem = temp_um; first_free_block = temp_ffb;
-      switch_page_directory(temp);
+      writef("Process interrupted\n");
     }
     return;
   }
@@ -542,11 +450,6 @@ void keyboard_shell(int scancode)
         k_dead_trema = FALSE;
       }
     }
-  if (change_dir) {
-    switch_page_directory(temp);
-    kernel_context.unallocated_mem = unallocated_mem; kernel_context.first_free_block = first_free_block;
-    unallocated_mem = temp_um; first_free_block = temp_ffb;
-  }
 }
 
 /* Handles the keyboard interrupt for the shell */
