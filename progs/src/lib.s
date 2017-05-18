@@ -278,3 +278,8 @@ find_dir:
     pop ebx
     ret
 
+global scroll
+scroll:
+    mov eax, 29
+    int 0x80
+    ret

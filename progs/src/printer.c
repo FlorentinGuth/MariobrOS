@@ -38,16 +38,16 @@ void clear()
 }
 
 
-void scroll()
-{
-  pos_t last_line = SCREEN_WIDTH * (SCREEN_HEIGHT - 1);
-  for(pos_t i = 0; i < 2*last_line; i++) {
-    set_char(i, get_char(i + 2*SCREEN_WIDTH));
-  }
+/* void scroll() */
+/* { */
+/*   pos_t last_line = SCREEN_WIDTH * (SCREEN_HEIGHT - 1); */
+/*   for(pos_t i = 0; i < 2*last_line; i++) { */
+/*     set_char(i, get_char(i + 2*SCREEN_WIDTH)); */
+/*   } */
 
-  /* Pad the new line */
-  pad(last_line, last_line + SCREEN_WIDTH);
-}
+/*   /\* Pad the new line *\/ */
+/*   pad(last_line, last_line + SCREEN_WIDTH); */
+/* } */
 
 void print_box(pos_t upper_left, pos_t lower_right)
 {

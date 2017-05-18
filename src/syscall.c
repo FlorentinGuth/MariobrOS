@@ -184,9 +184,9 @@ void syscall_lseek()
 void syscall_fstat()
 {
   fd f = (void*) CURR_REGS->ebx;
+  stats* s = (void*) CURR_REGS->ecx;
   fstat(f, (void*) &sys_buf);
   SWITCH_AFTER();
-  stats* s = (void*) CURR_REGS->ecx;
   *s = *((stats*) (&sys_buf));
   SWITCH_BEFORE();
 }
@@ -648,6 +648,7 @@ void syscall_install()
   syscall_table[Get_char] = *syscall_get_char;
   syscall_table[Gcwd]     = *syscall_gcwd;
   syscall_table[Find_dir] = *syscall_find_dir;
+  syscall_table[Scroll]   = *syscall_scroll;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }

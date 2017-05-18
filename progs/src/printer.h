@@ -35,10 +35,10 @@ void pad(pos_t cursor_pos, pos_t to_pad);
  */
 void clear();
 
-/**
- *  @name scroll - Move all the text one line up, and erases the last line.
- */
-void scroll();
+/* /\** */
+/*  *  @name scroll - Move all the text one line up, and erases the last line. */
+/*  *\/ */
+/* void scroll(); */
 
 /**
  *  @name print_char - Prints a single character at the end of the framebuffer.

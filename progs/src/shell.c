@@ -466,11 +466,56 @@ void clear_handler(list_t args)
 {
   clear();
 }
-#pragma GCC diagnostic pop
+/* #pragma GCC diagnostic pop */
 command_t clear_cmd = {
   .name = "clear",
   .help = "Clears the framebuffer",
   .handler = *clear_handler,
+};
+
+
+void cat_handler(list_t args)
+{
+  if (is_empty_list(&args)) {
+    printf("%frun:%f\tNo arguments given\n", LightRed, White);
+  } else {
+    fd file;
+    stats* st = (void*) malloc(sizeof(stats));
+    u_int8 buffer[256];
+    u_int32 size;
+    u_int32 copied;
+    while(!(is_empty_list(&args))) {
+      string name = (void*) pop(&args);
+      if(name[0] == '/') {
+        file = open(name, O_RDONLY, 0);
+      } else {
+        file = open(str_cat(str_cat(path, "/"), name), O_RDONLY, 0);
+      }
+      if(!file) {
+        printf("Bad name\n");
+        continue;
+      }
+      fstat(file, st);
+      size = st->st_size;
+      while(size) {
+        copied = read(file, (void*) buffer, 0, 256);
+        size -= copied;
+        if(!size) {
+          buffer[copied] = '\0';
+        }
+        for(u_int32 i = 0; i < copied; i++) {
+          print_char(buffer[i]);
+        }
+      }
+      printf("\n");
+    }
+  }
+}
+#pragma GCC diagnostic pop
+command_t cat_cmd = {
+  .name = "cat",
+  .help = "Diplays the contents of a file",
+  .handler = *cat_handler,
 };
 
 void shell_install()
@@ -489,6 +534,7 @@ void shell_install()
   register_command(mkdir_cmd);
   register_command(rm_cmd);
   register_command(clear_cmd);
+  register_command(cat_cmd);
 
   /* display_ascii(); */
   splash_screen(NULL);
