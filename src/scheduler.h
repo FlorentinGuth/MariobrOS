@@ -35,5 +35,7 @@ void select_new_process();
  */
 void run_program(string name);
 
+void switch_to_process(pid pid);
+
 
 #endif /* SCHEDULER_H */
