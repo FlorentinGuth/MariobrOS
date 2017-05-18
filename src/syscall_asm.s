@@ -2,7 +2,7 @@ extern syscall_handler
 
 global common_interrupt_handler
 common_interrupt_handler:
-  cli                           ; Disable interrupts
+  ; cli                           ; Disable interrupts
 
   push dword 0                  ; Error code 0
   push dword 0x80               ; Push the interrupt number
