@@ -15,6 +15,90 @@ color_t background = Black;
 #define UPPER_LEFT_CORNER  201
 #define HORIZONTAL_BAR     205
 
+unsigned char kbdus[256] =
+  {
+    0,  19, /* Escape */
+    '&', 130, '"', '\'', '(', '-', 138, '_', /* 9 */
+    135, 133, ')', '=', '\b', /* Backspace */
+    '\t', /* Tab */
+    'a', 'z', 'e', 'r', /* 19 */
+    't', 'y', 'u', 'i', 'o', 'p', '^', '$', '\n',/* Enter key */
+    0, /* 29   - Control */
+    'q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', /* 39 */
+    151, 253, /* Square */
+    0,/* Left shift */
+    '*', 'w', 'x', 'c', 'v', 'b', 'n', /* 49 */
+    ',', ';', ':', '!',   0, /* 54 - Right shift */
+    '*',// * of the numeric pad
+    0,/* 56 - Alt */
+    ' ',/* Space bar */
+    0,/* 58 - Caps lock */
+    'F',/* 59 - F1 key ... > */
+    'F',   'F',   'F',   'F',   'F',   'F',   'F',   'F',
+    'F',/* < ... F10 */
+    0,/* 69 - Num lock*/
+    0,/* 70 - Scroll Lock */
+    0,/* 71 - Home key */
+    0,/* 72 - Up Arrow */
+    24,/* Page Up */
+    '-',
+    0,/* 75 - Left Arrow */
+    234,
+    0,/* 77 - Right Arrow */
+    '+',
+    0,/* 79 - End key*/
+    0,/* 80 - Down Arrow */
+    25,/* Page Down */
+    'I',/* Insert Key */
+    '\177',/* Delete Key */
+    234, 234, '<',
+    'F', /* F11 Key */
+    'F', /* F12 Key */
+    234,234,5, /* Windows key */
+    234,219, /* Menu */
+    234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,
+
+    /* With shift */
+    0,  27, '1', '2', '3', '4', '5', '6', '7', '8', /* 9 */
+    '9', '0', 0, '+', '\b', /* Backspace */
+    '\t', /* Tab */
+    'A', 'Z', 'E', 'R', /* 19 */
+    'T', 'Y', 'U', 'I', 'O', 'P', 137, 156, '\n',/* Enter key */
+    0, /* 29   - Control */
+    'Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', /* 39 */
+    '%', 234,   0, /* Left shift */
+    230, 'W', 'X', 'C', 'V', 'B', 'N', /* 49 */
+    '?', '.', '/', 21,   0, /* 54 - Right shift */
+    234,
+    0,/* 56 - Alt */
+    ' ',/* Space bar */
+    0,/* 58 - Caps lock */
+    'F',/* 59 - F1 key ... > */
+    'F',   'F',   'F',   'F',   'F',   'F',   'F',   'F',
+    'H',/* < ... F10 */
+    0,/* 69 - Num lock*/
+    0,/* 70 - Scroll Lock */
+    0,/* 71 - Home key */
+    0,/* 72 - Up Arrow */
+    24,/* Page Up */
+    '-',
+    0,/* 75 - Left Arrow */
+    '?',
+    0,/* 77 - Right Arrow */
+    '+',
+    0,/* 79 - End key*/
+    0,/* 80 - Down Arrow */
+    25,/* Page Down */
+    'I',/* Insert Key */
+    '\177',/* Delete Key */
+    '?',   '?',   '>',
+    'F', /* F11 Key */
+    'F', /* F12 Key */
+    234,234,5, /* Windows key */
+    234,219, /* Menu */
+    234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,234,
+  };
+
 #define PUT_CHAR(row, col, c) put_char(POS(row, col), (char)c, foreground, background)
 
 void put_char(pos_t i, char c, color_t fg, color_t bg)
@@ -38,24 +122,11 @@ void clear()
 }
 
 
-/* void scroll() */
-/* { */
-/*   pos_t last_line = SCREEN_WIDTH * (SCREEN_HEIGHT - 1); */
-/*   for(pos_t i = 0; i < 2*last_line; i++) { */
-/*     set_char(i, get_char(i + 2*SCREEN_WIDTH)); */
-/*   } */
-
-/*   /\* Pad the new line *\/ */
-/*   pad(last_line, last_line + SCREEN_WIDTH); */
-/* } */
-
 void print_box(pos_t upper_left, pos_t lower_right)
 {
   /* Beware: upper is smaller coordinates than lower! */
   int upper_row = ROW(upper_left), lower_row = ROW(lower_right);
   int left_col  = COL(upper_left), right_col = COL(lower_right);
-
-  /* kloug(100, "%d %d %d %d %d %d\n", upper_left, lower_right, upper_row, lower_row, left_col, right_col); */
 
   for (int row = lower_row; row >= upper_row; row += upper_row - lower_row) {
     for (int col = left_col + 1; col < right_col; col++) {

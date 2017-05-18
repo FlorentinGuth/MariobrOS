@@ -1,1 +1,0 @@
-kegnarok@kegnarok-UX510UXK.3384:1495030238

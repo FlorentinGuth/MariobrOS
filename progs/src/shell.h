@@ -4,7 +4,6 @@
 #include "string.h"
 #include "list.h"
 
-
 typedef struct command {
   string name;
   string help;

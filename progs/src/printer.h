@@ -7,6 +7,7 @@
 #define SCREEN_HEIGHT 25
 #define TAB_WIDTH      4
 
+unsigned char kbdus[256];
 
 #define ROW(pos)       ((pos) / SCREEN_WIDTH)
 #define COL(pos)       ((pos) % SCREEN_WIDTH)

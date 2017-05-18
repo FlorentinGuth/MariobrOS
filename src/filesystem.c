@@ -829,7 +829,7 @@ void ls_dir(u_int32 inode, bool details)
   /* writef("Reading data from inode %u\n", inode); */
   read_inode_data(inode, std_buf, 0, block_size);
   if(! (std_inode->type & TYPE_DIR)) {
-    writef("Not a directory");
+    writef("Not a directory\n");
     return;
   }
   dir_entry *entry = (void*) std_buf;

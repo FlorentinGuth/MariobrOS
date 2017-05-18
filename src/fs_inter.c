@@ -158,6 +158,7 @@ void fstat(fd f, stats* s)
 {
   if(!f) {
     writef("Invalid file descriptor\n");
+    return;
   }
   set_inode(fdt[*f].inode, std_inode);
   s->st_ino = fdt[*f].inode;
