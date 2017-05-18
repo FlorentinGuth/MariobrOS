@@ -391,7 +391,10 @@ void run_handler(list_t args)
   /* Do not return before the programs finished */
   while (!run_finished()) {
     /* hlt(FALSE); */
-    keyboard_shell(keyget(), TRUE);
+    u_int8 scancode = keyget();
+    if (scancode) {
+      keyboard_shell(scancode, TRUE);
+    }
   };
 }
 command_t run_cmd = {
@@ -752,6 +755,12 @@ void shell_right()
 
 void keyboard_shell(u_int8 scancode, bool in_run)
 {
+  if (in_run && k_ctrl && !(scancode & 0x80) && kbdus[(scancode+(k_shift*128))] == 'c') {
+    ctrl_c();
+    writef("\n%fProcess interrupted%f\n", LightRed, White);
+  }
+
+
   /* If the top bit of the byte we read from the keyboard is
    * set, that means that a key has just been released */
   if (scancode & 0x80)
