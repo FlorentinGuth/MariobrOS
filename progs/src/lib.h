@@ -294,6 +294,7 @@ void hlt(bool ignore_timer);
 
 void run_program(string path);
 void ctrl_c();
+u_int32 keypeek();
 bool run_finished();
 
 #endif

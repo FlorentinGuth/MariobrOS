@@ -304,3 +304,9 @@ scroll:
     mov eax, 29
     int 0x80
     ret
+
+global keypeek
+keypeek:
+    mov eax, 30
+    int 0x80
+    ret

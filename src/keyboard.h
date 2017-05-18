@@ -16,4 +16,6 @@ void keyboard_install(int shell_status);
  */
 u_int8 keyboard_get();
 
+u_int8 keyboard_peek();
+
 #endif

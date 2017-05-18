@@ -635,6 +635,11 @@ void syscall_ctrl_c()
   }
 }
 
+void syscall_keypeek()
+{
+  CURR_REGS->eax = keyboard_peek();
+}
+
 void syscall_run_finished()
 {
   CURR_REGS->eax = is_empty_list(run_pid);
@@ -680,6 +685,7 @@ void syscall_install()
   syscall_table[CtrlC]    = *syscall_ctrl_c;
   syscall_table[RunFinished] = *syscall_run_finished;
   syscall_table[Scroll]   = *syscall_scroll;
+  syscall_table[Keypeek]  = *syscall_keypeek;
 
   idt_set_gate(SYSCALL_ISR, (u_int32)common_interrupt_handler, KERNEL_CODE_SEGMENT, 3);
 }

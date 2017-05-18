@@ -269,10 +269,17 @@ u_int8 k_write = 0;
 extern list_t *run_pid;  /* The pid of the process currently running in the shell */
 /* Handles the keyboard interrupt for the shell */
 
+u_int32 k_ctrl_on = 0;
+
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void keyboard_buf_handler(struct regs *r)
 {
   u_int8 scancode = inb(0x60);
+  if(scancode == 29) {
+    k_ctrl_on++;
+  } else if((scancode ^ 0x80) == 29) {
+    k_ctrl_on--;
+  }
   if(k_write + 1 != k_read) {
     key_buf[k_write] = scancode;
     k_write++;
@@ -281,6 +288,10 @@ void keyboard_buf_handler(struct regs *r)
 }
 #pragma GCC diagnostic pop
 
+u_int8 keyboard_peek()
+{
+  return !!k_ctrl_on;
+}
 
 u_int8 keyboard_get()
 {
