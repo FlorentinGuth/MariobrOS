@@ -15,31 +15,31 @@ void print_offset(fd file, u_int32 size, u_int8 offset, pos_t init, \
     u_int16 i = 0;
     u_int32 in_ofs = 0;
     while(in_ofs + i < copied) {
-      for(; in_ofs + i < copied /* && i < SCREEN_WIDTH - offset */; i++) {
+      for(; in_ofs + i < copied && i < SCREEN_WIDTH - offset; i++) {
         if(buffer[in_ofs + i] == '\n') {
           break;
         }
         writef("%c",buffer[in_ofs + i]);
       }
-      /* if(i == SCREEN_WIDTH - offset) { */
-      /*   set_cursor_pos(POS(row, 0)); */
-      /*   for(; in_ofs + i < copied; i++) { */
-      /*     if(buffer[in_ofs + i] == '\n') { */
-      /*       for(int j = get_cursor_pos() % SCREEN_WIDTH; j < offset; j++) { */
-      /*         writef("%c",' '); */
-      /*       } */
-      /*       row++; */
-      /*       set_cursor_pos(POS(row, 0)); */
-      /*       for(int j = 0; j < offset; j++) { */
-      /*         writef("%c",' '); */
-      /*       } */
-      /*       in_ofs += i + 1; */
-      /*       i = 0; */
-      /*       break; */
-      /*     } */
-      /*     writef("%c",buffer[in_ofs + i]); */
-      /*   } */
-      /* } else  */if(buffer[in_ofs + i] == '\n') {
+      if(i == SCREEN_WIDTH - offset) {
+        set_cursor_pos(POS(row, 0));
+        for(; in_ofs + i < copied; i++) {
+          if(buffer[in_ofs + i] == '\n') {
+            for(int j = get_cursor_pos() % SCREEN_WIDTH; j < offset; j++) {
+              writef("%c",' ');
+            }
+            row++;
+            set_cursor_pos(POS(row, 0));
+            for(int j = 0; j < offset; j++) {
+              writef("%c",' ');
+            }
+            in_ofs += i + 1;
+            i = 0;
+            break;
+          }
+          writef("%c",buffer[in_ofs + i]);
+        }
+      } else if(buffer[in_ofs + i] == '\n') {
         for(int j = get_cursor_pos() % SCREEN_WIDTH; j < SCREEN_WIDTH; j++) {
           writef("%c",' ');
         }
@@ -54,7 +54,7 @@ void print_offset(fd file, u_int32 size, u_int8 offset, pos_t init, \
     }
   }
 }
-
+#pragma GCC diagnostic ignored "-Wunused-variable"
 int main()
 {
   fd still;
@@ -73,31 +73,35 @@ int main()
   fstat(rev,   st2);
   pos_t pos = get_cursor_pos();
   s_int16 offset = 0;
-  /* u_int16 scan = 1; */
-  for(;;) {
-    for(offset = 10; offset < 30; offset++) {
-      print_offset(still, st1->st_size, offset, pos, buffer);
-      lseek(still, 0, SEEK_SET);
-    }
-    for(; offset > 10; offset--) {
-      print_offset(rev, st2->st_size, offset, pos, buffer);
-      lseek(rev, 0, SEEK_SET);
-    }
+  u_int16 scan = 0;
+  while(!scan) {
+    scan = keyget();
   }
-  /* while(kbdus[scan] != '\n') { */
-  /*   if(scan) { */
-  /*     if(scan == 75) { */
-  /*       clear(); */
-  /*       offset = 30; */
-  /*       print_offset(still, st->st_size, offset % SCREEN_WIDTH, pos, buffer); */
-  /*     } else if(scan == 77) { */
-  /*       clear(); */
-  /*       offset = 2; */
-  /*       print_offset(still, st->st_size, offset % SCREEN_WIDTH, pos, buffer); */
-  /*     } */
+  scan = 77;
+  /* for(;;) { */
+  /*   for(offset = 10; offset < 30; offset++) { */
+  /*     print_offset(still, st1->st_size, offset, pos, buffer); */
+  /*     lseek(still, 0, SEEK_SET); */
   /*   } */
-  /*   scan = keyget(); */
+  /*   for(; offset > 10; offset--) { */
+  /*     print_offset(rev, st2->st_size, offset, pos, buffer); */
+  /*     lseek(rev, 0, SEEK_SET); */
+  /*   } */
   /* } */
+  while(kbdus[scan] != '\n') {
+    if(scan) {
+      if(scan == 77) {
+        offset++;
+        print_offset(still, st1->st_size, offset, pos, buffer);
+        lseek(still, 0, SEEK_SET);
+      } else if(scan == 75) {
+        offset--;
+        print_offset(rev  , st2->st_size, offset, pos, buffer);
+        lseek(rev  , 0, SEEK_SET);
+      }
+    }
+    scan = keyget();
+  }
   printf("\n");
   close(still);
   return 0;
