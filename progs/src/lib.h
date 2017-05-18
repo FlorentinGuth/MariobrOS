@@ -213,8 +213,9 @@ pos_t get_cursor_pos();
  *  @name ls        - List directory contents
  *  @param dir      - The name of the directory
  *  @param curr_dir - If dir does not begin with '/', local root
+ *  @param details  - If set, prints details
  */
-void ls(string dir, u_int32 curr_dir);
+void ls(string dir, u_int32 curr_dir, bool details);
 
 /**
  *  @name rm        - Removes a file or a directory

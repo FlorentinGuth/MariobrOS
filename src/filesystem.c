@@ -820,7 +820,7 @@ u_int32 create_dir(u_int32 father, string name) {
 
 
 
-void ls_dir(u_int32 inode)
+void ls_dir(u_int32 inode, bool details)
 {
   if(!inode) {
     writef("Invalid address\n");
@@ -828,6 +828,10 @@ void ls_dir(u_int32 inode)
   }
   /* writef("Reading data from inode %u\n", inode); */
   read_inode_data(inode, std_buf, 0, block_size);
+  if(! (std_inode->type & TYPE_DIR)) {
+    writef("Not a directory");
+    return;
+  }
   dir_entry *entry = (void*) std_buf;
   u_int32 endpos = (u_int32) std_buf + block_size;
 
@@ -837,7 +841,12 @@ void ls_dir(u_int32 inode)
       writef("%c", ((u_int8*) &(entry->name))[i]);
     }
     set_inode(entry->inode, std_inode);
-    writef("\t<-- inode = %u\n", entry->inode);
+    if(details) {
+      writef("\t<-- type: %x, inode = %u\n", entry->file_type, \
+             entry->inode);
+    } else {
+      writef("\n");
+    }
     entry = (dir_entry*) (((u_int32) entry) + entry->size);
   }
 }

@@ -437,7 +437,7 @@ void syscall_ls()
   SWITCH_AFTER();
   str_copy((void*) addr, (void*) &sys_buf);
   SWITCH_BEFORE();
-  ls_dir(find_inode((void*) &sys_buf, CURR_REGS->ecx));
+  ls_dir(find_inode((void*) &sys_buf, CURR_REGS->ecx), CURR_REGS->edx);
 }
 
 void syscall_rm()

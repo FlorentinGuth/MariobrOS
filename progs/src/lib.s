@@ -58,10 +58,13 @@ global ls
 ls:
     push ebx
     push ecx
+    push edx
     mov eax, 6
-    mov ebx, [esp+12]
-    mov ecx, [esp+16]
+    mov ebx, [esp+16]
+    mov ecx, [esp+20]
+    mov edx, [esp+24]
     int 0x80
+    pop edx
     pop ecx
     pop ebx
     ret

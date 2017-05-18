@@ -224,14 +224,14 @@ void ls_handler(list_t args)
       string s = (void*) pop(curr_arg);
       printf("%s:\n", s);
       if(s[0] == '/') {
-        ls(s, 2);
+        ls(s, 2, FALSE);
       } else {
-        ls(s, curr_dir);
+        ls(s, curr_dir, FALSE);
       }
       free(s);
     }
   } else {
-    ls(path, 2);
+    ls(path, 2, TRUE);
   }
 }
 command_t ls_cmd = {

@@ -198,10 +198,11 @@ u_int32 create_dir(u_int32 father, string name);
 u_int32 prepare_blocks(u_int32 inode, u_int32 used, u_int32 to_use);
 
 /**
- *  @name  ls_dir - Prints to the screen the contents of a directory
- *  @param inode  - The inode number of the directory
+ *  @name  ls_dir  - Prints to the screen the contents of a directory
+ *  @param inode   - The inode number of the directory
+ *  @param details - If set, prints details
  */
-void ls_dir(u_int32 inode);
+void ls_dir(u_int32 inode, bool details);
 
 /**
  *  @name rm_dir - Recursively deletes an entire directory

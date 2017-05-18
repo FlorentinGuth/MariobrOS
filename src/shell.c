@@ -130,14 +130,14 @@ void ls_handler(list_t args)
       string s = (void*) pop(curr_arg);
       writef("%s:\n", s);
       if(s[0] == '/') {
-        ls_dir(find_inode(s, 2));
+        ls_dir(find_inode(s, 2), 0);
       } else {
-        ls_dir(find_inode(s, curr_dir));
+        ls_dir(find_inode(s, curr_dir), 0);
       }
       mem_free(s);
     }
   } else {
-    ls_dir(curr_dir);
+    ls_dir(curr_dir, 0);
   }
 }
 command_t ls_cmd = {
