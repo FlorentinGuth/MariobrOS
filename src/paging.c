@@ -8,6 +8,7 @@
 #include "malloc.h"
 #include "process.h"
 #include "scheduler.h"
+#include "syscall.h"
 
 /* Source material: http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html */
 
@@ -347,38 +348,40 @@ void page_fault_handler(regs_t *regs)
    *   1  1  1 - User process tried to write a page and caused a protection fault
    */
 
-  /* Temporary, TODO remove */
-  writef("Page fault at %x, p %u r %u user %u reserved %u instruction fetch %u\n", \
-         faulting_address, present, rw, us, reserved, id);
-  /* writef("Err_code: %x\n", regs->err_code); */
-  /* page_table_entry_t *page = get_page(state->processes[state->curr_pid].context.page_dir, faulting_address); */
-  /* writef("Entry: %x\n", *page); */
-  writef("cs %x ss %x ds %x eip %x esp %x\n", regs->cs, regs->ss, regs->ds, regs->eip, regs->useresp);
-
   page_directory_t *faulting = current_directory;
   switch_page_directory(kernel_directory);
+  void *user_um = unallocated_mem, *user_ffb = first_free_block;
+  unallocated_mem = kernel_context.unallocated_mem; first_free_block = kernel_context.first_free_block;
   log_page_dir(faulting);
 
-  throw("PAGE_FAULT");
-
-  if (!present) {
+  if (!present && faulting != kernel_directory) {
     /* The page was not present, let's try to make it! */
-    /* TODO: apply this only if is the next page of the stack, because malloc should
-     * handle paging himself */
+    kloug(100, "Try\n");
 
-    /* TODO detect if kernel mode, but the kernel should not page-fault anyway */
-    if (request_virtual_space(current_directory, faulting_address, FALSE, TRUE)) {
+    if (request_virtual_space(faulting, faulting_address, FALSE, TRUE)) {
       /* Let's return to the faulting code */
+      kernel_context.unallocated_mem = unallocated_mem; kernel_context.first_free_block = first_free_block;
+      unallocated_mem = user_um; first_free_block = user_ffb;
+      switch_page_directory(faulting);
       return;
     }
-
     /* The request failed, there's no more memory or the space is used by someone else */
-  } else {
-    /* There's nothing we can do for you */
-    writef("Page fault at %x, present %u rw %u user-mode %u reserved %u instruction fetch %u", \
-           faulting_address, present, rw, us, reserved, id);
-    throw("PAGE_FAULT");
   }
+
+  if (faulting != kernel_directory) {
+    unallocated_mem = kernel_context.unallocated_mem; first_free_block = kernel_context.first_free_block;
+
+    writef("\n%fProgram interrupted%f\n", LightRed, White);
+    kill_family(state->curr_pid);
+    select_new_process();
+
+    switch_to_process(state->curr_pid);
+  }
+
+  /* There's nothing we can do for you */
+  writef("Page fault at %x, present %u rw %u user-mode %u reserved %u instruction fetch %u", \
+         faulting_address, present, rw, us, reserved, id);
+  throw("PAGE_FAULT");
 }
 
 
